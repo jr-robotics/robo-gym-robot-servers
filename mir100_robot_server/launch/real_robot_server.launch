@@ -1,0 +1,34 @@
+<?xml version="1.0" ?>
+<launch>
+  <arg name="gui" default="true" />
+  <arg name="server_port" default ="50051"/>
+
+  <!-- Load URDF -->
+  <param name="robot_description" command="$(find xacro)/xacro --inorder $(find mir_description)/urdf/mir.urdf.xacro" />
+
+  <!-- Fake joint states publisher -->
+  <node name="fake_mir_joint_publisher" pkg="mir_driver" type="fake_mir_joint_publisher.py" output="screen" />
+
+  <!-- Robot state publisher -->
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" output="screen" />
+
+  <!-- TF for world lab_6x8_v03 -->
+  <node pkg="tf" type="static_transform_publisher" name="transform_map_origin" args="-4.373 -5.254 0.0 0.0 0.0 -0.006 1.0 world map 100"> </node>
+  <!-- <node pkg="tf" type="static_transform_publisher" name="transform_map_origin" args="0.0 0.0 0.0 0.0 0.0 0.0 1.0 world map 100"> </node> -->
+
+  <!-- Launch Command Handler -->
+  <node name="cmd_vel_command_handler" pkg="mir100_robot_server" type="cmd_vel_command_handler.py" respawn="false" output="screen" >
+    <param name="action_cycle_rate" value="10"></param>
+  </node>
+
+  <!-- Launch RViz -->
+  <node if="$(arg gui)" name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false"
+  args="-d $(find mir100_robot_server)/rviz/mir_rob_rl.rviz" output="screen">
+  </node>
+
+  <!--Launch gRPC server -->
+  <node name="robot_server" pkg="mir100_robot_server" type="robot_server.py" respawn="false" output="screen" >
+    <param name="server_port" value="$(arg server_port)"></param>
+    <param name="real_robot" value="true"></param>
+  </node>
+</launch>

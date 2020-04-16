@@ -1,0 +1,10 @@
+*.swp
+*.pyc
+*.py~
+*.ipynb_checkpoints
+
+
+# Setuptools
+/build
+/dist
+/*.egg-info
