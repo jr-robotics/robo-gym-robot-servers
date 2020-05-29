@@ -53,15 +53,67 @@ roslaunch ur_robot_server ur10_sim_robot_server.launch gui:=true
 ```
 
 ##### Real Robot Server
+###### Install UR ROS Driver
+
+To control the UR Robots we use the new [UR ROS Driver](https://github.com/jr-robotics/Universal_Robots_ROS_Driver).
+At the current status the [UR ROS Driver](https://github.com/jr-robotics/Universal_Robots_ROS_Driver) and the [Universal_robot](https://github.com/jr-robotics/universal_robot) package use two different robot descriptions, for this reason it is needed to setup the UR ROS Driver in a separate workspace to avoid conflicts between the two packages.
+
+```bash
+# Source ROS
+source /opt/ros/kinetic/setup.bash
+
+# Create a new folder for the workspace
+mkdir -p ~/urdriver_ws/src
+cd ~/urdriver_ws
+catkin init
+
+# Clone the necessary packages
+cd ~/urdriver_ws/src
+git clone https://github.com/jr-robotics/Universal_Robots_ROS_Driver.git
+git clone -b calibration_devel https://github.com/fmauch/universal_robot.git
+
+# Install dependencies
+cd ~/urdriver_ws
+sudo apt update -qq
+rosdep update
+rosdep install --from-paths src --ignore-src -y
+
+# Build the workspace
+catkin build
+
+```
+
+For additional instructions on how to setup the driver on the robot follow the README of the [UR ROS Driver](https://github.com/jr-robotics/Universal_Robots_ROS_Driver).
+
+###### How to use
+
 
 - Connect to the robot's network
 
-In a terminal window start the ROS driver:
-- Set ROS Master IP: `export ROS_MASTER_URI=http://192.168.12.20:11311`
-- Check the IP of the PC on which the UR ROS Driver will be running with `ifconfig`
-- Set the PC IP `export ROS_IP=192.168.12.192` (replace with IP of the PC)
-- Launch the driver `roslaunch ur_robot_driver ur10_bringup.launch robot_ip:=192.168.12.70` (replace with IP of the robot)
+In a terminal window start the UR ROS driver:
+
+```bash
+# source ROS
+source /opt/ros/kinetic/setup.bash
+
+# source the UR ROS Driver workspace
+source ~/urdriver_ws/devel/setup.bash
+
+# start the Driver (replace with the IP of your robot)
+roslaunch ur_robot_driver ur10_bringup.launch robot_ip:=192.168.12.70
+```
+
+
 
 In another terminal window start the Robot Server
-- Set ROS Master Ip: `export ROS_MASTER_URI=http://192.168.12.20:11311`
-- Launch UR 10 Robot Server `roslaunch ur_robot_server ur10_real_robot_server.launch gui:=true max_torque_scale_factor:=0.5 max_velocity_scale_factor:=0.5 speed_scaling:=0.5`
+
+```bash
+# source ROS
+source /opt/ros/kinetic/setup.bash
+
+# source robo-gym workspace
+source ~/robogym_ws/devel/setup.bash
+
+# start the Robot Server
+roslaunch ur_robot_server ur10_real_robot_server.launch gui:=true max_torque_scale_factor:=0.5 max_velocity_scale_factor:=0.5 speed_scaling:=0.5
+```
