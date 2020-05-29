@@ -20,7 +20,7 @@
   <!--Launch gRPC server -->
   <node name="robot_server" pkg="ur_robot_server" type="robot_server.py" respawn="false" output="screen" >
     <param name="server_port" value="$(arg server_port)"></param>
-    <param name="real_robot" value="false"></param>
+    <param name="real_robot" value="true"></param>
     <param name="max_torque_scale_factor" value="$(arg max_torque_scale_factor)"></param>
     <param name="max_velocity_scale_factor" value="$(arg max_velocity_scale_factor)"></param>
     <param name="speed_scaling" value="$(arg speed_scaling)"></param>
