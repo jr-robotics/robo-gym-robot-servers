@@ -7,7 +7,6 @@ from gazebo_msgs.srv import GetModelState
 def mir_pose_publisher():
     rospy.init_node('mir_pose_pub')
     pub = rospy.Publisher('robot_pose', Pose, queue_size=10)
-    # TODO check this frequency on real robot
     r = rospy.Rate(10.0)
     rospy.wait_for_service('/gazebo/get_model_state')
     rospy.wait_for_service('/gazebo/spawn_urdf_model')
