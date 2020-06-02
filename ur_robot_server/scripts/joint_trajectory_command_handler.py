@@ -12,7 +12,7 @@ class JointTrajectoryCH:
 
         # Publisher to JointTrajectory robot controller
         if self.real_robot:
-            self.jt_pub = rospy.Publisher('/jr_arm_controller/command', JointTrajectory, queue_size=10)
+            self.jt_pub = rospy.Publisher('/scaled_pos_traj_controller/command', JointTrajectory, queue_size=10)
         else:
             self.jt_pub = rospy.Publisher('/arm_controller/command', JointTrajectory, queue_size=10)
 
