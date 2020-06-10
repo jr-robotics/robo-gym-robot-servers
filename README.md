@@ -2,6 +2,8 @@
 
 Repository containing Robot Servers ROS packages
 
+The packages have been tested for both ROS Kinetic and ROS Melodic.
+
 ### Robots currently implemented
 - MiR100
 - Universal Robots UR 10
@@ -16,9 +18,17 @@ mkdir -p ~/robogym_ws/src && cd ~/robogym_ws/src && git clone https://github.com
 ```
 
 Run the installation script
+
+**ROS Melodic**
 ```
-~/robogym_ws/src/robo-gym-robot-servers/install.sh
+~/robogym_ws/src/robo-gym-robot-servers/melodic-install.sh
 ```
+
+**ROS Kinetic**
+```
+~/robogym_ws/src/robo-gym-robot-servers/kinetic-install.sh
+```
+
 *NOTE*: Remember to source the workspace in every new shell before starting the Server Manager.
 
 To source the workspace use:
@@ -59,8 +69,10 @@ To control the UR Robots we use the new [UR ROS Driver](https://github.com/jr-ro
 At the current status the [UR ROS Driver](https://github.com/jr-robotics/Universal_Robots_ROS_Driver) and the [Universal_robot](https://github.com/jr-robotics/universal_robot) package use two different robot descriptions, for this reason it is needed to setup the UR ROS Driver in a separate workspace to avoid conflicts between the two packages.
 
 ```bash
-# Source ROS
-source /opt/ros/kinetic/setup.bash
+# Source ROS Melodic
+source /opt/ros/melodic/setup.bash
+# Source ROS Kinetic
+# source /opt/ros/kinetic/setup.bash
 
 # Create a new folder for the workspace
 mkdir -p ~/urdriver_ws/src
@@ -93,8 +105,10 @@ For additional instructions on how to setup the driver on the robot follow the R
 In a terminal window start the UR ROS driver:
 
 ```bash
-# source ROS
-source /opt/ros/kinetic/setup.bash
+# Source ROS Melodic
+source /opt/ros/melodic/setup.bash
+# Source ROS Kinetic
+# source /opt/ros/kinetic/setup.bash
 
 # source the UR ROS Driver workspace
 source ~/urdriver_ws/devel/setup.bash
@@ -108,8 +122,10 @@ roslaunch ur_robot_driver ur10_bringup.launch robot_ip:=192.168.12.70
 In another terminal window start the Robot Server
 
 ```bash
-# source ROS
-source /opt/ros/kinetic/setup.bash
+# Source ROS Melodic
+source /opt/ros/melodic/setup.bash
+# Source ROS Kinetic
+# source /opt/ros/kinetic/setup.bash
 
 # source robo-gym workspace
 source ~/robogym_ws/devel/setup.bash
