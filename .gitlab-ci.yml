@@ -26,6 +26,11 @@ deploy_master_docker_image:
     - docker build -f melodic.Dockerfile --build-arg GIT_COMMIT=$CI_COMMIT_SHA -t $CI_REGISTRY_IMAGE/master:latest .
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY
     - docker push $CI_REGISTRY_IMAGE/master:latest
+    - docker tag $CI_REGISTRY_IMAGE/master:latest joanneumrobotics/robo-gym-robot-server-side:$CI_COMMIT_SHA
+    - docker tag $CI_REGISTRY_IMAGE/master:latest joanneumrobotics/robo-gym-robot-server-side:latest
+    - echo "$DOCKER_HUB_TOKEN" | docker login --username $DOCKER_HUB_USER --password-stdin
+    - docker push joanneumrobotics/robo-gym-robot-server-side:$CI_COMMIT_SHA
+    - docker push joanneumrobotics/robo-gym-robot-server-side:latest
   only:
     - master
 
