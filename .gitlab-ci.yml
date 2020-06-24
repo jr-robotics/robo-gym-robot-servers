@@ -1,5 +1,23 @@
 stages:
+  - test
   - deploy
+
+test_environments: 
+  stage: test
+  trigger:
+    project: robo-gym/robo-gym
+    strategy: depend
+  except:
+    - capsize*
+
+test_capsize_environments:
+  stage: test
+  trigger:
+    project: robo-gym/robo-gym
+    branch: capsize_master
+    strategy: depend
+  only:
+    - capsize*
 
 deploy_develop_docker_image:
   image: docker:18.09
