@@ -24,9 +24,6 @@
     <param name="action_cycle_rate" value="25"></param>
   </node>
 
-  <!-- Launch Joint Velocity Estimator  -->
-  <node name="jv_estimator" pkg="ur_robot_server" type="joint_velocity_estimator.py" respawn="false" output="screen" >
-  </node>
 
   <!-- Launch RViz -->
   <node if="$(arg gui)" name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false"
