@@ -21,6 +21,8 @@ class JointTrajectoryCH:
         self.msg = JointTrajectory()
         # Queue with maximum size 1
         self.queue = Queue(maxsize=1)
+        # Flag used to publish empty JointTrajectory message only once when interrupting execution
+        self.stop_flag = False 
 
     def callback_env_joint_trajectory(self,data):
         try:
@@ -36,8 +38,15 @@ class JointTrajectoryCH:
             # publish the command, otherwise preempt trajectory
             if self.queue.full():
                 self.jt_pub.publish(self.queue.get())
+                self.stop_flag = False 
             else:
-                self.jt_pub.publish(JointTrajectory())
+                # If the empty JointTrajectory message has no been published publish it and
+                # set the stop_flag to True, else pass
+                if not self.stop_flag:
+                    self.jt_pub.publish(JointTrajectory())
+                    self.stop_flag = True 
+                else: 
+                    pass 
             self.rate.sleep()
 
 
