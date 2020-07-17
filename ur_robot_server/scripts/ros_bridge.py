@@ -51,6 +51,12 @@ class UrRosBridge:
 
         self.reference_frame = 'base'
 
+        if self.real_robot:
+            self.ee_frame = 'ee_link'
+        else: 
+            self.ee_frame = 'flange'
+
+
         self.max_velocity_scale_factor = float(rospy.get_param("~max_velocity_scale_factor"))
         self.absolute_ur_joint_vel_limits = [3.15, 2.16, 2.16, 3.2, 3.2, 3.2]
         self.ur_joint_vel_limits = [self.max_velocity_scale_factor * i for i in self.absolute_ur_joint_vel_limits]
@@ -82,7 +88,7 @@ class UrRosBridge:
         target = copy.deepcopy(self.target)
         ur_state = copy.deepcopy(self.ur_state)
 
-        (position, quaternion) = self.tf_listener.lookupTransform('base','ee_link',rospy.Time(0))
+        (position, quaternion) = self.tf_listener.lookupTransform(self.reference_frame,self.ee_frame,rospy.Time(0))
 
         euler = tf.transformations.euler_from_quaternion(quaternion)
         ee_pose = position + [euler[0],euler[1],euler[2]]
