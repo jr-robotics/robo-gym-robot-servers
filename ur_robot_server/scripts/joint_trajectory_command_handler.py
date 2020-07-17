@@ -14,7 +14,7 @@ class JointTrajectoryCH:
         if self.real_robot:
             self.jt_pub = rospy.Publisher('/scaled_pos_traj_controller/command', JointTrajectory, queue_size=10)
         else:
-            self.jt_pub = rospy.Publisher('/arm_controller/command', JointTrajectory, queue_size=10)
+            self.jt_pub = rospy.Publisher('/eff_joint_traj_controller/command', JointTrajectory, queue_size=10)
 
         # Subscriber to JointTrajectory Command coming from Environment
         rospy.Subscriber('env_arm_command', JointTrajectory, self.callback_env_joint_trajectory, queue_size=1)
