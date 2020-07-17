@@ -8,12 +8,40 @@
   <arg name="max_velocity_scale_factor" default="1.0" doc="Scale factor multplied by maximum joint velocity value"/>
   <arg name="server_port" default ="50051"/>
 
-  <!-- spawn robot and bring up controllers etc. -->
-  <include file="$(find ur_gazebo)/launch/ur10.launch">
-    <arg name="gui" value="$(arg gazebo_gui)" />
-    <arg name="world_name" value="$(arg world)"/>
-    <arg name="max_torque_scale_factor" value="$(arg max_torque_scale_factor)"/>
-    <arg name="max_velocity_scale_factor" value="$(arg max_velocity_scale_factor)"/>
+   <!--Robot description and related parameter files -->
+  <arg name="robot_description_file" default="$(find ur_gazebo)/launch/inc/load_ur10.launch.xml" doc="Launch file which populates the 'robot_description' parameter."/>
+  <arg name="joint_limit_params" default="$(find ur_description)/config/ur10/joint_limits.yaml"/>
+  <arg name="kinematics_params" default="$(find ur_description)/config/ur10/default_kinematics.yaml"/>
+  <arg name="physical_params" default="$(find ur_description)/config/ur10/physical_parameters.yaml"/>
+  <arg name="visual_params" default="$(find ur_description)/config/ur10/visual_parameters.yaml"/>
+
+  <!-- Controller configuration -->
+  <arg name="controller_config_file" default="$(find ur_robot_server)/config/ur10_controllers.yaml" doc="Config file used for defining the ROS-Control controllers."/>
+  <arg name="controllers" default="joint_state_controller eff_joint_traj_controller" doc="Controllers that are activated by default."/>
+  <arg name="stopped_controllers" default="joint_group_eff_controller" doc="Controllers that are initally loaded, but not started."/>
+
+  <!-- Load urdf on the parameter server -->
+  <include file="$(arg robot_description_file)">
+    <arg name="joint_limit_params" value="$(arg joint_limit_params)"/>
+    <arg name="kinematics_params" value="$(arg kinematics_params)"/>
+    <arg name="physical_params" value="$(arg physical_params)"/>
+    <arg name="visual_params" value="$(arg visual_params)"/>
+  </include>
+
+  <!-- Robot state publisher -->
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
+    <param name="publish_frequency" type="double" value="125" />
+    <param name="tf_prefix" value="" />
+  </node>
+
+  <!-- Start the 'driver' (ie: Gazebo in this case) -->
+  <include file="$(find ur_gazebo)/launch/inc/ur_control.launch.xml">
+    <arg name="controller_config_file" value="$(arg controller_config_file)"/>
+    <arg name="controllers" value="$(arg controllers)"/>
+    <arg name="gui" value="$(arg gazebo_gui)"/>
+    <arg name="paused" value="false"/>
+    <arg name="stopped_controllers" value="$(arg stopped_controllers)"/>
+    <arg name="gazebo_world" value="$(arg world)"/>
   </include>
 
   <!-- Launch Command Handler  -->
