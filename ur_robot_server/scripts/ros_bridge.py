@@ -39,7 +39,7 @@ class UrRosBridge:
         self.target = [0.0] * 6
         self.ur_state = [0.0] *12
 
-            rospy.Subscriber("joint_states", JointState, self.callbackUR, queue_size=1, buff_size=96, tcp_nodelay=True )
+        rospy.Subscriber("joint_states", JointState, self.callbackUR, queue_size=1, buff_size=96, tcp_nodelay=True )
 
         # TF Listener
         self.tf_listener = tf.TransformListener()
