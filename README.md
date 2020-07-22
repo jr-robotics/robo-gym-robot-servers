@@ -4,6 +4,9 @@ Repository containing Robot Servers ROS packages
 
 The packages have been tested for both ROS Kinetic and ROS Melodic.
 
+*WARNING*: 
+The compatibility of the Universal Robots environments with ROS Kinetic has been maintained until version [v0.1.8](https://github.com/jr-robotics/robo-gym-robot-servers/tree/v0.1.8) included. After this version we integrated a refactored version of the [universal_robot repository](https://github.com/jr-robotics/universal_robot) which is not compatible with ROS Kinetic. We will try to maintain backwards compatibility but if you encounter issues please use v0.1.8 or switch to ROS Melodic. 
+
 ### Robots currently implemented
 - MiR100
 - Universal Robots UR 10
