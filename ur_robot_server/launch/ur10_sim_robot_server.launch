@@ -9,7 +9,7 @@
   <arg name="server_port" default ="50051"/>
 
    <!--Robot description and related parameter files -->
-  <arg name="robot_description_file" default="$(find ur_gazebo)/launch/inc/load_ur10.launch.xml" doc="Launch file which populates the 'robot_description' parameter."/>
+  <arg name="robot_description_file" default="$(dirname)/inc/load_ur10.launch.xml" doc="Launch file which populates the 'robot_description' parameter."/>
   <arg name="joint_limit_params" default="$(find ur_description)/config/ur10/joint_limits.yaml"/>
   <arg name="kinematics_params" default="$(find ur_description)/config/ur10/default_kinematics.yaml"/>
   <arg name="physical_params" default="$(find ur_description)/config/ur10/physical_parameters.yaml"/>
@@ -35,7 +35,7 @@
   </node>
 
   <!-- Start the 'driver' (ie: Gazebo in this case) -->
-  <include file="$(find ur_gazebo)/launch/inc/ur_control.launch.xml">
+  <include file="$(dirname)/inc/ur_control.launch.xml">
     <arg name="controller_config_file" value="$(arg controller_config_file)"/>
     <arg name="controllers" value="$(arg controllers)"/>
     <arg name="gui" value="$(arg gazebo_gui)"/>
