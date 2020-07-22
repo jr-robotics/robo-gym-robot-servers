@@ -8,6 +8,14 @@
   <arg name="max_velocity_scale_factor" default="1.0" doc="Scale factor multplied by maximum joint velocity value"/>
   <arg name="server_port" default ="50051"/>
 
+  <!-- Robot Base position -->
+  <arg name="x" default="0.0" doc="base_link coordinate with respect to the world frame"/>
+  <arg name="y" default="0.0" doc="base_link coordinate with respect to the world frame"/>
+  <arg name="z" default="0.1" doc="base_link coordinate with respect to the world frame"/>
+  <arg name="roll" default="0.0" doc="base_link coordinate with respect to the world frame"/>
+  <arg name="pitch" default="0.0" doc="base_link coordinate with respect to the world frame"/>
+  <arg name="yaw" default="0.0" doc="base_link coordinate with respect to the world frame"/>
+
    <!--Robot description and related parameter files -->
   <arg name="robot_description_file" default="$(dirname)/inc/load_ur10.launch.xml" doc="Launch file which populates the 'robot_description' parameter."/>
   <arg name="joint_limit_params" default="$(find ur_description)/config/ur10/joint_limits.yaml"/>
@@ -26,6 +34,12 @@
     <arg name="kinematics_params" value="$(arg kinematics_params)"/>
     <arg name="physical_params" value="$(arg physical_params)"/>
     <arg name="visual_params" value="$(arg visual_params)"/>
+    <arg name="x" value="$(arg x)"/>
+    <arg name="y" value="$(arg y)"/>
+    <arg name="z" value="$(arg z)"/>
+    <arg name="roll" value="$(arg roll)"/>
+    <arg name="pitch" value="$(arg pitch)"/>
+    <arg name="yaw" value="$(arg yaw)"/>
   </include>
 
   <!-- Robot state publisher -->

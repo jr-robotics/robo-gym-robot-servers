@@ -30,6 +30,14 @@
   <arg name="safety_pos_margin" default="0.15" doc="The lower/upper limits in the safety controller" />
   <arg name="safety_k_position" default="20" doc="Used to set k position in the safety controller" />
 
+  <!-- Robot Base position -->
+  <arg name="x" default="0.0" doc="base_link coordinate with respect to the world frame"/>
+  <arg name="y" default="0.0" doc="base_link coordinate with respect to the world frame"/>
+  <arg name="z" default="0.1" doc="base_link coordinate with respect to the world frame"/>
+  <arg name="roll" default="0.0" doc="base_link coordinate with respect to the world frame"/>
+  <arg name="pitch" default="0.0" doc="base_link coordinate with respect to the world frame"/>
+  <arg name="yaw" default="0.0" doc="base_link coordinate with respect to the world frame"/>
+
   <param name="robot_description" command="$(find xacro)/xacro '$(find ur_robot_server)/urdf/ur.xacro'
     joint_limit_params:=$(arg joint_limit_params)
     kinematics_params:=$(arg kinematics_params)
@@ -38,6 +46,12 @@
     transmission_hw_interface:=$(arg transmission_hw_interface)
     safety_limits:=$(arg safety_limits)
     safety_pos_margin:=$(arg safety_pos_margin)
-    safety_k_position:=$(arg safety_k_position)"
+    safety_k_position:=$(arg safety_k_position)
+    x:=$(arg x)
+    y:=$(arg y)
+    z:=$(arg z)
+    roll:=$(arg roll)
+    pitch:=$(arg pitch)
+    yaw:=$(arg yaw)"
     />
 </launch>

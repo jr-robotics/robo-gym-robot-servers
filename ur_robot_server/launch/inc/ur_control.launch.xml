@@ -34,7 +34,7 @@
   <arg name="spawn_wrist_3_joint" default="0.0" />
   <arg name="paused_tag" value="-unpause" unless="$(arg paused)"/>
   <arg name="paused_tag" value="" if="$(arg paused)"/>
-  <arg name="spawn_z" default="0.1" doc="At which height the model should be spawned. NOTE: lower values will cause the robot to collide with the ground plane." />
+  <arg name="spawn_z" default="0.0" doc="At which height the model should be spawned. NOTE: lower values will cause the robot to collide with the ground plane." />
   <arg name="start_gazebo" default="true" doc="If true, Gazebo will be started. If false, Gazebo will be assumed to have been started elsewhere." />
 
   <!-- Load controller settings -->

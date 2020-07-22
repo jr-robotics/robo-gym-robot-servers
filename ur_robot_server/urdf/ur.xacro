@@ -36,6 +36,12 @@
   <xacro:arg name="physical_params" default=""/>
   <xacro:arg name="kinematics_params" default=""/>
   <xacro:arg name="visual_params" default=""/>
+  <xacro:arg name="x" default="0.0"/>
+  <xacro:arg name="y" default="0.0"/>
+  <xacro:arg name="z" default="0.1"/>
+  <xacro:arg name="roll" default="0.0"/>
+  <xacro:arg name="pitch" default="0.0"/>
+  <xacro:arg name="yaw" default="0.0"/>
   <!--
     legal values:
       - hardware_interface/PositionJointInterface
@@ -75,6 +81,6 @@
   <joint name="world_joint" type="fixed">
     <parent link="world"/>
     <child link="base_link"/>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <origin xyz="$(arg x) $(arg y) $(arg z)" rpy="$(arg roll) $(arg pitch) $(arg yaw)" />
   </joint>
 </robot>
