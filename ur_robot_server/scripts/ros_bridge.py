@@ -39,10 +39,7 @@ class UrRosBridge:
         self.target = [0.0] * 6
         self.ur_state = [0.0] *12
 
-        if self.real_robot:
-            rospy.Subscriber("joint_states", JointState, self.callbackUR, queue_size=1, buff_size=96, tcp_nodelay=True )
-        else:
-            rospy.Subscriber("estimated_joint_states", JointState, self.callbackUR, queue_size=1, buff_size=96, tcp_nodelay=True )
+        rospy.Subscriber("joint_states", JointState, self.callbackUR, queue_size=1, buff_size=96, tcp_nodelay=True )
 
         # TF Listener
         self.tf_listener = tf.TransformListener()
@@ -51,13 +48,17 @@ class UrRosBridge:
 
         self.reference_frame = 'base'
 
+        if self.real_robot:
+            self.ee_frame = 'ee_link'
+        else: 
+            self.ee_frame = 'flange'
+
+
         self.max_velocity_scale_factor = float(rospy.get_param("~max_velocity_scale_factor"))
         self.absolute_ur_joint_vel_limits = [3.15, 2.16, 2.16, 3.2, 3.2, 3.2]
         self.ur_joint_vel_limits = [self.max_velocity_scale_factor * i for i in self.absolute_ur_joint_vel_limits]
         # Minimum Trajectory Point time from start
         self.min_traj_duration = 0.5
-        # Desired speed_scaling
-        self.speed_scaling = rospy.get_param("~speed_scaling")
 
         if not self.real_robot:
             # Subscribers to link collision sensors topics
@@ -82,7 +83,7 @@ class UrRosBridge:
         target = copy.deepcopy(self.target)
         ur_state = copy.deepcopy(self.ur_state)
 
-        (position, quaternion) = self.tf_listener.lookupTransform('base','ee_link',rospy.Time(0))
+        (position, quaternion) = self.tf_listener.lookupTransform(self.reference_frame,self.ee_frame,rospy.Time(0))
 
         euler = tf.transformations.euler_from_quaternion(quaternion)
         ee_pose = position + [euler[0],euler[1],euler[2]]
@@ -111,7 +112,7 @@ class UrRosBridge:
         self.publish_target_marker(self.target)
         # UR Joints Positions
         for i in range(350):
-            self.publish_env_arm_cmd(state[6:12], 1.0)
+            self.publish_env_arm_cmd(state[6:12])
         if not self.real_robot:
             # Reset collision sensors flags
             self.collision_sensors.update(dict.fromkeys(["shoulder","upper_arm","forearm","wrist_1","wrist_2","wrist_3"], False))
@@ -120,22 +121,18 @@ class UrRosBridge:
 
         return 1
 
-    def publish_env_arm_cmd(self, position_cmd, speed_scaling = None ):
+    def publish_env_arm_cmd(self, position_cmd):
         """Publish environment JointTrajectory msg.
 
         Publish JointTrajectory message to the env_command topic.
 
         Args:
             position_cmd (type): Description of parameter `positions`.
-            speed_scaling (type): [0.01-1.00] trajectory speed scaling.
 
         Returns:
             type: Description of returned object.
 
         """
-
-        if not speed_scaling:
-            speed_scaling = self.speed_scaling
 
         if self.safe_to_move:
             msg = JointTrajectory()
@@ -152,7 +149,7 @@ class UrRosBridge:
                 max_vel = self.ur_joint_vel_limits[i]
                 dur.append(max(abs(cmd-pos)/max_vel,self.min_traj_duration))
 
-            msg.points[0].time_from_start = rospy.Duration.from_sec(max(dur)/ speed_scaling)
+            msg.points[0].time_from_start = rospy.Duration.from_sec(max(dur))
             self.arm_cmd_pub.publish(msg)
             # Sleep time set manually to achieve approximately 25Hz rate
             rospy.sleep(self.control_period)

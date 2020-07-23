@@ -1,9 +1,7 @@
 <?xml version="1.0" ?>
 <launch>
   <arg name="gui" default="false" />
-  <arg name="max_torque_scale_factor" default="1.0" doc="Scale factor multplied by maximum joint torque value"/>
   <arg name="max_velocity_scale_factor" default="1.0" doc="Scale factor multplied by maximum joint velocity value"/>
-  <arg name="speed_scaling" default="1.0" doc="[0.01-1.00] Speed scaling to be applied to JointTrajectory command"/>
   <arg name="server_port" default ="50051"/>
 
   <!-- Launch Command Handler  -->
@@ -21,9 +19,7 @@
   <node name="robot_server" pkg="ur_robot_server" type="robot_server.py" respawn="false" output="screen" >
     <param name="server_port" value="$(arg server_port)"></param>
     <param name="real_robot" value="true"></param>
-    <param name="max_torque_scale_factor" value="$(arg max_torque_scale_factor)"></param>
     <param name="max_velocity_scale_factor" value="$(arg max_velocity_scale_factor)"></param>
-    <param name="speed_scaling" value="$(arg speed_scaling)"></param>
   </node>
 
 </launch>

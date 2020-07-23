@@ -12,15 +12,18 @@ class JointTrajectoryCH:
 
         # Publisher to JointTrajectory robot controller
         if self.real_robot:
-            self.jt_pub = rospy.Publisher('/scaled_pos_traj_controller/command', JointTrajectory, queue_size=10)
+            # self.jt_pub = rospy.Publisher('/scaled_pos_traj_controller/command', JointTrajectory, queue_size=10)
+            self.jt_pub = rospy.Publisher('/pos_traj_controller/command', JointTrajectory, queue_size=10)
         else:
-            self.jt_pub = rospy.Publisher('/arm_controller/command', JointTrajectory, queue_size=10)
+            self.jt_pub = rospy.Publisher('/eff_joint_traj_controller/command', JointTrajectory, queue_size=10)
 
         # Subscriber to JointTrajectory Command coming from Environment
         rospy.Subscriber('env_arm_command', JointTrajectory, self.callback_env_joint_trajectory, queue_size=1)
         self.msg = JointTrajectory()
         # Queue with maximum size 1
         self.queue = Queue(maxsize=1)
+        # Flag used to publish empty JointTrajectory message only once when interrupting execution
+        self.stop_flag = False 
 
     def callback_env_joint_trajectory(self,data):
         try:
@@ -36,8 +39,15 @@ class JointTrajectoryCH:
             # publish the command, otherwise preempt trajectory
             if self.queue.full():
                 self.jt_pub.publish(self.queue.get())
+                self.stop_flag = False 
             else:
-                self.jt_pub.publish(JointTrajectory())
+                # If the empty JointTrajectory message has no been published publish it and
+                # set the stop_flag to True, else pass
+                if not self.stop_flag:
+                    self.jt_pub.publish(JointTrajectory())
+                    self.stop_flag = True 
+                else: 
+                    pass 
             self.rate.sleep()
 
 
