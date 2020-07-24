@@ -32,10 +32,15 @@ Run the installation script
 ~/robogym_ws/src/robo-gym-robot-servers/kinetic-install.sh
 ```
 
-*NOTE*: Remember to source the workspace in every new shell before starting the Server Manager.
+Add the following lines to your `.bashrc` file:
 
-To source the workspace use:
-```
+```bash
+# Source ROS Melodic
+source /opt/ros/melodic/setup.bash
+# Source ROS Kinetic
+# source /opt/ros/kinetic/setup.bash
+
+# Source the workspace
 source ~/robogym_ws/devel/setup.bash
 ```
 
