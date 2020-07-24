@@ -11,7 +11,7 @@ build_docker_image:
     - docker-executor
   stage: build
   script:
-    - docker build -f melodic.Dockerfile --build-arg GIT_COMMIT=$CI_COMMIT_SHA -t $CI_REGISTRY_IMAGE/rs:dev-$CI_COMMIT_SHA .
+    - docker build -f melodic.Dockerfile --build-arg GIT_COMMIT=$CI_COMMIT_SHA --build-arg CI_JOB_TOKEN=$CI_JOB_TOKEN -t $CI_REGISTRY_IMAGE/rs:dev-$CI_COMMIT_SHA .
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY
     - docker push $CI_REGISTRY_IMAGE/rs:dev-$CI_COMMIT_SHA
 
