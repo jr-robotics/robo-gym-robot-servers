@@ -27,6 +27,7 @@
   <exec_depend>tf</exec_depend>
   <exec_depend>ur_gazebo</exec_depend>
   <exec_depend>tmux</exec_depend>
+  <exec_depend>gazebo_ros_pkgs</exec_depend>
 
   <export>
   </export>
