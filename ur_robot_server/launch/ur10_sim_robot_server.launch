@@ -7,6 +7,7 @@
   <arg name="world" value ="$(arg world_path)/$(arg world_name)"/>
   <arg name="max_velocity_scale_factor" default="1.0" doc="Scale factor multplied by maximum joint velocity value"/>
   <arg name="server_port" default ="50051"/>
+  <arg name="action_cycle_rate" default="25" doc="Rate at which new commands are published to the robot controller"/>
 
   <!-- Robot Base position -->
   <arg name="x" default="0.0" doc="base_link coordinate with respect to the world frame"/>
@@ -61,7 +62,7 @@
   <!-- Launch Command Handler  -->
   <node name="joint_trajectory_command_handler" pkg="ur_robot_server" type="joint_trajectory_command_handler.py" respawn="false" output="screen" >
     <param name="real_robot" value="false" />
-    <param name="action_cycle_rate" value="25"></param>
+    <param name="action_cycle_rate" value="$(arg action_cycle_rate)"></param>
   </node>
 
 
@@ -75,6 +76,7 @@
     <param name="server_port" value="$(arg server_port)"></param>
     <param name="real_robot" value="false"></param>
     <param name="max_velocity_scale_factor" value="$(arg max_velocity_scale_factor)"></param>
+    <param name="action_cycle_rate" value="$(arg action_cycle_rate)"></param>
   </node>
 
 </launch>

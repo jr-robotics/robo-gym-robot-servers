@@ -3,11 +3,12 @@
   <arg name="gui" default="false" />
   <arg name="max_velocity_scale_factor" default="1.0" doc="Scale factor multplied by maximum joint velocity value"/>
   <arg name="server_port" default ="50051"/>
+  <arg name="action_cycle_rate" default="25" doc="Rate at which new commands are published to the robot controller"/>
 
   <!-- Launch Command Handler  -->
   <node name="joint_trajectory_command_handler" pkg="ur_robot_server" type="joint_trajectory_command_handler.py" respawn="false" output="screen" >
     <param name="real_robot" value="true" />
-    <param name="action_cycle_rate" value="25"></param>
+    <param name="action_cycle_rate" value="$(arg action_cycle_rate)"></param>
   </node>
 
   <!-- Launch RViz -->
@@ -20,6 +21,7 @@
     <param name="server_port" value="$(arg server_port)"></param>
     <param name="real_robot" value="true"></param>
     <param name="max_velocity_scale_factor" value="$(arg max_velocity_scale_factor)"></param>
+    <param name="action_cycle_rate" value="$(arg action_cycle_rate)"></param>
   </node>
 
 </launch>
