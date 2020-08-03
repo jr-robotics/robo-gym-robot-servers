@@ -44,7 +44,9 @@ class UrRosBridge:
         # TF Listener
         self.tf_listener = tf.TransformListener()
 
-        self.control_period = rospy.Duration.from_sec(0.038)
+        # Robot control rate
+        self.sleep_time = (1.0/rospy.get_param("~action_cycle_rate")) - 0.002
+        self.control_period = rospy.Duration.from_sec(self.sleep_time)
 
         self.reference_frame = 'base'
 
@@ -111,7 +113,8 @@ class UrRosBridge:
         # Publish Target Marker
         self.publish_target_marker(self.target)
         # UR Joints Positions
-        for i in range(350):
+        reset_steps = int(10.0/self.sleep_time)
+        for i in range(reset_steps):
             self.publish_env_arm_cmd(state[6:12])
         if not self.real_robot:
             # Reset collision sensors flags
@@ -151,7 +154,6 @@ class UrRosBridge:
 
             msg.points[0].time_from_start = rospy.Duration.from_sec(max(dur))
             self.arm_cmd_pub.publish(msg)
-            # Sleep time set manually to achieve approximately 25Hz rate
             rospy.sleep(self.control_period)
             return position_cmd
         else:
