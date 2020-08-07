@@ -39,7 +39,7 @@ class UrRosBridge:
         self.target = [0.0] * 6
         self.ur_state = [0.0] *12
 
-        rospy.Subscriber("joint_states", JointState, self.callbackUR, queue_size=1, buff_size=96, tcp_nodelay=True )
+        rospy.Subscriber("joint_states", JointState, self.callbackUR)
 
         # TF Listener
         self.tf_listener = tf.TransformListener()
@@ -245,9 +245,9 @@ class UrRosBridge:
         self.target_pub.publish(t_marker)
 
     def callbackUR(self,data):
-
-        self.ur_state[0:6]  = copy.deepcopy(data.position[0:6])
-        self.ur_state[6:12] = copy.deepcopy(data.velocity[0:6])
+        if self.get_state_event.is_set():
+            self.ur_state[0:6]  = data.position[0:6]
+            self.ur_state[6:12] = data.velocity[0:6]
 
     def shoulder_collision_callback(self,data):
         if data.states == []:
