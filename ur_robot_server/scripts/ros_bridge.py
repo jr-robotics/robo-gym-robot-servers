@@ -45,7 +45,7 @@ class UrRosBridge:
         self.tf_listener = tf.TransformListener()
 
         # Robot control rate
-        self.sleep_time = (1.0/rospy.get_param("~action_cycle_rate")) - 0.002
+        self.sleep_time = (1.0/rospy.get_param("~action_cycle_rate")) - 0.01
         self.control_period = rospy.Duration.from_sec(self.sleep_time)
 
         self.reference_frame = 'base'
