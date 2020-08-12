@@ -53,7 +53,7 @@ class UrRosBridge:
         if self.real_robot:
             self.ee_frame = 'ee_link'
         else: 
-            self.ee_frame = 'flange'
+            self.ee_frame = 'tool0'
 
 
         self.max_velocity_scale_factor = float(rospy.get_param("~max_velocity_scale_factor"))
@@ -87,8 +87,7 @@ class UrRosBridge:
 
         (position, quaternion) = self.tf_listener.lookupTransform(self.reference_frame,self.ee_frame,rospy.Time(0))
 
-        euler = tf.transformations.euler_from_quaternion(quaternion)
-        ee_pose = position + [euler[0],euler[1],euler[2]]
+        ee_to_base_transform = position + quaternion
 
         if self.real_robot:
             ur_collision = False
@@ -99,7 +98,7 @@ class UrRosBridge:
 
         state.extend(target)
         state.extend(ur_state)
-        state.extend(ee_pose)
+        state.extend(ee_to_base_transform)
         state.extend([ur_collision])
 
         return state
