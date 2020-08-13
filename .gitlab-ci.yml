@@ -1,5 +1,6 @@
 stages:
   - build 
+  - manual-deploy
   - test
   - deploy
 
@@ -75,7 +76,7 @@ deploy_manual_docker_image:
     - docker:18.09-dind
   tags:
     - docker-executor
-  stage: deploy
+  stage: manual-deploy
   script:
     - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY
     - docker pull $CI_REGISTRY_IMAGE/rs:dev-$CI_COMMIT_SHA
@@ -98,18 +99,5 @@ deploy_capsize_master_docker_image:
   only:
     - capsize_master
 
-deploy_capsize_develop_docker_image:
-  image: docker:18.09
-  services:
-    - docker:18.09-dind
-  tags:
-    - docker-executor
-  stage: deploy
-  script:
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY
-    - docker pull $CI_REGISTRY_IMAGE/rs:dev-$CI_COMMIT_SHA
-    - docker tag $CI_REGISTRY_IMAGE/rs:dev-$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/capsize_develop:latest
-    - docker push $CI_REGISTRY_IMAGE/capsize_develop:latest
-  only:
-    - capsize_develop
+
 
