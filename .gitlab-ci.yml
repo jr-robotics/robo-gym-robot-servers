@@ -82,6 +82,8 @@ deploy_manual_docker_image:
     - docker pull $CI_REGISTRY_IMAGE/rs:dev-$CI_COMMIT_SHA
     - docker tag $CI_REGISTRY_IMAGE/rs:dev-$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/manual_deploy:$CI_COMMIT_SHA
     - docker push $CI_REGISTRY_IMAGE/manual_deploy:$CI_COMMIT_SHA
+    - docker tag $CI_REGISTRY_IMAGE/rs:dev-$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/manual_deploy:latest
+    - docker push $CI_REGISTRY_IMAGE/manual_deploy:latest
   when: manual
 
 deploy_capsize_master_docker_image:
