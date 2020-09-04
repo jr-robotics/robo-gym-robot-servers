@@ -20,7 +20,7 @@ import time
 
 class UrRosBridge:
 
-    def __init__(self,  real_robot=False):
+    def __init__(self,  real_robot=False, ur_model = 'ur10'):
 
         # Event is clear while initialization or set_state is going on
         self.reset = Event()
@@ -57,7 +57,14 @@ class UrRosBridge:
 
 
         self.max_velocity_scale_factor = float(rospy.get_param("~max_velocity_scale_factor"))
-        self.absolute_ur_joint_vel_limits = [3.15, 2.16, 2.16, 3.2, 3.2, 3.2]
+        if ur_model == 'ur3'or ur_model == 'ur3e':
+            self.absolute_ur_joint_vel_limits = [3.14, 3.14, 3.14, 6.28, 6.28, 6.28]
+        elif ur_model == 'ur5'or ur_model == 'ur5e':
+            self.absolute_ur_joint_vel_limits = [3.14, 3.14, 3.14, 3.14, 3.14, 3.14]
+        elif ur_model == 'ur10'or ur_model == 'ur10e' or ur_model == 'ur16e':
+            self.absolute_ur_joint_vel_limits = [3.14, 2.09, 2.09, 3.14, 3.14, 3.14]
+        else:
+            raise ValueError('ur_model not recognized')
         self.ur_joint_vel_limits = [self.max_velocity_scale_factor * i for i in self.absolute_ur_joint_vel_limits]
         # Minimum Trajectory Point time from start
         self.min_traj_duration = 0.5
