@@ -18,14 +18,14 @@
   <arg name="yaw" default="0.0" doc="base_link coordinate with respect to the world frame"/>
 
    <!--Robot description and related parameter files -->
-  <arg name="robot_description_file" default="$(dirname)/inc/load_ur10.launch.xml" doc="Launch file which populates the 'robot_description' parameter."/>
-  <arg name="joint_limit_params" default="$(find ur_description)/config/ur10/joint_limits.yaml"/>
-  <arg name="kinematics_params" default="$(find ur_description)/config/ur10/default_kinematics.yaml"/>
-  <arg name="physical_params" default="$(find ur_description)/config/ur10/physical_parameters.yaml"/>
-  <arg name="visual_params" default="$(find ur_description)/config/ur10/visual_parameters.yaml"/>
+  <arg name="robot_description_file" default="$(dirname)/inc/load_ur5.launch.xml" doc="Launch file which populates the 'robot_description' parameter."/>
+  <arg name="joint_limit_params" default="$(find ur_description)/config/ur5/joint_limits.yaml"/>
+  <arg name="kinematics_params" default="$(find ur_description)/config/ur5/default_kinematics.yaml"/>
+  <arg name="physical_params" default="$(find ur_description)/config/ur5/physical_parameters.yaml"/>
+  <arg name="visual_params" default="$(find ur_description)/config/ur5/visual_parameters.yaml"/>
 
   <!-- Controller configuration -->
-  <arg name="controller_config_file" default="$(find ur_robot_server)/config/ur10_controllers.yaml" doc="Config file used for defining the ROS-Control controllers."/>
+  <arg name="controller_config_file" default="$(find ur_robot_server)/config/ur5_controllers.yaml" doc="Config file used for defining the ROS-Control controllers."/>
   <arg name="controllers" default="joint_state_controller eff_joint_traj_controller" doc="Controllers that are activated by default."/>
   <arg name="stopped_controllers" default="joint_group_eff_controller" doc="Controllers that are initally loaded, but not started."/>
 
@@ -75,7 +75,7 @@
   <node name="robot_server" pkg="ur_robot_server" type="robot_server.py" respawn="false" output="screen" >
     <param name="server_port" value="$(arg server_port)"></param>
     <param name="real_robot" value="false"></param>
-    <param name="ur_model" value="ur10"></param>
+    <param name="ur_model" value="ur5"></param>
     <param name="max_velocity_scale_factor" value="$(arg max_velocity_scale_factor)"></param>
     <param name="action_cycle_rate" value="$(arg action_cycle_rate)"></param>
   </node>
