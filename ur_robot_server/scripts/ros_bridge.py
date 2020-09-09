@@ -49,11 +49,7 @@ class UrRosBridge:
         self.control_period = rospy.Duration.from_sec(self.sleep_time)
 
         self.reference_frame = 'base'
-
-        if self.real_robot:
-            self.ee_frame = 'ee_link'
-        else: 
-            self.ee_frame = 'tool0'
+        self.ee_frame = 'tool0'
 
 
         self.max_velocity_scale_factor = float(rospy.get_param("~max_velocity_scale_factor"))
