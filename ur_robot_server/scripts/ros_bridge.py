@@ -115,7 +115,7 @@ class UrRosBridge:
         # Publish Target Marker
         self.publish_target_marker(self.target)
         # UR Joints Positions
-        reset_steps = int(10.0/self.sleep_time)
+        reset_steps = int(15.0/self.sleep_time)
         for i in range(reset_steps):
             self.publish_env_arm_cmd(state[6:12])
         if not self.real_robot:
