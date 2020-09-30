@@ -11,16 +11,13 @@ class RobotServerServicer(robot_server_pb2_grpc.RobotServerServicer):
 
     def GetState(self, request, context):
         try:
-            msg = robot_server_pb2.State()
-            msg.state.extend(self.rosbridge.get_state())
-            msg.success = 1
-            return msg
+            return self.rosbridge.get_state()
         except:
             return robot_server_pb2.State(success = 0)
 
     def SetState(self, request, context):
         try:
-            self.rosbridge.set_state(state = request.state)
+            self.rosbridge.set_state(state_msg = request)
             return robot_server_pb2.Success(success =1)
         except:
             return robot_server_pb2.Success(success =0)

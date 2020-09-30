@@ -16,6 +16,7 @@ import PyKDL
 import copy
 from threading import Event
 import time
+from robo_gym_server_modules.robot_server.grpc_msgs.python import robot_server_pb2
 
 
 class UrRosBridge:
@@ -99,15 +100,19 @@ class UrRosBridge:
 
         self.get_state_event.set()
 
-        state.extend(target)
-        state.extend(ur_state)
-        state.extend(ee_to_base_transform)
-        state.extend([ur_collision])
+        # Create and fill State message
+        msg = robot_server_pb2.State()
+        msg.state.extend(target)
+        msg.state.extend(ur_state)
+        msg.state.extend(ee_to_base_transform)
+        msg.state.extend([ur_collision])
+        msg.success = 1
+        
+        return msg
 
-        return state
-
-    def set_state(self, state):
+    def set_state(self, state_msg):
         # Set environment state
+        state = state_msg.state 
         # Clear reset Event
         self.reset.clear()
         # Set target internal value

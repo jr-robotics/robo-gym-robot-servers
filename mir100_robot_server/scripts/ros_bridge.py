@@ -14,6 +14,7 @@ import copy
 from tf_conversions import posemath
 from threading import Event
 import numpy as np
+from robo_gym_server_modules.robot_server.grpc_msgs.python import robot_server_pb2
 
 class RosBridge:
 
@@ -96,17 +97,22 @@ class RosBridge:
 
         self.get_state_event.set()
 
-        state.extend(target)
-        state.extend(mir_pose)
-        state.extend(mir_twist)
-        state.extend(mir_f_scan)
-        state.extend(mir_b_scan)
-        state.extend([in_collision])
-        state.extend(obstacles)
-        return state
+        # Create and fill State message
+        msg = robot_server_pb2.State()
+        msg.state.extend(target)
+        msg.state.extend(mir_pose)
+        msg.state.extend(mir_twist)
+        msg.state.extend(mir_f_scan)
+        msg.state.extend(mir_b_scan)
+        msg.state.extend([in_collision])
+        msg.state.extend(obstacles)
+        msg.success = 1
+        
+        return msg
 
-    def set_state(self, state):
+    def set_state(self, state_msg):
         # Set environment state
+        state = state_msg.state 
         # Clear reset Event
         self.reset.clear()
         # Re-initialize Path
