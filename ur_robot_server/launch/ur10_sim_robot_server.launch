@@ -1,6 +1,7 @@
 <?xml version="1.0" ?>
 <launch>
   <arg name="gui" default="false" />
+  <arg name="rviz_gui" default="true" />
   <arg name="gazebo_gui" default="false" />
   <arg name="world_path" default = "$(find ur_robot_server)/worlds" />
   <arg name="world_name" default="empty.world"/>
@@ -8,6 +9,10 @@
   <arg name="max_velocity_scale_factor" default="1.0" doc="Scale factor multplied by maximum joint velocity value"/>
   <arg name="server_port" default ="50051"/>
   <arg name="action_cycle_rate" default="25" doc="Rate at which new commands are published to the robot controller"/>
+  <arg name="obstacle_controller" default="false"  doc="Start obstacle controller node"/>
+  <arg name="reference_frame" default="base"  doc="Reference frame with respect to which target and ee pose are given"/>
+  <arg name="target_mode" default="fixed"  doc="fixed, moving"/>
+  <arg name="target_model_name" default="box100"  doc="Gazebo model name of the target object"/>
 
   <!-- Robot Base position -->
   <arg name="x" default="0.0" doc="base_link coordinate with respect to the world frame"/>
@@ -53,7 +58,7 @@
   <include file="$(dirname)/inc/ur_control.launch.xml">
     <arg name="controller_config_file" value="$(arg controller_config_file)"/>
     <arg name="controllers" value="$(arg controllers)"/>
-    <arg name="gui" value="$(arg gazebo_gui)"/>
+    <arg name="gui" value="$(eval arg('gui') and arg('gazebo_gui'))"/>
     <arg name="paused" value="false"/>
     <arg name="stopped_controllers" value="$(arg stopped_controllers)"/>
     <arg name="gazebo_world" value="$(arg world)"/>
@@ -67,7 +72,7 @@
 
 
   <!-- Launch RViz -->
-  <node if="$(arg gui)" name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false"
+  <node if="$(eval arg('gui') and arg('rviz_gui'))" name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false"
   args="-d $(find ur_robot_server)/rviz/ur_sim_rl.rviz" output="screen">
   </node>
 
@@ -78,6 +83,14 @@
     <param name="ur_model" value="ur10"></param>
     <param name="max_velocity_scale_factor" value="$(arg max_velocity_scale_factor)"></param>
     <param name="action_cycle_rate" value="$(arg action_cycle_rate)"></param>
+    <param name="obstacle_controller" value="$(arg obstacle_controller)"></param>
+    <param name="reference_frame" value="$(arg reference_frame)"></param>
+    <param name="target_mode" value="$(arg target_mode)"></param>
+    <param name="target_model_name" value="$(arg target_model_name)"></param>
+  </node>
+
+  <!--Launch obstacle controller -->
+  <node if="$(arg obstacle_controller)" name="obstacle_controller" pkg="ur_robot_server" type="obstacles_controller.py" respawn="false" output="screen" >
   </node>
 
 </launch>

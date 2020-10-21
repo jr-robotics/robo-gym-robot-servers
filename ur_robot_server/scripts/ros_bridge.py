@@ -8,7 +8,7 @@ from gazebo_msgs.srv import GetModelState, SetModelState, GetLinkState
 from gazebo_msgs.srv import SetModelConfiguration, SetModelConfigurationRequest
 from sensor_msgs.msg import JointState
 from trajectory_msgs.msg import JointTrajectoryPoint, JointTrajectory
-from std_msgs.msg import Float64MultiArray, Header
+from std_msgs.msg import Float64MultiArray, Header, Bool
 from std_srvs.srv import Empty
 from visualization_msgs.msg import Marker
 from nav_msgs.msg import Odometry
@@ -37,6 +37,9 @@ class UrRosBridge:
         # Target RViz Marker publisher
         self.target_pub = rospy.Publisher('target_marker', Marker, queue_size=10)
 
+        # Obstacle controller publisher
+        self.obstacle_controller_pub = rospy.Publisher('move_obstacle', Bool, queue_size=10)
+
         self.target = [0.0] * 6
         self.ur_state = [0.0] *12
 
@@ -49,7 +52,7 @@ class UrRosBridge:
         self.sleep_time = (1.0/rospy.get_param("~action_cycle_rate")) - 0.01
         self.control_period = rospy.Duration.from_sec(self.sleep_time)
 
-        self.reference_frame = 'base'
+        self.reference_frame = rospy.get_param("~reference_frame", "base")
         self.ee_frame = 'tool0'
 
 
@@ -82,11 +85,30 @@ class UrRosBridge:
         #TODO
         self.safe_to_move = True
 
+        self.obstacle_controller = rospy.get_param("~obstacle_controller", False)
+
+        # Target mode
+        self.target_mode = rospy.get_param("~target_mode", 'fixed')
+        self.target_model_name = rospy.get_param("~target_model_name", 'box100')
+
     def get_state(self):
         self.get_state_event.clear()
         # Get environment state
         state =[]
-        target = copy.deepcopy(self.target)
+        if self.target_mode == 'fixed':
+            target = copy.deepcopy(self.target)
+        elif self.target_mode == 'moving':
+            if self.real_robot:
+                raise NotImplementedError
+            else:
+                pose = self.get_model_state_pose(self.target_model_name)
+                # Convert orientation target from Quaternion to RPY
+                quaternion = PyKDL.Rotation.Quaternion(pose[3],pose[4],pose[5],pose[6])
+                r,p,y = quaternion.GetRPY()
+                target = pose[0:3] + [r,p,y]
+        else: 
+            raise ValueError
+            
         ur_state = copy.deepcopy(self.ur_state)
 
         (position, quaternion) = self.tf_listener.lookupTransform(self.reference_frame,self.ee_frame,rospy.Time(0))
@@ -116,9 +138,21 @@ class UrRosBridge:
         # Clear reset Event
         self.reset.clear()
         # Set target internal value
-        self.target = copy.deepcopy(state[0:6])
-        # Publish Target Marker
-        self.publish_target_marker(self.target)
+        if self.target_mode == 'fixed':
+            self.target = copy.deepcopy(state[0:6])
+            # Publish Target Marker
+            self.publish_target_marker(self.target)
+        # Stop movement of obstacles
+        if self.obstacle_controller:
+            msg = Bool()
+            msg.data = False
+            self.obstacle_controller_pub.publish(msg)
+            rospy.set_param("x", state_msg.float_params["x"])
+            rospy.set_param("y", state_msg.float_params["y"])
+            rospy.set_param("z_amplitude", state_msg.float_params["z_amplitude"])
+            rospy.set_param("z_frequency", state_msg.float_params["z_frequency"])
+            rospy.set_param("z_offset",    state_msg.float_params["z_offset"])
+
         # UR Joints Positions
         reset_steps = int(15.0/self.sleep_time)
         for i in range(reset_steps):
@@ -126,6 +160,11 @@ class UrRosBridge:
         if not self.real_robot:
             # Reset collision sensors flags
             self.collision_sensors.update(dict.fromkeys(["shoulder","upper_arm","forearm","wrist_1","wrist_2","wrist_3"], False))
+        # Start movement of obstacles
+        if self.obstacle_controller:
+            msg = Bool()
+            msg.data = True
+            self.obstacle_controller_pub.publish(msg)
 
         self.reset.set()
 
@@ -190,6 +229,21 @@ class UrRosBridge:
             yaw_vel = model_coordinates.twist.angular.z
 
             return [x, y, yaw, x_vel, y_vel, yaw_vel]
+        except rospy.ServiceException as e:
+            print("Service call failed:" + e)
+    
+    def get_model_state_pose(self, model_name, relative_entity_name=''):
+        # method used to retrieve model pose from gazebo simulation
+
+        rospy.wait_for_service('/gazebo/get_model_state')
+        try:
+            model_state = rospy.ServiceProxy('/gazebo/get_model_state', GetModelState)
+            s = model_state(model_name, relative_entity_name)
+
+            pose = [s.pose.position.x, s.pose.position.y, s.pose.position.z, \
+                    s.pose.orientation.x, s.pose.orientation.y, s.pose.orientation.z, s.pose.orientation.w]
+
+            return pose
         except rospy.ServiceException as e:
             print("Service call failed:" + e)
 
