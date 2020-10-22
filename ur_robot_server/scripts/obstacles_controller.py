@@ -22,7 +22,7 @@ class ObstacleController:
 
         # Generate function sampling times
         self.sampling_rate = 100 
-        self.total_sample_time = 4
+        self.total_sample_time = 16
         self.samples_len = self.sampling_rate * self.total_sample_time
         self.t = np.linspace(0, self.total_sample_time, self.samples_len)
 
