@@ -17,4 +17,5 @@ rosdep install --from-paths src -i -y --rosdistro melodic
 source /opt/ros/melodic/setup.bash
 catkin init
 catkin build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebugInfo
+pip install numpy scipy
 echo "Installed robot-servers"
