@@ -31,7 +31,8 @@ RUN source /opt/ros/$ROS_DISTRO/setup.bash && \
 
 RUN \
   pip install --upgrade pip && \
-  pip install robo-gym-server-modules
+  pip install robo-gym-server-modules && \
+  pip install scipy numpy
 
 COPY ./melodic-entrypoint.sh /
 
