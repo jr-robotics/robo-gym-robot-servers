@@ -22,9 +22,6 @@ class ObstacleController:
 
         # Generate function sampling times
         self.sampling_rate = 100 
-        self.total_sample_time = 16
-        self.samples_len = self.sampling_rate * self.total_sample_time
-        self.t = np.linspace(0, self.total_sample_time, self.samples_len)
 
         rospy.Subscriber("move_obstacle", Bool, self.callback_move_obstacle)
     
@@ -37,7 +34,11 @@ class ObstacleController:
 
     def get_triangle_wave(self, amplitude, frequency, offset):
 
-        return offset + amplitude * signal.sawtooth(2 * np.pi * frequency * self.t, 0.5)
+        # Create array with time samples over 1 full function period
+        self.samples_len = int(self.sampling_rate / frequency)
+        t = np.linspace(0, (1/frequency), self.samples_len)
+
+        return offset + amplitude * signal.sawtooth(2 * np.pi * frequency * t, 0.5)
 
     def obstacle_velocity_publisher(self):
         
