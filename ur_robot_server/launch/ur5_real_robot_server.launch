@@ -1,0 +1,32 @@
+<?xml version="1.0" ?>
+<launch>
+  <arg name="gui" default="false" />
+  <arg name="max_velocity_scale_factor" default="1.0" doc="Scale factor multplied by maximum joint velocity value"/>
+  <arg name="server_port" default ="50051"/>
+  <arg name="action_cycle_rate" default="25" doc="Rate at which new commands are published to the robot controller"/>
+  <arg name="reference_frame" default="base"  doc="Reference frame with respect to which target and ee pose are given"/>
+  <arg name="target_mode" default="fixed"  doc="fixed, moving"/>
+
+  <!-- Launch Command Handler  -->
+  <node name="joint_trajectory_command_handler" pkg="ur_robot_server" type="joint_trajectory_command_handler.py" respawn="false" output="screen" >
+    <param name="real_robot" value="true" />
+    <param name="action_cycle_rate" value="$(arg action_cycle_rate)"></param>
+  </node>
+
+  <!-- Launch RViz -->
+  <node if="$(arg gui)" name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false"
+  args="-d $(find ur_robot_server)/rviz/ur_rob_rl.rviz" output="screen">
+  </node>
+
+  <!--Launch gRPC server -->
+  <node name="robot_server" pkg="ur_robot_server" type="robot_server.py" respawn="false" output="screen" >
+    <param name="server_port" value="$(arg server_port)"></param>
+    <param name="real_robot" value="true"></param>
+    <param name="ur_model" value="ur5"></param>
+    <param name="max_velocity_scale_factor" value="$(arg max_velocity_scale_factor)"></param>
+    <param name="action_cycle_rate" value="$(arg action_cycle_rate)"></param>
+    <param name="reference_frame" value="$(arg reference_frame)"></param>
+    <param name="target_mode" value="$(arg target_mode)"></param>
+  </node>
+
+</launch>
