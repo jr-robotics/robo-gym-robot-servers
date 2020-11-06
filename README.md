@@ -2,7 +2,7 @@
 
 Repository containing Robot Servers ROS packages
 
-The packages have been tested for both ROS Kinetic and ROS Melodic.
+The packages have been tested for both ROS Kinetic and ROS Melodic (recommended).
 
 *WARNING*: 
 The compatibility of the Universal Robots environments with ROS Kinetic has been maintained until version [v0.1.8](https://github.com/jr-robotics/robo-gym-robot-servers/tree/v0.1.8) included. After this version we integrated a refactored version of the [universal_robot repository](https://github.com/jr-robotics/universal_robot) which is not compatible with ROS Kinetic. We will try to maintain backwards compatibility but if you encounter issues please use v0.1.8 or switch to ROS Melodic. 
@@ -32,7 +32,7 @@ Run the installation script
 ~/robogym_ws/src/robo-gym-robot-servers/kinetic-install.sh
 ```
 
-Add the following lines to your `.bashrc` file:
+Add the following lines to your `.bashrc` or `.zshrc` file respectively:
 
 ```bash
 # Source ROS Melodic
@@ -42,6 +42,16 @@ source /opt/ros/melodic/setup.bash
 
 # Source the workspace
 source ~/robogym_ws/devel/setup.bash
+```
+
+```bash
+# Source ROS Melodic
+source /opt/ros/melodic/setup.zsh
+# Source ROS Kinetic
+# source /opt/ros/kinetic/setup.zsh
+
+# Source the workspace
+source ~/robogym_ws/devel/setup.zsh
 ```
 
 ### How to use
