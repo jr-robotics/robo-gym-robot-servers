@@ -32,7 +32,7 @@ Run the installation script
 ~/robogym_ws/src/robo-gym-robot-servers/kinetic-install.sh
 ```
 
-Add the following lines to your `.bashrc` or `.zshrc` file respectively:
+Add the following lines to your `.bashrc` :
 
 ```bash
 # Source ROS Melodic
@@ -44,15 +44,6 @@ source /opt/ros/melodic/setup.bash
 source ~/robogym_ws/devel/setup.bash
 ```
 
-```bash
-# Source ROS Melodic
-source /opt/ros/melodic/setup.zsh
-# Source ROS Kinetic
-# source /opt/ros/kinetic/setup.zsh
-
-# Source the workspace
-source ~/robogym_ws/devel/setup.zsh
-```
 
 ### How to use
 
