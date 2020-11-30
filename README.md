@@ -9,7 +9,7 @@ The compatibility of the Universal Robots environments with ROS Kinetic has been
 
 ### Robots currently implemented
 - MiR100
-- Universal Robots UR 10
+- Universal Robots UR 5, UR 10
 
 
 ### Installation
@@ -62,7 +62,7 @@ In a terminal window:
 - Launch MiR100 Robot Server `roslaunch mir100_robot_server real_robot_server.launch gui:=true`
 
 
-#### UR10
+#### Universal Robots
 
 ##### Simulated Robot
 Simulated Robot Servers are handled by the Server Manager. If you want to manually start a Simulated Robot Server use:
@@ -106,6 +106,8 @@ catkin build
 For additional instructions on how to setup the driver on the robot follow the README of the [UR ROS Driver](https://github.com/jr-robotics/Universal_Robots_ROS_Driver).
 
 ###### How to use
+
+*NOTE:* The following instructions and command lines have been written for the UR 10 but they apply to all the supported UR robots, for instance for using the UR 5 Robot Server it is sufficient to replace `ur10` with `ur5` in all the following command lines.
 
 
 - Connect to the robot's network

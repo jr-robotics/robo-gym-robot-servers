@@ -54,6 +54,7 @@ class UrRosBridge:
 
         self.reference_frame = rospy.get_param("~reference_frame", "base")
         self.ee_frame = 'tool0'
+        self.target_frame = 'target'
 
 
         self.max_velocity_scale_factor = float(rospy.get_param("~max_velocity_scale_factor"))
@@ -99,7 +100,8 @@ class UrRosBridge:
             target = copy.deepcopy(self.target)
         elif self.target_mode == 'moving':
             if self.real_robot:
-                raise NotImplementedError
+                (t_position, t_quaternion) = self.tf_listener.lookupTransform(self.reference_frame,self.target_frame,rospy.Time(0))
+                target = t_position + [0,0,0]
             else:
                 pose = self.get_model_state_pose(self.target_model_name)
                 # Convert orientation target from Quaternion to RPY

@@ -13,6 +13,9 @@
   <arg name="reference_frame" default="base"  doc="Reference frame with respect to which target and ee pose are given"/>
   <arg name="target_mode" default="fixed"  doc="fixed, moving"/>
   <arg name="target_model_name" default="box100"  doc="Gazebo model name of the target object"/>
+  <arg name="rviz_config_path" default = "$(find ur_robot_server)/rviz" />
+  <arg name="rviz_config_file" default="ur_sim_rl.rviz" doc="RViz configuration file"/>
+  <arg name="rviz_config" value="$(arg rviz_config_path)/$(arg rviz_config_file)"/>
 
   <!-- Robot Base position -->
   <arg name="x" default="0.0" doc="base_link coordinate with respect to the world frame"/>
@@ -73,7 +76,7 @@
 
   <!-- Launch RViz -->
   <node if="$(eval arg('gui') and arg('rviz_gui'))" name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false"
-  args="-d $(find ur_robot_server)/rviz/ur_sim_rl.rviz" output="screen">
+  args="-d $(arg rviz_config)" output="screen">
   </node>
 
   <!--Launch gRPC server -->
