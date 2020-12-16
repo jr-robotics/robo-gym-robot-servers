@@ -19,6 +19,11 @@ class ObstacleController:
         self.obstacle.pose = Pose()
         self.obstacle.twist = Twist()
 
+        self.obstacle2 = ModelState()
+        self.obstacle2.model_name = "box100_2"
+        self.obstacle2.pose = Pose()
+        self.obstacle2.twist = Twist()
+
         # Obstacle position update frequency (Hz)
         self.update_rate = 100 
 
@@ -113,30 +118,64 @@ class ObstacleController:
         
         while not rospy.is_shutdown():
             if move:
+                # Generate Movement Trajectories
                 i = 0 
-                if rospy.get_param("target_function") == "triangle_wave":
-                    x = rospy.get_param("x", 0.0)
-                    y = rospy.get_param("y", 0.0)
-                    a = rospy.get_param("z_amplitude", 0.1)
-                    f = rospy.get_param("z_frequency", 1.0)
-                    o = rospy.get_param("z_offset", 1.0)
-                    x_function, y_function, z_function = self.get_triangle_wave(x, y, a, f, o)
-                elif rospy.get_param("target_function") == "3d_spline":
-                    x_min = rospy.get_param("x_min")
-                    x_max = rospy.get_param("x_max")
-                    y_min = rospy.get_param("y_min")
-                    y_max = rospy.get_param("y_max")
-                    z_min = rospy.get_param("z_min")
-                    z_max = rospy.get_param("z_max")
-                    n_points = rospy.get_param("n_points", 10)
-                    n_sampling_points = rospy.get_param("n_sampling_points", 4000)
-                    x_function, y_function, z_function = self.get_3d_spline(x_min, x_max, y_min, y_max, z_min, z_max, n_points, n_sampling_points)
+                n_objects = rospy.get_param("n_objects", 1)
+                if  n_objects == 1 :
+                    if rospy.get_param("target_function") == "triangle_wave":
+                        x = rospy.get_param("x", 0.0)
+                        y = rospy.get_param("y", 0.0)
+                        a = rospy.get_param("z_amplitude", 0.1)
+                        f = rospy.get_param("z_frequency", 1.0)
+                        o = rospy.get_param("z_offset", 1.0)
+                        x_function, y_function, z_function = self.get_triangle_wave(x, y, a, f, o)
+                    elif rospy.get_param("target_function") == "3d_spline":
+                        x_min = rospy.get_param("x_min")
+                        x_max = rospy.get_param("x_max")
+                        y_min = rospy.get_param("y_min")
+                        y_max = rospy.get_param("y_max")
+                        z_min = rospy.get_param("z_min")
+                        z_max = rospy.get_param("z_max")
+                        n_points = rospy.get_param("n_points", 10)
+                        n_sampling_points = rospy.get_param("n_sampling_points", 4000)
+                        x_function, y_function, z_function = self.get_3d_spline(x_min, x_max, y_min, y_max, z_min, z_max, n_points, n_sampling_points)
+                elif n_objects == 2:
+                    if rospy.get_param("target_function") == "triangle_wave":
+                        x = rospy.get_param("x", 0.0)
+                        y = rospy.get_param("y", 0.0)
+                        a = rospy.get_param("z_amplitude", 0.1)
+                        f = rospy.get_param("z_frequency", 1.0)
+                        o = rospy.get_param("z_offset", 1.0)
+                        x1_function, y1_function, z1_function = self.get_triangle_wave(x, y, a, f, o)
+                        x2_function, y2_function, z2_function = self.get_triangle_wave(x, y, a, f, o)
+                    elif rospy.get_param("target_function") == "3d_spline":
+                        x_min = rospy.get_param("x_min")
+                        x_max = rospy.get_param("x_max")
+                        y_min = rospy.get_param("y_min")
+                        y_max = rospy.get_param("y_max")
+                        z_min = rospy.get_param("z_min")
+                        z_max = rospy.get_param("z_max")
+                        n_points = rospy.get_param("n_points", 10)
+                        n_sampling_points = rospy.get_param("n_sampling_points", 4000)
+                        x1_function, y1_function, z1_function = self.get_3d_spline(x_min, x_max, y_min, y_max, z_min, z_max, n_points, n_sampling_points)
+                        x2_function, y2_function, z2_function = self.get_3d_spline(x_min, x_max, y_min, y_max, z_min, z_max, n_points, n_sampling_points)
+
                 while move: 
                     i = i % self.samples_len
-                    self.obstacle.pose.position.x = x_function[i]
-                    self.obstacle.pose.position.y = y_function[i]
-                    self.obstacle.pose.position.z = z_function[i]
-                    self.obstacle_pub.publish(self.obstacle)
+                    if n_objects == 1:
+                        self.obstacle.pose.position.x = x_function[i]
+                        self.obstacle.pose.position.y = y_function[i]
+                        self.obstacle.pose.position.z = z_function[i]
+                        self.obstacle_pub.publish(self.obstacle)
+                    if n_objects == 2:
+                        self.obstacle.pose.position.x = x1_function[i]
+                        self.obstacle.pose.position.y = y1_function[i]
+                        self.obstacle.pose.position.z = z1_function[i]
+                        self.obstacle_pub.publish(self.obstacle)
+                        self.obstacle2.pose.position.x = x2_function[i]
+                        self.obstacle2.pose.position.y = y2_function[i]
+                        self.obstacle2.pose.position.z = z2_function[i]
+                        self.obstacle_pub.publish(self.obstacle2)
                     rospy.Rate(self.update_rate).sleep()
                     i = i + 1
                 # Move obstacle up in the air 

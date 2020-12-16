@@ -92,6 +92,10 @@ class UrRosBridge:
         self.target_mode = rospy.get_param("~target_mode", 'fixed')
         self.target_model_name = rospy.get_param("~target_model_name", 'box100')
 
+        # Second Object
+        self.object_02_model_name = 'box200'
+        self.object_02_frame = 'object_02'
+
     def get_state(self):
         self.get_state_event.clear()
         # Get environment state
@@ -108,6 +112,25 @@ class UrRosBridge:
                 quaternion = PyKDL.Rotation.Quaternion(pose[3],pose[4],pose[5],pose[6])
                 r,p,y = quaternion.GetRPY()
                 target = pose[0:3] + [r,p,y]
+        elif self.target_mode == '2moving':
+            if self.real_robot:
+                (t_position, t_quaternion) = self.tf_listener.lookupTransform(self.reference_frame,self.target_frame,rospy.Time(0))
+                target = t_position + [0,0,0]
+                (o2_position, o2_quaternion) = self.tf_listener.lookupTransform(self.reference_frame,self.object_02_frame,rospy.Time(0))
+                object2 = o2_position + [0,0,0]
+            else:
+                # Target
+                t_pose = self.get_model_state_pose(self.target_model_name)
+                # Convert orientation target from Quaternion to RPY
+                t_quaternion = PyKDL.Rotation.Quaternion(t_pose[3],t_pose[4],t_pose[5],t_pose[6])
+                t_r,t_p,t_y = t_quaternion.GetRPY()
+                target = t_pose[0:3] + [t_r,t_p,t_y]
+                # Object 02
+                o2_pose = self.get_model_state_pose(self.object_02_model_name)
+                # Convert orientation target from Quaternion to RPY
+                o2_quaternion = PyKDL.Rotation.Quaternion(o2_pose[3],o2_pose[4],o2_pose[5],o2_pose[6])
+                o2_r,o2_p,o2_y = o2_quaternion.GetRPY()
+                object2 = o2_pose[0:3] + [o2_r,o2_p,o2_y]
         else: 
             raise ValueError
             
@@ -130,6 +153,8 @@ class UrRosBridge:
         msg.state.extend(ur_state)
         msg.state.extend(ee_to_base_transform)
         msg.state.extend([ur_collision])
+        if self.target_mode == '2moving':
+            msg.state.extend(object2)
         msg.success = 1
         
         return msg
@@ -156,6 +181,7 @@ class UrRosBridge:
                 rospy.set_param("z_amplitude", state_msg.float_params["z_amplitude"])
                 rospy.set_param("z_frequency", state_msg.float_params["z_frequency"])
                 rospy.set_param("z_offset",    state_msg.float_params["z_offset"])
+                rospy.set_param("n_objects",    state_msg.float_params["n_objects"])
             elif state_msg.string_params["function"] == "3d_spline":
                 rospy.set_param("target_function", "3d_spline")
                 rospy.set_param("x_min", state_msg.float_params["x_min"])
@@ -166,6 +192,7 @@ class UrRosBridge:
                 rospy.set_param("z_max", state_msg.float_params["z_max"])
                 rospy.set_param("n_points", state_msg.float_params["n_points"])
                 rospy.set_param("n_sampling_points", state_msg.float_params["n_sampling_points"])
+                rospy.set_param("n_objects",    state_msg.float_params["n_objects"])
 
         # UR Joints Positions
         reset_steps = int(15.0/self.sleep_time)
