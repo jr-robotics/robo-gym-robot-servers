@@ -181,7 +181,10 @@ class UrRosBridge:
                 rospy.set_param("z_amplitude", state_msg.float_params["z_amplitude"])
                 rospy.set_param("z_frequency", state_msg.float_params["z_frequency"])
                 rospy.set_param("z_offset",    state_msg.float_params["z_offset"])
-                rospy.set_param("n_objects",    state_msg.float_params["n_objects"])
+                try:
+                    rospy.set_param("n_objects",    state_msg.float_params["n_objects"])
+                except:
+                    pass
             elif state_msg.string_params["function"] == "3d_spline":
                 rospy.set_param("target_function", "3d_spline")
                 rospy.set_param("x_min", state_msg.float_params["x_min"])
@@ -192,7 +195,10 @@ class UrRosBridge:
                 rospy.set_param("z_max", state_msg.float_params["z_max"])
                 rospy.set_param("n_points", state_msg.float_params["n_points"])
                 rospy.set_param("n_sampling_points", state_msg.float_params["n_sampling_points"])
-                rospy.set_param("n_objects",    state_msg.float_params["n_objects"])
+                try:
+                    rospy.set_param("n_objects",    state_msg.float_params["n_objects"])
+                except:
+                    pass
 
         # UR Joints Positions
         reset_steps = int(15.0/self.sleep_time)
