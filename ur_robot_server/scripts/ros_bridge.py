@@ -93,7 +93,7 @@ class UrRosBridge:
         self.target_model_name = rospy.get_param("~target_model_name", 'box100')
 
         # Second Object
-        self.object_02_model_name = 'box200'
+        self.object_02_model_name = 'box100_2'
         self.object_02_frame = 'object_02'
 
     def get_state(self):
