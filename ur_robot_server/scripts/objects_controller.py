@@ -108,17 +108,17 @@ class ObjectsController:
         
         while not rospy.is_shutdown():
             if move:
-                self.num_objects = int(rospy.get_param("n_objects", 1))
+                self.n_objects = int(rospy.get_param("n_objects", 1))
                 # Initialization of ModelState() messages
-                objects_model_state = [ModelState() for i in range(self.num_objects)]
+                objects_model_state = [ModelState() for i in range(self.n_objects)]
                 # Get objects model names
-                for i in range(self.num_objects):
+                for i in range(self.n_objects):
                     objects_model_state[i].model_name = rospy.get_param("object_" + repr(i) +"_model_name")
                     rospy.loginfo(rospy.get_param("object_" + repr(i) +"_model_name"))
 
                 # Generate Movement Trajectories
                 objects_trajectories = []
-                for i in range(self.num_objects):
+                for i in range(self.n_objects):
                     function = rospy.get_param("object_" + repr(i) +"_function")
                     if function == "triangle_wave":
                         x = rospy.get_param("object_" + repr(i) + "_x")
@@ -143,7 +143,7 @@ class ObjectsController:
                 s = 0 
                 while move: 
                     s = s % self.samples_len
-                    for i in range(self.num_objects):
+                    for i in range(self.n_objects):
                         objects_model_state[i].pose.position.x = objects_trajectories[i][0][s]
                         objects_model_state[i].pose.position.y = objects_trajectories[i][1][s]
                         objects_model_state[i].pose.position.z = objects_trajectories[i][2][s]
@@ -152,7 +152,7 @@ class ObjectsController:
                     s = s + 1
 
                 # Move objects up in the air 
-                for i in range(self.num_objects):
+                for i in range(self.n_objects):
                         objects_model_state[i].pose.position.x = i
                         objects_model_state[i].pose.position.y = 0.0
                         objects_model_state[i].pose.position.z = 3.0
