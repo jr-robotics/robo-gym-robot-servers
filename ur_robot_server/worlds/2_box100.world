@@ -17,7 +17,7 @@
     <!-- Box 100x100x100 -->
     <include>
       <name>box100_2</name>
-      <uri>model://box100</uri>
+      <uri>model://red_box100</uri>
       <pose>0 0.3 2.0 0 0 0</pose>
     </include>
     <physics type = "ode">
