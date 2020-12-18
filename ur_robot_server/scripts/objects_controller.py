@@ -192,7 +192,7 @@ class ObstacleController:
 
 if __name__ == '__main__':
     try:
-        rospy.init_node('obstacle_controller')
+        rospy.init_node('objects_controller')
         oc = ObstacleController()
         oc.obstacle_velocity_publisher()
     except rospy.ROSInterruptException:

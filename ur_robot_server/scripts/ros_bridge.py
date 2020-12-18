@@ -86,7 +86,7 @@ class UrRosBridge:
         #TODO
         self.safe_to_move = True
 
-        self.obstacle_controller = rospy.get_param("~obstacle_controller", False)
+        self.obstacle_controller = rospy.get_param("~objects_controller", False)
 
         # Target mode
         self.target_mode = rospy.get_param("~target_mode", 'fixed')
