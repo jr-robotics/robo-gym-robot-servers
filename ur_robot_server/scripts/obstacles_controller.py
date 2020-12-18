@@ -181,6 +181,9 @@ class ObstacleController:
                 # Move obstacle up in the air 
                 self.obstacle.pose.position.z = 3.0
                 self.obstacle_pub.publish(self.obstacle)
+                if n_objects == 2:
+                    self.obstacle2.pose.position.z = 3.0 
+                    self.obstacle_pub.publish(self.obstacle2)
                 rospy.Rate(self.update_rate).sleep()
             else:
                 pass 
