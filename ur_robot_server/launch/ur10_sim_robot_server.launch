@@ -9,10 +9,18 @@
   <arg name="max_velocity_scale_factor" default="1.0" doc="Scale factor multplied by maximum joint velocity value"/>
   <arg name="server_port" default ="50051"/>
   <arg name="action_cycle_rate" default="25" doc="Rate at which new commands are published to the robot controller"/>
-  <arg name="objects_controller" default="false"  doc="Start objects controller node"/>
   <arg name="reference_frame" default="base"  doc="Reference frame with respect to which target and ee pose are given"/>
   <arg name="target_mode" default="fixed"  doc="fixed, moving"/>
-  <arg name="target_model_name" default="box100"  doc="Gazebo model name of the target object"/>
+
+  <!-- Scene Objects -->
+  <arg name="objects_controller" default="false"  doc="Start objects controller node"/>
+  <arg name="n_objects" default="0.0"  doc="Number of objects in the scene"/>
+  <arg name="object_0_model_name" default="" doc="Gazebo model name of the target object"/>
+  <arg name="object_0_frame" default="" doc="TF Frame name of target"/>
+  <arg name="object_1_model_name" default="" doc="Gazebo model name of object 1"/>
+  <arg name="object_1_frame" default="" doc="TF Frame name of object 1"/>
+
+  <!-- RViz Configuration -->
   <arg name="rviz_config_path" default = "$(find ur_robot_server)/rviz" />
   <arg name="rviz_config_file" default="ur_sim_rl.rviz" doc="RViz configuration file"/>
   <arg name="rviz_config" value="$(arg rviz_config_path)/$(arg rviz_config_file)"/>
@@ -86,14 +94,19 @@
     <param name="ur_model" value="ur10"></param>
     <param name="max_velocity_scale_factor" value="$(arg max_velocity_scale_factor)"></param>
     <param name="action_cycle_rate" value="$(arg action_cycle_rate)"></param>
-    <param name="objects_controller" value="$(arg objects_controller)"></param>
     <param name="reference_frame" value="$(arg reference_frame)"></param>
     <param name="target_mode" value="$(arg target_mode)"></param>
-    <param name="target_model_name" value="$(arg target_model_name)"></param>
   </node>
 
   <!--Launch objects controller -->
   <node if="$(arg objects_controller)" name="objects_controller" pkg="ur_robot_server" type="objects_controller.py" respawn="false" output="screen" >
   </node>
 
+  <!-- Scene Objects Parameters -->
+  <param name="objects_controller" value="$(arg objects_controller)"></param>
+  <param name="n_objects" value="$(arg n_objects)"></param>
+  <param name="object_0_model_name" value="$(arg object_0_model_name)"></param>
+  <param name="object_0_frame" value="$(arg object_0_frame)"></param>
+  <param name="object_1_model_name" value="$(arg object_1_model_name)"></param>
+  <param name="object_1_frame" value="$(arg object_1_frame)"></param>
 </launch>
