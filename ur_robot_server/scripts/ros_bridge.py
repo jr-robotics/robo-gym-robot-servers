@@ -139,6 +139,31 @@ class UrRosBridge:
                 o2_quaternion = PyKDL.Rotation.Quaternion(o2_pose[3],o2_pose[4],o2_pose[5],o2_pose[6])
                 o2_r,o2_p,o2_y = o2_quaternion.GetRPY()
                 object2 = o2_pose[0:3] + [o2_r,o2_p,o2_y]
+
+        elif self.target_mode == '2moving2points':
+
+            (forearm_position, forearm_quaternion) = self.tf_listener.lookupTransform(self.reference_frame,'forearm_link',rospy.Time(0))
+            forearm_to_ref_tf = forearm_position + forearm_quaternion
+            
+            if self.real_robot:
+                (t_position, t_quaternion) = self.tf_listener.lookupTransform(self.reference_frame,self.objects_frame[0],rospy.Time(0))
+                target = t_position + [0,0,0]
+                (o2_position, o2_quaternion) = self.tf_listener.lookupTransform(self.reference_frame,self.objects_frame[1],rospy.Time(0))
+                object2 = o2_position + [0,0,0]
+            else:
+                # Target
+                t_pose = self.get_model_state_pose(self.objects_model_name[0])
+                # Convert orientation target from Quaternion to RPY
+                t_quaternion = PyKDL.Rotation.Quaternion(t_pose[3],t_pose[4],t_pose[5],t_pose[6])
+                t_r,t_p,t_y = t_quaternion.GetRPY()
+                target = t_pose[0:3] + [t_r,t_p,t_y]
+                # Object 02
+                o2_pose = self.get_model_state_pose(self.objects_model_name[1])
+                # Convert orientation target from Quaternion to RPY
+                o2_quaternion = PyKDL.Rotation.Quaternion(o2_pose[3],o2_pose[4],o2_pose[5],o2_pose[6])
+                o2_r,o2_p,o2_y = o2_quaternion.GetRPY()
+                object2 = o2_pose[0:3] + [o2_r,o2_p,o2_y]
+            
         else: 
             raise ValueError
             
@@ -163,6 +188,9 @@ class UrRosBridge:
         msg.state.extend([ur_collision])
         if self.target_mode == '2moving':
             msg.state.extend(object2)
+        if self.target_mode == '2moving2points':
+            msg.state.extend(object2)
+            msg.state.extend(forearm_to_ref_tf)
         msg.success = 1
         
         return msg
