@@ -113,7 +113,6 @@ class UrRosBridge:
             if self.real_robot:
                 (t_position, t_quaternion) = self.tf_listener.lookupTransform(self.reference_frame,self.objects_frame[0],rospy.Time(0))
                 target = t_position + [0,0,0]
-                target = t_position + [0,0,0]
             else:
                 pose = self.get_model_state_pose(self.objects_model_name[0])
                 # Convert orientation target from Quaternion to RPY
