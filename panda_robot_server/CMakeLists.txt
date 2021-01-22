@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(ur_robot_server)
+project(panda_robot_server)
 
 find_package(catkin REQUIRED COMPONENTS
   rospy
