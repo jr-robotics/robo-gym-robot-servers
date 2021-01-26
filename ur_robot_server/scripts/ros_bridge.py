@@ -37,8 +37,8 @@ class UrRosBridge:
         # Target RViz Marker publisher
         self.target_pub = rospy.Publisher('target_marker', Marker, queue_size=10)
 
-        # Obstacle controller publisher
-        self.obstacle_controller_pub = rospy.Publisher('move_obstacle', Bool, queue_size=10)
+        # move_objects controller publisher
+        self.move_objects_pub = rospy.Publisher('move_objects', Bool, queue_size=10)
 
         self.target = [0.0] * 6
         self.ur_state = [0.0] *12
@@ -54,8 +54,6 @@ class UrRosBridge:
 
         self.reference_frame = rospy.get_param("~reference_frame", "base")
         self.ee_frame = 'tool0'
-        self.target_frame = 'target'
-
 
         self.max_velocity_scale_factor = float(rospy.get_param("~max_velocity_scale_factor"))
         if ur_model == 'ur3'or ur_model == 'ur3e':
@@ -86,11 +84,24 @@ class UrRosBridge:
         #TODO
         self.safe_to_move = True
 
-        self.obstacle_controller = rospy.get_param("~obstacle_controller", False)
-
-        # Target mode
+         # Target mode
         self.target_mode = rospy.get_param("~target_mode", 'fixed')
-        self.target_model_name = rospy.get_param("~target_model_name", 'box100')
+
+        # Objects parameters
+        self.objects_controller = rospy.get_param("objects_controller", False)
+        self.n_objects = int(rospy.get_param("n_objects"))
+
+        # Get objects model name
+        if self.objects_controller:
+            self.objects_model_name = []
+            for i in range(self.n_objects):
+                self.objects_model_name.append(rospy.get_param("object_" + repr(i) + "_model_name"))
+        
+        # Get objects TF Frame
+        self.objects_frame = []
+        for i in range(self.n_objects):
+            self.objects_frame.append(rospy.get_param("object_" + repr(i) + "_frame"))
+
 
     def get_state(self):
         self.get_state_event.clear()
@@ -100,14 +111,74 @@ class UrRosBridge:
             target = copy.deepcopy(self.target)
         elif self.target_mode == 'moving':
             if self.real_robot:
-                (t_position, t_quaternion) = self.tf_listener.lookupTransform(self.reference_frame,self.target_frame,rospy.Time(0))
+                (t_position, t_quaternion) = self.tf_listener.lookupTransform(self.reference_frame,self.objects_frame[0],rospy.Time(0))
                 target = t_position + [0,0,0]
             else:
-                pose = self.get_model_state_pose(self.target_model_name)
+                pose = self.get_model_state_pose(self.objects_model_name[0])
                 # Convert orientation target from Quaternion to RPY
                 quaternion = PyKDL.Rotation.Quaternion(pose[3],pose[4],pose[5],pose[6])
                 r,p,y = quaternion.GetRPY()
                 target = pose[0:3] + [r,p,y]
+        elif self.target_mode == '2moving':
+            if self.real_robot:
+                (t_position, t_quaternion) = self.tf_listener.lookupTransform(self.reference_frame,self.objects_frame[0],rospy.Time(0))
+                target = t_position + [0,0,0]
+                (o2_position, o2_quaternion) = self.tf_listener.lookupTransform(self.reference_frame,self.objects_frame[1],rospy.Time(0))
+                object2 = o2_position + [0,0,0]
+            else:
+                # Target
+                t_pose = self.get_model_state_pose(self.objects_model_name[0])
+                # Convert orientation target from Quaternion to RPY
+                t_quaternion = PyKDL.Rotation.Quaternion(t_pose[3],t_pose[4],t_pose[5],t_pose[6])
+                t_r,t_p,t_y = t_quaternion.GetRPY()
+                target = t_pose[0:3] + [t_r,t_p,t_y]
+                # Object 02
+                o2_pose = self.get_model_state_pose(self.objects_model_name[1])
+                # Convert orientation target from Quaternion to RPY
+                o2_quaternion = PyKDL.Rotation.Quaternion(o2_pose[3],o2_pose[4],o2_pose[5],o2_pose[6])
+                o2_r,o2_p,o2_y = o2_quaternion.GetRPY()
+                object2 = o2_pose[0:3] + [o2_r,o2_p,o2_y]
+
+        elif self.target_mode == '2moving2points':
+
+            (forearm_position, forearm_quaternion) = self.tf_listener.lookupTransform(self.reference_frame,'forearm_link',rospy.Time(0))
+            forearm_to_ref_tf = forearm_position + forearm_quaternion
+            
+            if self.real_robot:
+                (t_position, t_quaternion) = self.tf_listener.lookupTransform(self.reference_frame,self.objects_frame[0],rospy.Time(0))
+                target = t_position + [0,0,0]
+                (o2_position, o2_quaternion) = self.tf_listener.lookupTransform(self.reference_frame,self.objects_frame[1],rospy.Time(0))
+                object2 = o2_position + [0,0,0]
+            else:
+                # Target
+                t_pose = self.get_model_state_pose(self.objects_model_name[0])
+                # Convert orientation target from Quaternion to RPY
+                t_quaternion = PyKDL.Rotation.Quaternion(t_pose[3],t_pose[4],t_pose[5],t_pose[6])
+                t_r,t_p,t_y = t_quaternion.GetRPY()
+                target = t_pose[0:3] + [t_r,t_p,t_y]
+                # Object 02
+                o2_pose = self.get_model_state_pose(self.objects_model_name[1])
+                # Convert orientation target from Quaternion to RPY
+                o2_quaternion = PyKDL.Rotation.Quaternion(o2_pose[3],o2_pose[4],o2_pose[5],o2_pose[6])
+                o2_r,o2_p,o2_y = o2_quaternion.GetRPY()
+                object2 = o2_pose[0:3] + [o2_r,o2_p,o2_y]
+
+        elif self.target_mode == '1moving2points':
+
+            (forearm_position, forearm_quaternion) = self.tf_listener.lookupTransform(self.reference_frame,'forearm_link',rospy.Time(0))
+            forearm_to_ref_tf = forearm_position + forearm_quaternion
+            
+            if self.real_robot:
+                (t_position, t_quaternion) = self.tf_listener.lookupTransform(self.reference_frame,self.objects_frame[0],rospy.Time(0))
+                target = t_position + [0,0,0]
+            else:
+                # Target
+                t_pose = self.get_model_state_pose(self.objects_model_name[0])
+                # Convert orientation target from Quaternion to RPY
+                t_quaternion = PyKDL.Rotation.Quaternion(t_pose[3],t_pose[4],t_pose[5],t_pose[6])
+                t_r,t_p,t_y = t_quaternion.GetRPY()
+                target = t_pose[0:3] + [t_r,t_p,t_y]
+            
         else: 
             raise ValueError
             
@@ -130,6 +201,13 @@ class UrRosBridge:
         msg.state.extend(ur_state)
         msg.state.extend(ee_to_base_transform)
         msg.state.extend([ur_collision])
+        if self.target_mode == '2moving':
+            msg.state.extend(object2)
+        if self.target_mode == '2moving2points':
+            msg.state.extend(object2)
+            msg.state.extend(forearm_to_ref_tf)
+        if self.target_mode == '1moving2points':
+            msg.state.extend(forearm_to_ref_tf)
         msg.success = 1
         
         return msg
@@ -144,28 +222,20 @@ class UrRosBridge:
             self.target = copy.deepcopy(state[0:6])
             # Publish Target Marker
             self.publish_target_marker(self.target)
-        # Stop movement of obstacles
-        if self.obstacle_controller:
+
+        # Setup Objects movement
+        if self.objects_controller:
+            # Stop movement of objects
             msg = Bool()
             msg.data = False
-            self.obstacle_controller_pub.publish(msg)
-            if state_msg.string_params["function"] == "triangle_wave":
-                rospy.set_param("target_function", "triangle_wave")
-                rospy.set_param("x", state_msg.float_params["x"])
-                rospy.set_param("y", state_msg.float_params["y"])
-                rospy.set_param("z_amplitude", state_msg.float_params["z_amplitude"])
-                rospy.set_param("z_frequency", state_msg.float_params["z_frequency"])
-                rospy.set_param("z_offset",    state_msg.float_params["z_offset"])
-            elif state_msg.string_params["function"] == "3d_spline":
-                rospy.set_param("target_function", "3d_spline")
-                rospy.set_param("x_min", state_msg.float_params["x_min"])
-                rospy.set_param("x_max", state_msg.float_params["x_max"])
-                rospy.set_param("y_min", state_msg.float_params["y_min"])
-                rospy.set_param("y_max", state_msg.float_params["y_max"])
-                rospy.set_param("z_min", state_msg.float_params["z_min"])
-                rospy.set_param("z_max", state_msg.float_params["z_max"])
-                rospy.set_param("n_points", state_msg.float_params["n_points"])
-                rospy.set_param("n_sampling_points", state_msg.float_params["n_sampling_points"])
+            self.move_objects_pub.publish(msg)
+
+            # Loop through all the string_params and float_params and set them as ROS parameters
+            for param in state_msg.string_params:
+                rospy.set_param(param, state_msg.string_params[param])
+
+            for param in state_msg.float_params:
+                rospy.set_param(param, state_msg.float_params[param])
 
         # UR Joints Positions
         reset_steps = int(15.0/self.sleep_time)
@@ -174,11 +244,11 @@ class UrRosBridge:
         if not self.real_robot:
             # Reset collision sensors flags
             self.collision_sensors.update(dict.fromkeys(["shoulder","upper_arm","forearm","wrist_1","wrist_2","wrist_3"], False))
-        # Start movement of obstacles
-        if self.obstacle_controller:
+        # Start movement of objects
+        if self.objects_controller:
             msg = Bool()
             msg.data = True
-            self.obstacle_controller_pub.publish(msg)
+            self.move_objects_pub.publish(msg)
 
         self.reset.set()
 
