@@ -6,6 +6,13 @@
   <arg name="action_cycle_rate" default="25" doc="Rate at which new commands are published to the robot controller"/>
   <arg name="reference_frame" default="base"  doc="Reference frame with respect to which target and ee pose are given"/>
   <arg name="target_mode" default="fixed"  doc="fixed, moving"/>
+
+  <!-- Scene Objects -->
+  <arg name="n_objects" default="0.0"  doc="Number of objects in the scene"/>
+  <arg name="object_0_frame" default="" doc="TF Frame name of target"/>
+  <arg name="object_1_frame" default="" doc="TF Frame name of object 1"/>
+
+  <!-- RViz Configuration -->
   <arg name="rviz_config_path" default = "$(find ur_robot_server)/rviz" />
   <arg name="rviz_config_file" default="ur_rob_rl.rviz" doc="RViz configuration file"/>
   <arg name="rviz_config" value="$(arg rviz_config_path)/$(arg rviz_config_file)"/>
@@ -32,4 +39,8 @@
     <param name="target_mode" value="$(arg target_mode)"></param>
   </node>
 
+  <!-- Scene Objects Parameters -->
+  <param name="n_objects" value="$(arg n_objects)"></param>
+  <param name="object_0_frame" value="$(arg object_0_frame)"></param>
+  <param name="object_1_frame" value="$(arg object_1_frame)"></param>
 </launch>
