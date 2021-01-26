@@ -7,6 +7,7 @@ from threading import Event
 import time
 from robo_gym_server_modules.robot_server.grpc_msgs.python import robot_server_pb2
 
+
 class PandaRosBridge:
 
     def __init__(self, real_robot=False):
@@ -20,8 +21,8 @@ class PandaRosBridge:
         self.real_robot = real_robot
 
         # TODO publisher, subscriber, target and state
-        self.target = [0.0] * 1 # TODO define number of target floats
-        self.panda_state = [0.0] * 1 # TODO define number of panda states
+        self.target = [0.0] * 1  # TODO define number of target floats
+        self.panda_state = [0.0] * 1  # TODO define number of panda states
 
         # TF Listener
         self.tf_listener = tf.TransformListener()
@@ -38,13 +39,14 @@ class PandaRosBridge:
             # Subscribers to link collision sensors topics
 
             # TODO add rospy.Subsribers
-            self.collision_sensors = dict.fromkeys([], False) # TODO add keys
+            self.collision_sensors = dict.fromkeys([], False)  # TODO add keys
             pass
 
         # TODO currently not used
         self.safe_to_move = True
 
-        self.obstacle_controller = rospy.get_param("~obstacle_controller", False)
+        self.obstacle_controller = rospy.get_param(
+            "~obstacle_controller", False)
 
         # Target mode
         self.target_mode = rospy.get_param("~target_mode", "fixed")
@@ -54,15 +56,16 @@ class PandaRosBridge:
         self.get_state_event.clear()
         # Get environment state
         state = []
-        
+
         if self.target_mode == "fixed":
             target = copy.deepcopy(self.target)
         else:
             raise ValueError as err
-            print "Target mode was ill defined. Got error type: " + str(type(err)) + " with message: " + err.message
-        
+            print "Target mode was ill defined. Got error type: " + \
+                str(type(err)) + " with message: " + err.message
+
         panda_state = copy.deepcopy(self.panda_state)
-        
+
         # TODO
         # (position, quaternion) = self.tf_listener.lookupTransform(self.reference_frame)
         # ee_to_base_transform = position + quaternion
@@ -83,5 +86,3 @@ class PandaRosBridge:
         msg.success = 1
 
         return msg
-
-        
