@@ -7,6 +7,7 @@ from gazebo_msgs.msg import ModelState, ContactsState
 from gazebo_msgs.srv import GetModelState, SetModelState, GetLinkState
 from gazebo_msgs.srv import SetModelConfiguration, SetModelConfigurationRequest
 from sensor_msgs.msg import JointState
+from std_msgs.msg import Int32MultiArray
 from trajectory_msgs.msg import JointTrajectoryPoint, JointTrajectory
 from std_msgs.msg import Float64MultiArray, Header, Bool
 from std_srvs.srv import Empty
@@ -103,6 +104,13 @@ class UrRosBridge:
             self.objects_frame.append(rospy.get_param("object_" + repr(i) + "_frame"))
 
 
+        # camera1
+        self.use_voxel_occupancy = rospy.get_param("~use_voxel_occupancy", False) # e.g. for target_mode=1moving1point_2_2_4_voxel
+        self.use_voxel_occupancy = True
+        if self.use_voxel_occupancy: 
+            rospy.Subscriber("occupancy_state", Int32MultiArray, self.voxel_occupancy_callback)
+
+
     def get_state(self):
         self.get_state_event.clear()
         # Get environment state
@@ -178,7 +186,21 @@ class UrRosBridge:
                 t_quaternion = PyKDL.Rotation.Quaternion(t_pose[3],t_pose[4],t_pose[5],t_pose[6])
                 t_r,t_p,t_y = t_quaternion.GetRPY()
                 target = t_pose[0:3] + [t_r,t_p,t_y]
+        elif self.target_mode == '1moving1point_2_2_4_voxel':
             
+            (forearm_position, forearm_quaternion) = self.tf_listener.lookupTransform(self.reference_frame,'forearm_link',rospy.Time(0))
+            forearm_to_ref_tf = forearm_position + forearm_quaternion
+
+            if self.real_robot:
+                # (t_position, t_quaternion) = self.tf_listener.lookupTransform(self.reference_frame,self.objects_frame[0],rospy.Time(0))
+                raise NotImplementedError("voxelisation of real robot not yet implemented")
+            else:
+                pose = self.get_model_state_pose(self.objects_model_name[0])
+                # Convert orientation target from Quaternion to RPY
+                quaternion = PyKDL.Rotation.Quaternion(pose[3],pose[4],pose[5],pose[6])
+                r,p,y = quaternion.GetRPY()
+                target = pose[0:3] + [r,p,y]
+                voxel_occupancy = self.voxel_occupancy
         else: 
             raise ValueError
             
@@ -208,6 +230,9 @@ class UrRosBridge:
             msg.state.extend(forearm_to_ref_tf)
         if self.target_mode == '1moving2points':
             msg.state.extend(forearm_to_ref_tf)
+        if self.target_mode == '1moving1point_2_2_4_voxel':
+            msg.state.extend(forearm_to_ref_tf) # keep it in for now 
+            msg.state.extend(voxel_occupancy)
         msg.success = 1
         
         return msg
@@ -429,3 +454,10 @@ class UrRosBridge:
             pass
         else:
             self.collision_sensors["wrist_3"]=True
+
+    def voxel_occupancy_callback(self, msg):
+        if self.get_state_event.is_set():
+            # occupancy_3d_array = np.reshape(msg.data, [dim.size for dim in msg.layout.dim])
+            self.voxel_occupancy = msg.data
+        else:
+            pass

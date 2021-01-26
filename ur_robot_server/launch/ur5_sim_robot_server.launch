@@ -11,6 +11,7 @@
   <arg name="action_cycle_rate" default="25" doc="Rate at which new commands are published to the robot controller"/>
   <arg name="reference_frame" default="base"  doc="Reference frame with respect to which target and ee pose are given"/>
   <arg name="target_mode" default="fixed"  doc="fixed, moving"/>
+  <arg name="use_voxel_occupancy" default="false" doc="use voxel occupancy in state"/>
 
   <!-- Scene Objects -->
   <arg name="objects_controller" default="false"  doc="Start objects controller node"/>
@@ -113,6 +114,7 @@
     <param name="action_cycle_rate" value="$(arg action_cycle_rate)"></param>
     <param name="reference_frame" value="$(arg reference_frame)"></param>
     <param name="target_mode" value="$(arg target_mode)"></param>
+    <param name="use_voxel_occupancy" value="$(arg use_voxel_occupancy)"></param>
   </node>
 
   <!--Launch objects controller -->
@@ -126,4 +128,12 @@
   <param name="object_0_frame" value="$(arg object_0_frame)"></param>
   <param name="object_1_model_name" value="$(arg object_1_model_name)"></param>
   <param name="object_1_frame" value="$(arg object_1_frame)"></param>
+
+  <!-- Launch pointcloud voxelization node -->
+  <node if="$(arg use_voxel_occupancy)" name="pointcloud_voxelizer" pkg="scene_perception" type="pointcloud_voxelizer_node" respawn="false" output="screen" >
+    <remap from="/pointcloud_in" to="/camera1/depth_registered/points"/>
+    <!-- actually link this to the target_mode -->
+    <rosparam file="$(find ur_robot_server)/config/pointcloud_voxelizer_4_2_2.yaml" />
+  </node>
+  <node if="$(arg use_voxel_occupancy)" pkg="tf" type="static_transform_publisher" name="target_broadcaster" args="0.0 0.0 0.0 -2.356 0 0 base occupancy_grid_frame 100"/>
 </launch>
