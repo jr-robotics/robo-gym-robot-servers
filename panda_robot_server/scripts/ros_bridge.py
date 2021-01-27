@@ -2,8 +2,9 @@
 
 import rospy
 import tf
+from visualization_msgs.msg import Marker
 import copy
-from threading import Event
+from threading import Event # See https://docs.python.org/3/library/threading.html#event-objects
 import time
 from robo_gym_server_modules.robot_server.grpc_msgs.python import robot_server_pb2
 
@@ -14,9 +15,9 @@ class PandaRosBridge:
 
         # Event is claer while initialization or set_state is going on
         self.reset = Event()
-        self.reset.clear()
+        self._unlock_reset_event()
         self.get_state_event = Event()
-        self.get_state_event.set()
+        self._lock_state_event()
 
         self.real_robot = real_robot
 
@@ -53,16 +54,18 @@ class PandaRosBridge:
         self.target_mode_name = rospy.get_param("~target_model_name", "box100")
 
     def get_state(self):
-        self.get_state_event.clear()
+        self._unlock_state_event()
+
         # Get environment state
-        state = []
+        state = []  # TODO currently not used in function
 
         if self.target_mode == "fixed":
             target = copy.deepcopy(self.target)
         else:
-            raise ValueError as err
-            print "Target mode was ill defined. Got error type: " + \
-                str(type(err)) + " with message: " + err.message
+            raise ValueError
+            # raise ValueError as err(
+            #     "Target mode was ill defined. Got error type: " +
+            #     str(type(err)) + " with message: " + err.message)
 
         panda_state = copy.deepcopy(self.panda_state)
 
@@ -86,3 +89,52 @@ class PandaRosBridge:
         msg.success = 1
 
         return msg
+
+    def set_state(self, state_msg):
+        # Set environment state
+        state = state_msg.state
+        self._unlock_reset_event()
+        # Set target internal value
+        if self.target_mode == "fixed":
+            # TODO found out how many state values are needed for panda
+            self.target = copy.deepcopy(state[0:6])
+            # Publish Target Marker
+            self.publish_target_marker(self.target)
+            
+        # TODO setup objects movement
+        # if self.objects_controller:
+        
+        # TODO reset_steps and init of corresponding variables
+
+        self._lock_reset_event()
+
+        return 1
+
+    def publish_target_marker(self, target_pose):
+        t_marker = Marker()
+        # TODO add values to marker
+        self.target_pub.publish(t_marker)
+
+    def callback_panda(self, data):
+        # TODO split and endpoint yet to be defined
+        if self._is_state_event_locked():
+            split_point = 6
+            end_point = 12
+            self.panda_state[0: split_point] = data.position[0: split_point]
+            self.panda_state[split_point: end_point] = data.velocity[0: split_point]
+        pass
+
+    def _is_state_event_locked(self):
+        return self.get_state_event.is_set()
+
+    def _lock_reset_event(self):
+        self.reset.set()
+
+    def _lock_state_event(self):
+        self.get_state_event.set()
+
+    def _unlock_reset_event(self):
+        self.reset.clear()
+
+    def _unlock_state_event(self):
+        self.get_state_event.clear()
