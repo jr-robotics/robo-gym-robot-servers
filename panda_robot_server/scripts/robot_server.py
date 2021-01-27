@@ -63,10 +63,11 @@ def _robot_server_get_failure():
 
 
 if __name__ == "__main__":
-    
+
     try:
         rospy.init_node("robot_server")
-        rospy.loginfo("Waiting 10s before starting initialization of robot_server")
+        rospy.loginfo(
+            "Waiting 10s before starting initialization of robot_server")
         rospy.sleep(10)
         rospy.loginfo("Initializing robot_server node")
         serve()

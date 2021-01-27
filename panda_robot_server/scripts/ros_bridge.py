@@ -4,7 +4,8 @@ import rospy
 import tf
 from visualization_msgs.msg import Marker
 import copy
-from threading import Event # See https://docs.python.org/3/library/threading.html#event-objects
+# See https://docs.python.org/3/library/threading.html#event-objects
+from threading import Event
 import time
 from robo_gym_server_modules.robot_server.grpc_msgs.python import robot_server_pb2
 
@@ -100,10 +101,10 @@ class PandaRosBridge:
             self.target = copy.deepcopy(state[0:6])
             # Publish Target Marker
             self.publish_target_marker(self.target)
-            
+
         # TODO setup objects movement
         # if self.objects_controller:
-        
+
         # TODO reset_steps and init of corresponding variables
 
         self._lock_reset_event()
