@@ -1,0 +1,46 @@
+<?xml version="1.0" ?>
+<launch>
+
+    <arg name="gui" default="false"/>
+    <arg name="rviz_gui" default="true"/>
+    <arg name="gazebo_gui" default="false"/>
+    <arg name="world_path" default="$(find panda_robot_server)/worlds"/>
+    <arg name="world_name" default="empty.world"/>
+    <arg name="world" value="$(arg world_path)/$(arg world_name)"/>
+    <arg name="max_velocity_scale_factor" default="1.0" doc="Scale factor multiplied by maximum joint velocity value"/>
+    <arg name="server_port" default="50051"/>
+    <arg name="action_cycle_rate" default="25" doc="Rate at which new commands are published to the robot controller"/>
+    <arg name="reference_frame" default="base" doc="Reference frame with respect to which target and ee pose are given"/>
+    <arg name="target_mode" default="fixed" doc="fixed"/>
+
+    <!-- Scene Objects -->
+    
+    <!-- RViz Configuration -->
+
+    <!-- Robot Base position -->
+
+    <!-- Robot description and related parameter files -->
+
+    <!-- Controller configurations -->
+
+    <!-- Load URDF on the parameter server -->
+
+    <!-- Robot state publisher -->
+
+    <!-- Start the 'driver' (i.e. Gazebo) -->
+
+    <!-- Launch Command Handler -->
+
+    <!-- Launch RViz -->
+
+    <!--Launch gRPC server -->
+    <node name="robot_server" pkg="panda_robot_server" type="robot_server.py" respawn="false" output="screen">
+
+    <!-- Launch objects controller -->
+
+    <!-- Scene Objects Parameters -->
+
+    </node>
+
+
+</launch>
