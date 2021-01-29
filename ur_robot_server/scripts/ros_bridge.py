@@ -109,6 +109,8 @@ class UrRosBridge:
         self.use_voxel_occupancy = True
         if self.use_voxel_occupancy: 
             rospy.Subscriber("occupancy_state", Int32MultiArray, self.voxel_occupancy_callback)
+            if self.target_mode == '1moving1point_2_2_4_voxel':
+                self.voxel_occupancy = [0.0]*16
 
 
     def get_state(self):
