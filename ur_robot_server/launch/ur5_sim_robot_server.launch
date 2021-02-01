@@ -130,12 +130,19 @@
   <param name="object_1_frame" value="$(arg object_1_frame)"></param>
 
   <!-- Launch pointcloud voxelization node -->
-  <node if="$(arg use_voxel_occupancy)" name="pointcloud_voxelizer" pkg="scene_perception" type="pointcloud_voxelizer_node" respawn="false" output="screen" >
-    <remap from="/pointcloud_in" to="/camera1/depth_registered/points"/>
-    <!-- actually link this to the target_mode -->
-    <rosparam file="$(find ur_robot_server)/config/pointcloud_voxelizer_4_2_2.yaml" />
-  </node>
-  <node if="$(arg use_voxel_occupancy)" pkg="tf" type="static_transform_publisher" name="target_broadcaster" args="0.706 0.706 0.0 -2.356 0 0 base occupancy_grid_frame 100"/>
-  <node if="$(arg use_voxel_occupancy)" name="occupancy_state_visualizer" pkg="scene_perception" type="occupancy_state_visualizer.py" respawn="false" output="screen" />
+  <group if="$(arg use_voxel_occupancy)">
+    <node name="robot_cloud_filter" pkg="scene_perception" type="robot_pointcloud_filter_node" respawn="false" output="screen">
+        <remap from="/pointcloud_in" to="/camera1/depth_registered/points"/>
+        <param name="cloud_output_topic" value="pointcloud_robot_filtered"/>
+        <rosparam command="load" file="$(find scene_perception)/config/ur5_gazebo_rgbdcam.yaml" /> 
+    </node>
+    <node name="pointcloud_voxelizer" pkg="scene_perception" type="pointcloud_voxelizer_node" respawn="false" output="screen" >
+      <remap from="/pointcloud_in" to="/pointcloud_robot_filtered"/>
+      <!-- actually link this to the target_mode -->
+      <rosparam file="$(find ur_robot_server)/config/pointcloud_voxelizer_4_2_2.yaml" />
+    </node>
+    <node name="target_broadcaster" pkg="tf" type="static_transform_publisher" args="0.706 0.706 0.0 -2.356 0 0 base occupancy_grid_frame 100"/>
+    <node name="occupancy_state_visualizer" pkg="scene_perception" type="occupancy_state_visualizer.py" respawn="false" output="screen" />
+  </group>
 
 </launch>
