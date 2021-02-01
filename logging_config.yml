@@ -1,0 +1,29 @@
+version: 1
+disable_existing_loggers: true
+
+formatters:
+    standard:
+        format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    error:
+        format: "%(asctime)s %(levelname)s <PID %(process)d:%(processName)s> %(name)s.%(funcName)s(): %(message)s"
+
+handlers:
+    file:
+        class: logging.FileHandler
+        level: DEBUG
+        formatter: error
+        filename: logs/ur_robot_server.log
+        mode: 'w'
+
+    console:
+        class: logging.StreamHandler
+        level: INFO
+        formatter: standard
+        stream: ext://sys.stdout
+    
+
+loggers:
+  ur_robot_server_logger:
+    level: DEBUG
+    handlers: [console, file]
+    propagate: no
