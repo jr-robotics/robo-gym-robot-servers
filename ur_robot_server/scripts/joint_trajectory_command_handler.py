@@ -25,7 +25,7 @@ class JointTrajectoryCH:
         # Flag used to publish empty JointTrajectory message only once when interrupting execution
         self.stop_flag = False 
 
-    def callback_env_joint_trajectory(self,data):
+    def callback_env_joint_trajectory(self, data):
         try:
             # Add to the Queue the next command to execute
             self.queue.put(data)
