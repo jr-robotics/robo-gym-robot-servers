@@ -30,12 +30,12 @@ class PandaRosBridge:
         self.tf_listener = tf.TransformListener()
 
         # Robot control rate
-        self.sleep_time = (1.0 / rospy.get_param("~action_cycle_rate")) - 0.01
+        self.sleep_time = (1.0 / rospy.get_param('~action_cycle_rate')) - 0.01
         self.control_period = rospy.Duration.from_sec(self.sleep_time)
 
-        self.reference_frame = rospy.get_param("~reference_frame", "base")
-        self.ee_frame = "tool0"
-        self.target_frame = "target"
+        self.reference_frame = rospy.get_param('~reference_frame', 'base')
+        self.ee_frame = 'tool0'
+        self.target_frame = 'target'
 
         if not self.real_robot:
             # Subscribers to link collision sensors topics
@@ -48,11 +48,11 @@ class PandaRosBridge:
         self.safe_to_move = True
 
         self.obstacle_controller = rospy.get_param(
-            "~obstacle_controller", False)
+            '~obstacle_controller', False)
 
         # Target mode
-        self.target_mode = rospy.get_param("~target_mode", "fixed")
-        self.target_mode_name = rospy.get_param("~target_model_name", "box100")
+        self.target_mode = rospy.get_param('~target_mode', 'fixed')
+        self.target_mode_name = rospy.get_param('~target_model_name', 'box100')
 
     def get_state(self):
         self._unlock_state_event()
@@ -60,13 +60,13 @@ class PandaRosBridge:
         # Get environment state
         state = []  # TODO currently not used in function
 
-        if self.target_mode == "fixed":
+        if self.target_mode == 'fixed':
             target = copy.deepcopy(self.target)
         else:
             raise ValueError
             # raise ValueError as err(
-            #     "Target mode was ill defined. Got error type: " +
-            #     str(type(err)) + " with message: " + err.message)
+            #     'Target mode was ill defined. Got error type: ' +
+            #     str(type(err)) + ' with message: ' + err.message)
 
         panda_state = copy.deepcopy(self.panda_state)
 
@@ -96,7 +96,7 @@ class PandaRosBridge:
         state = state_msg.state
         self._unlock_reset_event()
         # Set target internal value
-        if self.target_mode == "fixed":
+        if self.target_mode == 'fixed':
             # TODO found out how many state values are needed for panda
             self.target = copy.deepcopy(state[0:6])
             # Publish Target Marker
