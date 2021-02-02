@@ -38,6 +38,15 @@
   <arg name="pitch" default="0.0" doc="base_link coordinate with respect to the world frame"/>
   <arg name="yaw" default="0.0" doc="base_link coordinate with respect to the world frame"/>
 
+  <!-- Camera 1 activate and position -->
+  <arg name="camera1_gazebo" default="False" doc="use camera1 gazebo simulated sensor"/>
+  <arg name="camera1_link_x" default="0.0" doc="camera1_link coordinate with respect to the world frame"/>
+  <arg name="camera1_link_y" default="0.0" doc="camera1_link coordinate with respect to the world frame"/>
+  <arg name="camera1_link_z" default="0.1" doc="camera1_link coordinate with respect to the world frame"/>
+  <arg name="camera1_link_roll" default="0.0" doc="camera1_link coordinate with respect to the world frame"/>
+  <arg name="camera1_link_pitch" default="0.0" doc="camera1_link coordinate with respect to the world frame"/>
+  <arg name="camera1_link_yaw" default="0.0" doc="camera1_link coordinate with respect to the world frame"/>
+
   <param name="robot_description" command="$(find xacro)/xacro '$(find ur_robot_server)/urdf/ur.xacro'
     joint_limit_params:=$(arg joint_limit_params)
     kinematics_params:=$(arg kinematics_params)
@@ -52,6 +61,13 @@
     z:=$(arg z)
     roll:=$(arg roll)
     pitch:=$(arg pitch)
-    yaw:=$(arg yaw)"
+    yaw:=$(arg yaw)
+    camera1_gazebo:=$(arg camera1_gazebo)
+    camera1_link_x:=$(arg camera1_link_x)
+    camera1_link_y:=$(arg camera1_link_y)
+    camera1_link_z:=$(arg camera1_link_z)
+    camera1_link_roll:=$(arg camera1_link_roll)
+    camera1_link_pitch:=$(arg camera1_link_pitch)
+    camera1_link_yaw:=$(arg camera1_link_yaw)"
     />
 </launch>

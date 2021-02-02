@@ -33,6 +33,15 @@
   <arg name="pitch" default="0.0" doc="base_link coordinate with respect to the world frame"/>
   <arg name="yaw" default="0.0" doc="base_link coordinate with respect to the world frame"/>
 
+  <!-- Camera 1 activate and position -->
+  <arg name="camera1_gazebo" default="False" doc="use camera1 gazebo simulated sensor"/>
+  <arg name="camera1_link_x" default="0.0" doc="camera1_link coordinate with respect to the world frame"/>
+  <arg name="camera1_link_y" default="0.0" doc="camera1_link coordinate with respect to the world frame"/>
+  <arg name="camera1_link_z" default="0.1" doc="camera1_link coordinate with respect to the world frame"/>
+  <arg name="camera1_link_roll" default="0.0" doc="camera1_link coordinate with respect to the world frame"/>
+  <arg name="camera1_link_pitch" default="0.0" doc="camera1_link coordinate with respect to the world frame"/>
+  <arg name="camera1_link_yaw" default="0.0" doc="camera1_link coordinate with respect to the world frame"/>
+
    <!--Robot description and related parameter files -->
   <arg name="robot_description_file" default="$(dirname)/inc/load_ur10.launch.xml" doc="Launch file which populates the 'robot_description' parameter."/>
   <arg name="joint_limit_params" default="$(find ur_description)/config/ur10/joint_limits.yaml"/>
@@ -57,6 +66,14 @@
     <arg name="roll" value="$(arg roll)"/>
     <arg name="pitch" value="$(arg pitch)"/>
     <arg name="yaw" value="$(arg yaw)"/>
+
+    <arg name="camera1_gazebo" value="$(arg camera1_gazebo)"/>
+    <arg name="camera1_link_x" value="$(arg camera1_link_x)"/>
+    <arg name="camera1_link_y" value="$(arg camera1_link_y)"/>
+    <arg name="camera1_link_z" value="$(arg camera1_link_z)"/>
+    <arg name="camera1_link_roll" value="$(arg camera1_link_roll)"/>
+    <arg name="camera1_link_pitch" value="$(arg camera1_link_pitch)"/>
+    <arg name="camera1_link_yaw" value="$(arg camera1_link_yaw)"/>
   </include>
 
   <!-- Robot state publisher -->

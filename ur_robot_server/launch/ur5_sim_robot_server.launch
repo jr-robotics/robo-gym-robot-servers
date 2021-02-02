@@ -11,6 +11,7 @@
   <arg name="action_cycle_rate" default="25" doc="Rate at which new commands are published to the robot controller"/>
   <arg name="reference_frame" default="base"  doc="Reference frame with respect to which target and ee pose are given"/>
   <arg name="target_mode" default="fixed"  doc="fixed, moving"/>
+  <arg name="use_voxel_occupancy" default="false" doc="use voxel occupancy in state"/>
 
   <!-- Scene Objects -->
   <arg name="objects_controller" default="false"  doc="Start objects controller node"/>
@@ -32,6 +33,15 @@
   <arg name="roll" default="0.0" doc="base_link coordinate with respect to the world frame"/>
   <arg name="pitch" default="0.0" doc="base_link coordinate with respect to the world frame"/>
   <arg name="yaw" default="0.0" doc="base_link coordinate with respect to the world frame"/>
+
+  <!-- Camera 1 activate and position -->
+  <arg name="camera1_gazebo" default="False" doc="use camera1 gazebo simulated sensor"/>
+  <arg name="camera1_link_x" default="0.0" doc="camera1_link coordinate with respect to the world frame"/>
+  <arg name="camera1_link_y" default="0.0" doc="camera1_link coordinate with respect to the world frame"/>
+  <arg name="camera1_link_z" default="0.1" doc="camera1_link coordinate with respect to the world frame"/>
+  <arg name="camera1_link_roll" default="0.0" doc="camera1_link coordinate with respect to the world frame"/>
+  <arg name="camera1_link_pitch" default="0.0" doc="camera1_link coordinate with respect to the world frame"/>
+  <arg name="camera1_link_yaw" default="0.0" doc="camera1_link coordinate with respect to the world frame"/>
 
    <!--Robot description and related parameter files -->
   <arg name="robot_description_file" default="$(dirname)/inc/load_ur5.launch.xml" doc="Launch file which populates the 'robot_description' parameter."/>
@@ -57,6 +67,14 @@
     <arg name="roll" value="$(arg roll)"/>
     <arg name="pitch" value="$(arg pitch)"/>
     <arg name="yaw" value="$(arg yaw)"/>
+
+    <arg name="camera1_gazebo" value="$(arg camera1_gazebo)"/>
+    <arg name="camera1_link_x" value="$(arg camera1_link_x)"/>
+    <arg name="camera1_link_y" value="$(arg camera1_link_y)"/>
+    <arg name="camera1_link_z" value="$(arg camera1_link_z)"/>
+    <arg name="camera1_link_roll" value="$(arg camera1_link_roll)"/>
+    <arg name="camera1_link_pitch" value="$(arg camera1_link_pitch)"/>
+    <arg name="camera1_link_yaw" value="$(arg camera1_link_yaw)"/>
   </include>
 
   <!-- Robot state publisher -->
@@ -96,6 +114,7 @@
     <param name="action_cycle_rate" value="$(arg action_cycle_rate)"></param>
     <param name="reference_frame" value="$(arg reference_frame)"></param>
     <param name="target_mode" value="$(arg target_mode)"></param>
+    <param name="use_voxel_occupancy" value="$(arg use_voxel_occupancy)"></param>
   </node>
 
   <!--Launch objects controller -->
@@ -109,4 +128,21 @@
   <param name="object_0_frame" value="$(arg object_0_frame)"></param>
   <param name="object_1_model_name" value="$(arg object_1_model_name)"></param>
   <param name="object_1_frame" value="$(arg object_1_frame)"></param>
+
+  <!-- Launch pointcloud voxelization node -->
+  <group if="$(arg use_voxel_occupancy)">
+    <node name="robot_cloud_filter" pkg="scene_perception" type="robot_pointcloud_filter_node" respawn="false" output="screen">
+        <remap from="/pointcloud_in" to="/camera1/depth_registered/points"/>
+        <param name="cloud_output_topic" value="pointcloud_robot_filtered"/>
+        <rosparam command="load" file="$(find scene_perception)/config/ur5_gazebo_rgbdcam.yaml" /> 
+    </node>
+    <node name="pointcloud_voxelizer" pkg="scene_perception" type="pointcloud_voxelizer_node" respawn="false" output="screen" >
+      <remap from="/pointcloud_in" to="/pointcloud_robot_filtered"/>
+      <!-- actually link this to the target_mode -->
+      <rosparam file="$(find ur_robot_server)/config/pointcloud_voxelizer_4_2_2.yaml" />
+    </node>
+    <node name="target_broadcaster" pkg="tf" type="static_transform_publisher" args="0.706 0.706 0.0 -2.356 0 0 base occupancy_grid_frame 100"/>
+    <node name="occupancy_state_visualizer" pkg="scene_perception" type="occupancy_state_visualizer.py" respawn="false" output="screen" />
+  </group>
+
 </launch>

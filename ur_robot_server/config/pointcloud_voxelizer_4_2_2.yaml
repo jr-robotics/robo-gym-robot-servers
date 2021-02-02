@@ -1,0 +1,8 @@
+base_frame: occupancy_grid_frame
+dimensions: [4, 2, 2]
+voxel_size: 0.5
+
+# boxes move around -0.7 > 0.7, 0.2 > 1.0, 0.1 > 1.0
+# occupancy_grid_frame is positioned at -1.0, 0.0, 0.0 and
+# the 4 x 2 x 2 grid with 0.5 voxel_size therefore covers
+# the volume between the edge points (-1,0,0) and (1,1,1)
