@@ -50,21 +50,25 @@ class JointTrajectoryCH:
             pass
 
     def joint_trajectory_publisher(self):
-        
+        """Publishes the commands stored in self.queue
+           - If self.queue is empty, an empty JointTrajectory message is published
+        """
         while not rospy.is_shutdown():
             if self.queue.full():
+                # If a command from the environment is waiting to be executed,
+                # publish the command, otherwise preempt trajectory
                 self.jt_pub.publish(self.queue.get())
                 self.stop_flag = False
             else:
                 # If the empty JointTrajectory message has not been published,
-                # publish it and set the stop flag to true
+                # publish it and set the stop flag to True, else pass
                 if not self.stop_flag:
                     self.jt_pub.publish(JointTrajectory())
                     self.stop_flag = True
-                else: # TODO - is this condition ever needed?
+                else:  # TODO - is this condition ever needed?
                     pass
-                
-                
+
+
 if __name__ == '__main__':
     try:
         command_handler = JointTrajectoryCH()
