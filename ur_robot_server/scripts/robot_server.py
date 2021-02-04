@@ -34,6 +34,14 @@ class RobotServerServicer(robot_server_pb2_grpc.RobotServerServicer):
             logger.error('Failed to send action', exc_info=True)
             return robot_server_pb2.Success(success =0)
 
+    def SendActionGetState(self, request, context):
+        try:
+            executed_action = self.rosbridge.publish_env_arm_cmd(request.action)
+            return self.rosbridge.get_state()
+        except:
+            logger.error('Failed to send action and get state', exc_info=True)
+            return robot_server_pb2.State(success = 0)
+
 def serve():
     initialize_logger()
     logger.info('UR Robot Server...')
