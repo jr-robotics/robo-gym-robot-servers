@@ -2,7 +2,17 @@
 
 import rospy
 import tf
+from geometry_msgs.msg import Twist, Pose, Pose2D
+from gazebo_msgs.msg import ModelState, ContactsState
+from gazebo_msgs.srv import GetModelState, SetModelState, GetLinkState
+from gazebo_msgs.srv import SetModelConfiguration, SetModelConfigurationRequest
+from sensor_msgs.msg import JointState
+from trajectory_msgs.msg import JointTrajectoryPoint, JointTrajectory
+from std_msgs.msg import Header, Bool
+from std_srvs.srv import Empty
+
 from visualization_msgs.msg import Marker
+import PyKDL
 import copy
 # See https://docs.python.org/3/library/threading.html#event-objects
 from threading import Event
@@ -23,8 +33,12 @@ class PandaRosBridge:
         self.real_robot = real_robot
 
         # TODO publisher, subscriber, target and state
+        self.arm_cmd_pub = rospy.Publisher('env_arm_command', JointTrajectory, queue_size=1)
+        
         self.target = [0.0] * 1  # TODO define number of target floats
-        self.panda_state = [0.0] * 1  # TODO define number of panda states
+        # TODO define number of panda states (At least the number of joints - 7)
+        self.panda_joint_num = 7
+        self.panda_state = [0.0] * self.panda_joint_num
 
         # TF Listener
         self.tf_listener = tf.TransformListener()
@@ -36,6 +50,9 @@ class PandaRosBridge:
         self.reference_frame = rospy.get_param('~reference_frame', 'base')
         self.ee_frame = 'tool0'
         self.target_frame = 'target'
+        
+        # Minimum Trajectory Point time from start
+        self.min_traj_duration = 0.5 # TODO check if this value is correct for the panda robot
 
         if not self.real_robot:
             # Subscribers to link collision sensors topics
@@ -87,7 +104,7 @@ class PandaRosBridge:
         msg.state.extend(panda_state)
         # msg.state.extend(ee_to_base_transform)
         msg.state.extend([panda_collision])
-        msg.success = 1
+        msg.success = True
 
         return msg
 
@@ -109,7 +126,81 @@ class PandaRosBridge:
 
         self._lock_reset_event()
 
-        return 1
+        return True
+
+    def publish_env_arm_cmd(self, position_cmd):
+        if self.safe_to_move:
+            msg = JointTrajectory()
+            msg.header = Header()
+            msg.joint_names = [
+                # TODO add joint names
+            ]
+            msg.points = [JointTrajectoryPoint()]
+            msg.points[0].positions = position_cmd
+            duration = []
+            for i in range(len(msg.joint_names)):
+                # TODO check if the index is in bounds
+                # !!! Be careful with panda_state index here
+                pos = self.panda_state[i]
+                cmd = position_cmd[i]
+                max_vel = self.panda_joint_vel_limits[i]
+                temp_duration = max(abs(cmd - pos) / max_vel,
+                                    self.min_traj_duration)
+                duration.append(temp_duration)
+                
+            msg.points[0].time_from_start = rospy.Duration.from_sec(max(duration))
+            
+            rospy.sleep(self.control_period)
+            return position_cmd
+            
+        else:
+            rospy.sleep(self.control_period)
+            return [0.0] * self.panda_joint_num
+
+    def get_link_state(self, link_name, reference_frame=''):
+        """Method is used to retrieve link state from gazebo simulation
+
+        Args:
+            link_name (name of the link): [description]
+            reference_frame (str, optional): [description]. Defaults to ''.
+
+        Returns:
+            [x_pos, y_pos, z_pos, roll, pitch, yaw, x_vel, y_vel, z_vel, roll_vel, pitch_vel, yaw_vel]: [state of the link corresponding to the given name]
+        """
+        gazebo_get_link_state_service = '/gazebo/get_link_state'
+        rospy.wait_for_service(gazebo_get_link_state_service)
+        try:
+            link_state_srv = rospy.ServiceProxy(
+                gazebo_get_link_state_service, GetLinkState)
+            link_coordinates = link_state_srv(
+                link_name, reference_frame).link_state
+            link_pose, link_twist = link_coordinates.pose, link_coordinates.twist
+            x_pos = link_pose.position.x
+            y_pos = link_pose.position.y
+            z_pos = link_pose.position.z
+
+            orientation = PyKDL.Rotation.Quaternion(link_pose.orientation.x,
+                                                    link_pose.orientation.y,
+                                                    link_pose.orientation.z,
+                                                    link_pose.orientation.w)
+
+            euler_orientation = orientation.GetRPY()
+            roll = euler_orientation[0]
+            pitch = euler_orientation[1]
+            yaw = euler_orientation[2]
+
+            x_vel = link_twist.linear.x
+            y_vel = link_twist.linear.y
+            z_vel = link_twist.linear.z
+            roll_vel = link_twist.angular.x
+            pitch_vel = link_twist.angular.y
+            yaw_vel = link_twist.angular.z
+
+            return x_pos, y_pos, z_pos, roll, pitch, yaw, x_vel, y_vel, z_vel, roll_vel, pitch_vel, yaw_vel
+        except rospy.ServiceException as err:
+            error_message = 'Service call failed: ' + err
+            rospy.logerr(error_message)
+            print(error_message)
 
     def publish_target_marker(self, target_pose):
         t_marker = Marker()
