@@ -33,8 +33,7 @@ class PandaRosBridge:
         self.real_robot = real_robot
 
         # TODO publisher, subscriber, target and state
-        self.arm_cmd_pub = rospy.Publisher(
-            'env_arm_command', JointTrajectory, queue_size=1)
+        self.arm_cmd_pub = rospy.Publisher('env_arm_command', JointTrajectory, queue_size=1)
 
         self.target = [0.0] * 1  # TODO define number of target floats
         # TODO define number of panda states (At least the number of joints)
@@ -51,7 +50,7 @@ class PandaRosBridge:
         self.control_period = rospy.Duration.from_sec(self.sleep_time)
 
         self.reference_frame = rospy.get_param('~reference_frame', 'base')
-        self.ee_frame = 'tool0' # TODO is this correct?
+        self.ee_frame = 'tool0' # TODO is the value for self.ee_frame correct?
         self.target_frame = 'target'
 
         # Minimum Trajectory Point time from start
@@ -62,7 +61,7 @@ class PandaRosBridge:
             # Subscribers to link collision sensors topics
 
             # TODO add rospy.Subsribers
-            self.collision_sensors = dict.fromkeys([], False)  # TODO add keys
+            self.collision_sensors = dict.fromkeys([], False)  # TODO add keys to collision sensors
             pass
 
         # TODO currently not used
@@ -98,9 +97,9 @@ class PandaRosBridge:
 
         panda_state = copy.deepcopy(self.panda_state)
 
-        # TODO
-        # (position, quaternion) = self.tf_listener.lookupTransform(self.reference_frame)
-        # ee_to_base_transform = position + quaternion
+        # TODO is ee_to_base_transform value correctly loaded and set 
+        (position, quaternion) = self.tf_listener.lookupTransform(self.reference_frame)
+        ee_to_base_transform = position + quaternion
 
         if self.real_robot:
             panda_collision = False
@@ -113,7 +112,7 @@ class PandaRosBridge:
         msg = robot_server_pb2.State()
         msg.state.extend(target)
         msg.state.extend(panda_state)
-        # msg.state.extend(ee_to_base_transform)
+        msg.state.extend(ee_to_base_transform)
         msg.state.extend([panda_collision])
         msg.success = True
 
