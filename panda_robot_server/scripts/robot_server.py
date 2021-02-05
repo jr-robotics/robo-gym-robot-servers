@@ -1,41 +1,54 @@
 #!/usr/bin/env python2
+from sys import exc_info
 import grpc
 import rospy
 from concurrent import futures
 from ros_bridge import PandaRosBridge
 from robo_gym_server_modules.robot_server.grpc_msgs.python import robot_server_pb2, robot_server_pb2_grpc
+import logging
+import logging.config
+import yaml
+import os
 
 
 class RobotServerServicer(robot_server_pb2_grpc.RobotServerServicer):
 
     def __init__(self, real_robot):
-        # super(RobotServerServicer, self).__init__()
         self.rosbridge = PandaRosBridge(real_robot=real_robot)
 
     def GetState(self, request, context):
-        # return super(RobotServerServicer, self).GetState(request, context)
         try:
             return self.rosbridge.get_state()
         except:
+            logger.error('Failed to get state', exc_info=True)
             return robot_server_pb2.State(success=0)
-        pass
 
     def SetState(self, request, context):
-        # return super(RobotServerServicer, self).SetState(request, context)
         try:
             self.rosbridge.set_state(state_msg=request)
-            return _robot_server_get_success()
+            return self._robot_server_get_success()
         except:
-            return _robot_server_get_failure()
+            logger.error('Failed to set state', exc_info=True)
+            return self._robot_server_get_failure()
 
     def SendAction(self, request, context):
-        # return super(RobotServerServicer, self).SendAction(request, context)
         try:
             # executed_action = self.rosbridge.publish_env_arm_cmd(request.action)
             return
+        except:
+            logger.error('Failed to send action', exc_info=True)
+            return self._robot_server_get_failure()
+
+    def _robot_server_get_success(self):
+        return robot_server_pb2.Success(success=1)
+
+    def _robot_server_get_failure(self):
+        return robot_server_pb2.Success(success=0)
 
 
 def serve():
+    _initialize_logger()
+    logger.info('Starting Panda Robot Server...')
     server_port = rospy.get_param('~server_port')
     real_robot = rospy.get_param('~real_robot')
 
@@ -54,12 +67,19 @@ def serve():
     rospy.spin()
 
 
-def _robot_server_get_success():
-    return robot_server_pb2.Success(success=1)
+def _initialize_logger():
+    global logger
+    handlers_tag = 'handlers'
+    file_tag = 'file'
+    filename_tag = 'filename'
 
-
-def _robot_server_get_failure():
-    return robot_server_pb2.Success(success=0)
+    package_path = os.path.join(os.path.dirname(__file__), '..', '..')
+    with open(os.path.join(package_path, 'logging_config.yml'), 'r') as stream:
+        config = yaml.safe_load(stream)
+    config[handlers_tag][file_tag][filename_tag] = os.path.join(
+        package_path, config[handlers_tag][file_tag][filename_tag])
+    logging.config.dictConfig(config)
+    logger = logging.getLogger('panda_robot_server_logger')
 
 
 if __name__ == '__main__':
