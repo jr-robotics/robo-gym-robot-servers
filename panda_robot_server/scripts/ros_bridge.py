@@ -33,11 +33,14 @@ class PandaRosBridge:
         self.real_robot = real_robot
 
         # TODO publisher, subscriber, target and state
-        self.arm_cmd_pub = rospy.Publisher('env_arm_command', JointTrajectory, queue_size=1)
-        
+        self.arm_cmd_pub = rospy.Publisher(
+            'env_arm_command', JointTrajectory, queue_size=1)
+
         self.target = [0.0] * 1  # TODO define number of target floats
-        # TODO define number of panda states (At least the number of joints - 7)
-        self.panda_joint_num = 7
+        # TODO define number of panda states (At least the number of joints)
+        self.panda_joint_names = ['panda_joint1', 'panda_joint2', 'panda_joint3',
+                                  'panda_joint4', 'panda_joint5', 'panda_joint6', 'panda_joint7']
+        self.panda_joint_num = len(self.panda_joint_names)
         self.panda_state = [0.0] * self.panda_joint_num
 
         # TF Listener
@@ -48,11 +51,12 @@ class PandaRosBridge:
         self.control_period = rospy.Duration.from_sec(self.sleep_time)
 
         self.reference_frame = rospy.get_param('~reference_frame', 'base')
-        self.ee_frame = 'tool0'
+        self.ee_frame = 'tool0' # TODO is this correct?
         self.target_frame = 'target'
-        
+
         # Minimum Trajectory Point time from start
-        self.min_traj_duration = 0.5 # TODO check if this value is correct for the panda robot
+        # TODO check if this value is correct for the panda robot
+        self.min_traj_duration = 0.5
 
         if not self.real_robot:
             # Subscribers to link collision sensors topics
@@ -64,12 +68,19 @@ class PandaRosBridge:
         # TODO currently not used
         self.safe_to_move = True
 
-        self.obstacle_controller = rospy.get_param(
-            '~obstacle_controller', False)
-
         # Target mode
         self.target_mode = rospy.get_param('~target_mode', 'fixed')
         self.target_mode_name = rospy.get_param('~target_model_name', 'box100')
+
+        # Object parameters
+        self.objects_controller = rospy.get_param('objects_controller', False)
+        self.n_objects = int(rospy.get_param('n_objects', 0))
+
+        if self.objects_controller:
+            self.objects_model_name = []
+            for i in range(self.n_objects):
+                obj_model_name = rospy.get_param('object_' + repr(i) + '_model_name')
+                self.objects_model_name.append(obj_model_name)
 
     def get_state(self):
         self._unlock_state_event()
@@ -129,6 +140,17 @@ class PandaRosBridge:
         return True
 
     def publish_env_arm_cmd(self, position_cmd):
+        """Publish environment JointTrajectory msg.
+
+        Publish JointTrajectory message to the env_command topic.
+
+        Args:
+            position_cmd (type): Description of parameter `positions`.
+
+        Returns:
+            type: Description of returned object.
+            
+        """
         if self.safe_to_move:
             msg = JointTrajectory()
             msg.header = Header()
@@ -144,15 +166,15 @@ class PandaRosBridge:
                 pos = self.panda_state[i]
                 cmd = position_cmd[i]
                 max_vel = self.panda_joint_vel_limits[i]
-                temp_duration = max(abs(cmd - pos) / max_vel,
-                                    self.min_traj_duration)
+                temp_duration = max(abs(cmd - pos) / max_vel, self.min_traj_duration)
                 duration.append(temp_duration)
-                
-            msg.points[0].time_from_start = rospy.Duration.from_sec(max(duration))
-            
+
+            msg.points[0].time_from_start = rospy.Duration.from_sec(
+                max(duration))
+
             rospy.sleep(self.control_period)
             return position_cmd
-            
+
         else:
             rospy.sleep(self.control_period)
             return [0.0] * self.panda_joint_num
@@ -165,7 +187,8 @@ class PandaRosBridge:
             reference_frame (str, optional): [description]. Defaults to ''.
 
         Returns:
-            [x_pos, y_pos, z_pos, roll, pitch, yaw, x_vel, y_vel, z_vel, roll_vel, pitch_vel, yaw_vel]: [state of the link corresponding to the given name]
+            state of the link corresponding to the given name ->
+                [x_pos, y_pos, z_pos, roll, pitch, yaw, x_vel, y_vel, z_vel, roll_vel, pitch_vel, yaw_vel] 
         """
         gazebo_get_link_state_service = '/gazebo/get_link_state'
         rospy.wait_for_service(gazebo_get_link_state_service)
