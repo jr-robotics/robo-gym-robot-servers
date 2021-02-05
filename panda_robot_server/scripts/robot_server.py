@@ -50,7 +50,7 @@ def serve():
     _initialize_logger()
     logger.info('Starting Panda Robot Server...')
     server_port = rospy.get_param('~server_port')
-    real_robot = rospy.get_param('~real_robot')
+    real_robot = rospy.get_param('~real_robot', False)
 
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     robot_server_pb2_grpc.add_RobotServerServicer_to_server(
