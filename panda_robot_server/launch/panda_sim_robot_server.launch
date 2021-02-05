@@ -21,6 +21,13 @@
     <arg name="rviz_config" value="$(arg rviz_config_path)/$(arg rviz_config_file)"/>
 
     <!-- Robot Base position -->
+    <!-- NOTE: Assuming the UR5 positions ATM -->
+    <arg name="x"       default="0.0"   doc="base_link coordinate with respect to the world frame"/>
+    <arg name="y"       default="0.0"   doc="base_link coordinate with respect to the world frame"/>
+    <arg name="z"       default="0.1"   doc="base_link coordinate with respect to the world frame"/>
+    <arg name="roll"    default="0.0"   doc="base_link coordinate with respect to the world frame"/>
+    <arg name="pitch"   default="0.0"   doc="base_link coordinate with respect to the world frame"/>
+    <arg name="yaw"     default="0.0"   doc="base_link coordinate with respect to the world frame"/>
 
     <!-- Robot description and related parameter files -->
 
@@ -37,6 +44,10 @@
     <!-- Start the 'driver' (i.e. Gazebo) -->
 
     <!-- Launch Command Handler -->
+    <node name="joint_trajectory_command_handler" pkg="panda_robot_server" type="joint_trajectory_command_handler.py" respawn="False" output="screen">
+        <param name="real_robot" value="false"/>
+        <param name="action_cycle_rate" value="$(arg action_cycle_rate)"></param>
+    </node>
 
     <!-- Launch RViz -->
     <node if="$(eval arg('gui') and arg('rviz_gui'))" name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false" args="-d $(arg rviz_config)" output="screen">
