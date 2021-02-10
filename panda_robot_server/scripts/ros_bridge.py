@@ -19,6 +19,8 @@ from threading import Event
 import time
 from robo_gym_server_modules.robot_server.grpc_msgs.python import robot_server_pb2
 
+FIXED_TARGET_MODE = 'fixed'
+
 
 class PandaRosBridge:
 
@@ -33,12 +35,14 @@ class PandaRosBridge:
         self.real_robot = real_robot
 
         # TODO publisher, subscriber, target and state
-        self.arm_cmd_pub = rospy.Publisher('env_arm_command', JointTrajectory, queue_size=1)
+        self.arm_cmd_pub = rospy.Publisher(
+            'env_arm_command', JointTrajectory, queue_size=1)
 
         self.target = [0.0] * 1  # TODO define number of target floats
         # TODO define number of panda states (At least the number of joints)
         self.panda_joint_names = ['panda_joint1', 'panda_joint2', 'panda_joint3',
                                   'panda_joint4', 'panda_joint5', 'panda_joint6', 'panda_joint7']
+        self.panda_finger_names = ['panda_finger_joint1', 'panda_finger_joint2']
         self.panda_joint_num = len(self.panda_joint_names)
         self.panda_state = [0.0] * self.panda_joint_num
 
@@ -50,7 +54,7 @@ class PandaRosBridge:
         self.control_period = rospy.Duration.from_sec(self.sleep_time)
 
         self.reference_frame = rospy.get_param('~reference_frame', 'base')
-        self.ee_frame = 'tool0' # TODO is the value for self.ee_frame correct?
+        self.ee_frame = 'tool0'  # TODO is the value for self.ee_frame correct?
         self.target_frame = 'target'
 
         # Minimum Trajectory Point time from start
@@ -61,14 +65,15 @@ class PandaRosBridge:
             # Subscribers to link collision sensors topics
 
             # TODO add rospy.Subsribers
-            self.collision_sensors = dict.fromkeys([], False)  # TODO add keys to collision sensors
+            # TODO add keys to collision sensors
+            self.collision_sensors = dict.fromkeys([], False)
             pass
 
         # TODO currently not used
         self.safe_to_move = True
 
         # Target mode
-        self.target_mode = rospy.get_param('~target_mode', 'fixed')
+        self.target_mode = rospy.get_param('~target_mode', FIXED_TARGET_MODE)
         self.target_mode_name = rospy.get_param('~target_model_name', 'box100')
 
         # Object parameters
@@ -78,7 +83,8 @@ class PandaRosBridge:
         if self.objects_controller:
             self.objects_model_name = []
             for i in range(self.n_objects):
-                obj_model_name = rospy.get_param('object_' + repr(i) + '_model_name')
+                obj_model_name = rospy.get_param(
+                    'object_' + repr(i) + '_model_name')
                 self.objects_model_name.append(obj_model_name)
 
     def get_state(self):
@@ -87,7 +93,8 @@ class PandaRosBridge:
         # Get environment state
         state = []  # TODO currently not used in function
 
-        if self.target_mode == 'fixed':
+        # currently only working on a fixed target mode
+        if self.target_mode == FIXED_TARGET_MODE:
             target = copy.deepcopy(self.target)
         else:
             raise ValueError
@@ -97,8 +104,9 @@ class PandaRosBridge:
 
         panda_state = copy.deepcopy(self.panda_state)
 
-        # TODO is ee_to_base_transform value correctly loaded and set 
-        (position, quaternion) = self.tf_listener.lookupTransform(self.reference_frame)
+        # TODO is ee_to_base_transform value correctly loaded and set
+        (position, quaternion) = self.tf_listener.lookupTransform(
+            self.reference_frame)
         ee_to_base_transform = position + quaternion
 
         if self.real_robot:
@@ -123,7 +131,7 @@ class PandaRosBridge:
         state = state_msg.state
         self._unlock_reset_event()
         # Set target internal value
-        if self.target_mode == 'fixed':
+        if self.target_mode == FIXED_TARGET_MODE:
             # TODO found out how many state values are needed for panda
             self.target = copy.deepcopy(state[0:6])
             # Publish Target Marker
@@ -148,24 +156,23 @@ class PandaRosBridge:
 
         Returns:
             type: Description of returned object.
-            
+
         """
         if self.safe_to_move:
             msg = JointTrajectory()
             msg.header = Header()
-            msg.joint_names = [
-                # TODO add joint names
-            ]
+            msg.joint_names = copy.deepcopy(self.panda_joint_names)
             msg.points = [JointTrajectoryPoint()]
             msg.points[0].positions = position_cmd
             duration = []
-            for i in range(len(msg.joint_names)):
+            for i, joint_name in enumerate(msg.joint_names):
                 # TODO check if the index is in bounds
                 # !!! Be careful with panda_state index here
                 pos = self.panda_state[i]
                 cmd = position_cmd[i]
                 max_vel = self.panda_joint_vel_limits[i]
-                temp_duration = max(abs(cmd - pos) / max_vel, self.min_traj_duration)
+                temp_duration = max(abs(cmd - pos) / max_vel,
+                                    self.min_traj_duration)
                 duration.append(temp_duration)
 
             msg.points[0].time_from_start = rospy.Duration.from_sec(
