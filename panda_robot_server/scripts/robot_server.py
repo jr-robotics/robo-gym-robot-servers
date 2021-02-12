@@ -20,7 +20,7 @@ class RobotServerServicer(robot_server_pb2_grpc.RobotServerServicer):
         try:
             return self.rosbridge.get_state()
         except:
-            logger.error('Failed to get state', exc_info=True)
+            # logger.error('Failed to get state', exc_info=True)
             return robot_server_pb2.State(success=0)
 
     def SetState(self, request, context):
@@ -28,7 +28,7 @@ class RobotServerServicer(robot_server_pb2_grpc.RobotServerServicer):
             self.rosbridge.set_state(state_msg=request)
             return self._robot_server_get_success()
         except:
-            logger.error('Failed to set state', exc_info=True)
+            # logger.error('Failed to set state', exc_info=True)
             return self._robot_server_get_failure()
 
     def SendAction(self, request, context):
@@ -36,7 +36,7 @@ class RobotServerServicer(robot_server_pb2_grpc.RobotServerServicer):
             # executed_action = self.rosbridge.publish_env_arm_cmd(request.action)
             return
         except:
-            logger.error('Failed to send action', exc_info=True)
+            # logger.error('Failed to send action', exc_info=True)
             return self._robot_server_get_failure()
 
     def _robot_server_get_success(self):
@@ -47,15 +47,15 @@ class RobotServerServicer(robot_server_pb2_grpc.RobotServerServicer):
 
 
 def serve():
-    _initialize_logger()
-    logger.info('Starting Panda Robot Server...')
+    # _initialize_logger()
+    # logger.info('Starting Panda Robot Server...')
+    rospy.loginfo('Starting Panda Robot Server...')
     server_port = rospy.get_param('~server_port')
     real_robot = rospy.get_param('~real_robot', False)
-
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     robot_server_pb2_grpc.add_RobotServerServicer_to_server(
         RobotServerServicer(real_robot=real_robot), server)
-    server.add_insecure_port('[::]' + repr(server_port))
+    server.add_insecure_port('[::]:' + repr(server_port))
     server.start()
 
     if real_robot:
