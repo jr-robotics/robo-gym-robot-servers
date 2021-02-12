@@ -43,6 +43,7 @@ class PandaRosBridge:
         self.panda_joint_names = ['panda_joint1', 'panda_joint2', 'panda_joint3',
                                   'panda_joint4', 'panda_joint5', 'panda_joint6', 'panda_joint7']
         self.panda_finger_names = ['panda_finger_joint1', 'panda_finger_joint2']
+        
         self.panda_joint_num = len(self.panda_joint_names)
         self.panda_state = [0.0] * self.panda_joint_num
 
