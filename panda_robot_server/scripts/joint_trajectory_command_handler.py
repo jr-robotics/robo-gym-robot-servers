@@ -2,7 +2,11 @@
 
 import rospy
 from trajectory_msgs.msg import JointTrajectoryPoint, JointTrajectory
-from Queue import Queue
+
+try: # import either Python2 or Python3 version
+   from queue import Queue as Queue
+except ImportError:
+   from Queue import Queue as Queue
 
 
 class JointTrajectoryCH:
@@ -74,4 +78,5 @@ if __name__ == '__main__':
         command_handler = JointTrajectoryCH()
         command_handler.joint_trajectory_publisher()
     except rospy.ROSInterruptException as err:
-        rospy.loginfo('Joint Trajectory Command Handler interrupted: ' + err)
+        rospy.loginfo(
+            'Joint Trajectory Command Handler interrupted: {}'.format(err))
