@@ -34,16 +34,15 @@ class PandaRosBridge:
 
         self.real_robot = real_robot
 
-        # TODO publisher, subscriber, target and state
-        self.arm_cmd_pub = rospy.Publisher(
-            'env_arm_command', JointTrajectory, queue_size=1)
+        # TODO publisher, subscriber, target andw state
+        self._add_publishers()
 
         self.target = [0.0] * 1  # TODO define number of target floats
         # TODO define number of panda states (At least the number of joints)
         self.panda_joint_names = ['panda_joint1', 'panda_joint2', 'panda_joint3',
                                   'panda_joint4', 'panda_joint5', 'panda_joint6', 'panda_joint7']
         self.panda_finger_names = ['panda_finger_joint1', 'panda_finger_joint2']
-        
+
         self.panda_joint_num = len(self.panda_joint_names)
         self.panda_state = [0.0] * self.panda_joint_num
 
@@ -88,6 +87,18 @@ class PandaRosBridge:
                     'object_' + repr(i) + '_model_name')
                 self.objects_model_name.append(obj_model_name)
 
+    def _add_publishers(self):
+        """Adds publishers to ROS bridge
+            - joint trajectory command handler
+            - RViz target marker 
+        """
+        # joint_trajectory_command handler publisher
+        self.arm_cmd_pub = rospy.Publisher('env_arm_command', JointTrajectory, queue_size=1)
+        # Target RViz Marker publisher
+        self.target_pub = rospy.Publisher('target_marker', Marker, queue_size=10)
+
+        
+        
     def get_state(self):
         self._unlock_state_event()
 
@@ -166,22 +177,19 @@ class PandaRosBridge:
             msg.points = [JointTrajectoryPoint()]
             msg.points[0].positions = position_cmd
             duration = []
-            for i, joint_name in enumerate(msg.joint_names):
+            for i in range(len(msg.joint_names)):
                 # TODO check if the index is in bounds
                 # !!! Be careful with panda_state index here
                 pos = self.panda_state[i]
                 cmd = position_cmd[i]
                 max_vel = self.panda_joint_vel_limits[i]
-                temp_duration = max(abs(cmd - pos) / max_vel,
-                                    self.min_traj_duration)
+                temp_duration = max(abs(cmd - pos) / max_vel, self.min_traj_duration)
                 duration.append(temp_duration)
 
-            msg.points[0].time_from_start = rospy.Duration.from_sec(
-                max(duration))
-
+            msg.points[0].time_from_start = rospy.Duration.from_sec(max(duration))
+            self.arm_cmd_pub(msg)
             rospy.sleep(self.control_period)
             return position_cmd
-
         else:
             rospy.sleep(self.control_period)
             return [0.0] * self.panda_joint_num
