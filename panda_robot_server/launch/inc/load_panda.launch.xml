@@ -1,0 +1,12 @@
+<?xml <?xml version="1.0"?>
+<launch>
+    <!-- Parameter files -->
+
+    <!-- Common parameters -->
+
+    <!-- Robot Base position -->
+
+    <!-- Camera 1 activate and position -->
+
+    <!-- Use common launch file and pass all arguments to it -->
+</launch>
