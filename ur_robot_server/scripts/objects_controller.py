@@ -1,24 +1,45 @@
 #!/usr/bin/env python
 import rospy
 from std_msgs.msg import Bool
-from geometry_msgs.msg import Pose, Twist
+from geometry_msgs.msg import Pose, Twist, TransformStamped
 from gazebo_msgs.msg import ModelState
 from scipy import signal, interpolate 
 import numpy as np 
 import copy
+import os
+
+import tf, tf.msg
+import json
 
 move = False 
 class ObjectsController:
     def __init__(self):
 
+        self.real_robot = rospy.get_param("real_robot")
+
         # Objects Model State publisher
-        self.set_model_state_pub = rospy.Publisher('gazebo/set_model_state', ModelState, queue_size=1)
+        if not self.real_robot:
+            self.set_model_state_pub = rospy.Publisher('gazebo/set_model_state', ModelState, queue_size=1)
 
         # Objects position update frequency (Hz)
         self.update_rate = 100 
 
         # move_objects subscriber
         rospy.Subscriber("move_objects", Bool, self.callback_move_objects)
+        
+        self.publish_tf =  rospy.get_param("publish_objects_tf")
+
+        # Objects TF Publisher
+        if self.publish_tf:
+            self.reference_frame = rospy.get_param("reference_frame", "base")
+            self.pub_tf = rospy.Publisher("/tf", tf.msg.tfMessage)
+
+        object_trajectory_file_name = rospy.get_param("object_trajectory_file_name", "selected_splines")
+        file_path = os.path.join(os.path.dirname(__file__),'../object_trajectories', object_trajectory_file_name + '.json')
+
+        # Load robot paramters
+        with open(file_path, 'r') as json_file:
+            self.p = json.load(json_file)
     
     def callback_move_objects(self,data):
         global move 
@@ -104,17 +125,34 @@ class ObjectsController:
 
         return x_function, y_function, z_function
 
+    def get_fixed_trajectory(self, trajectory_id):
+        # file_name = "obstacle_trajectories.yaml"
+
+
+        trajectory_name = "trajectory_" + str(int(trajectory_id))
+        x_function = self.p[trajectory_name]["x"]
+        y_function = self.p[trajectory_name]["y"]
+        z_function = self.p[trajectory_name]["z"]
+
+        # self.samples_len = self.p[trajectory_name]["n_sampling_points"]
+        self.samples_len = 4000
+        return x_function, y_function, z_function 
+
     def objects_state_update_loop(self):
         
         while not rospy.is_shutdown():
             if move:
                 self.n_objects = int(rospy.get_param("n_objects", 1))
                 # Initialization of ModelState() messages
-                objects_model_state = [ModelState() for i in range(self.n_objects)]
-                # Get objects model names
-                for i in range(self.n_objects):
-                    objects_model_state[i].model_name = rospy.get_param("object_" + repr(i) +"_model_name")
-                    rospy.loginfo(rospy.get_param("object_" + repr(i) +"_model_name"))
+                if not self.real_robot:
+                    objects_model_state = [ModelState() for i in range(self.n_objects)]
+                    # Get objects model names
+                    for i in range(self.n_objects):
+                        objects_model_state[i].model_name = rospy.get_param("object_" + repr(i) +"_model_name")
+                        rospy.loginfo(rospy.get_param("object_" + repr(i) +"_model_name"))
+                if self.publish_tf:
+                    # Initialization of Objects tf frames names
+                    objects_tf_frame = [rospy.get_param("object_" + repr(i) +"_frame") for i in range(self.n_objects)]
 
                 # Generate Movement Trajectories
                 objects_trajectories = []
@@ -137,6 +175,9 @@ class ObjectsController:
                         n_points = rospy.get_param("object_" + repr(i) + "_n_points")
                         n_sampling_points = rospy.get_param("n_sampling_points")
                         x_trajectory, y_trajectory, z_trajectory = self.get_3d_spline(x_min, x_max, y_min, y_max, z_min, z_max, n_points, n_sampling_points)
+                    elif function == "fixed_trajectory":
+                        trajectory_id = rospy.get_param("object_" + repr(i) + "_trajectory_id")
+                        x_trajectory, y_trajectory, z_trajectory = self.get_fixed_trajectory(trajectory_id)
                     objects_trajectories.append([x_trajectory, y_trajectory, z_trajectory])
 
                 # Move objects 
@@ -144,19 +185,50 @@ class ObjectsController:
                 while move: 
                     s = s % self.samples_len
                     for i in range(self.n_objects):
-                        objects_model_state[i].pose.position.x = objects_trajectories[i][0][s]
-                        objects_model_state[i].pose.position.y = objects_trajectories[i][1][s]
-                        objects_model_state[i].pose.position.z = objects_trajectories[i][2][s]
-                        self.set_model_state_pub.publish(objects_model_state[i])             
+                        if not self.real_robot:
+                            objects_model_state[i].pose.position.x = objects_trajectories[i][0][s]
+                            objects_model_state[i].pose.position.y = objects_trajectories[i][1][s]
+                            objects_model_state[i].pose.position.z = objects_trajectories[i][2][s]
+                            self.set_model_state_pub.publish(objects_model_state[i])
+                        if self.publish_tf:
+                            t = TransformStamped()
+                            t.header.frame_id = self.reference_frame
+                            t.header.stamp = rospy.Time.now()
+                            t.child_frame_id = objects_tf_frame[i]
+                            t.transform.translation.x = objects_trajectories[i][0][s]
+                            t.transform.translation.y = objects_trajectories[i][1][s]
+                            t.transform.translation.z = objects_trajectories[i][2][s]
+                            t.transform.rotation.x = 0.0
+                            t.transform.rotation.y = 0.0
+                            t.transform.rotation.z = 0.0
+                            t.transform.rotation.w = 1.0
+                            tfm = tf.msg.tfMessage([t])
+                            self.pub_tf.publish(tfm)
+
                     rospy.Rate(self.update_rate).sleep()
                     s = s + 1
 
                 # Move objects up in the air 
                 for i in range(self.n_objects):
+                    if not self.real_robot:
                         objects_model_state[i].pose.position.x = i
                         objects_model_state[i].pose.position.y = 0.0
                         objects_model_state[i].pose.position.z = 3.0
                         self.set_model_state_pub.publish(objects_model_state[i]) 
+                    if self.publish_tf:
+                        t = TransformStamped()
+                        t.header.frame_id = self.reference_frame
+                        t.header.stamp = rospy.Time.now()
+                        t.child_frame_id = objects_tf_frame[i]
+                        t.transform.translation.x = i
+                        t.transform.translation.y = 0.0
+                        t.transform.translation.z = 3.0
+                        t.transform.rotation.x = 0.0
+                        t.transform.rotation.y = 0.0
+                        t.transform.rotation.z = 0.0
+                        t.transform.rotation.w = 1.0
+                        tfm = tf.msg.tfMessage([t])
+                        self.pub_tf.publish(tfm)
                 rospy.Rate(self.update_rate).sleep()
             else:
                 pass 
