@@ -125,6 +125,60 @@ class ObjectsController:
 
         return x_function, y_function, z_function
 
+    def get_3d_spline_excluding_cylinder(self, x_min, x_max, y_min, y_max, z_min, z_max, n_points = 10, n_sampling_points = 4000, r_min=0.1):
+        
+        """Generate samples of the cartesian coordinates of a 3d spline that do not cross a vertical 
+            cylinder of radius r_min centered in 0,0.
+
+        Args:
+            x_min (float): min x coordinate of random points used to interpolate spline (m).
+            x_max (float): max x coordinate of random points used to interpolate spline (m).
+            y_min (float): min y coordinate of random points used to interpolate spline (m).
+            y_max (float): max y coordinate of random points used to interpolate spline (m).
+            z_min (float): min z coordinate of random points used to interpolate spline (m).
+            z_max (float): max z coordinate of random points used to interpolate spline (m).
+            n_points (int): number of random points used to interpolate the 3d spline.
+            n_sampling_points (int): number of the samples to take over the whole length of the spline.
+
+        Returns:
+            np.array: Samples of the x coordinate of the function over time.
+            np.array: Samples of the y coordinate of the function over time.
+            np.array: Samples of the z coordinate of the function over time.
+
+        """
+
+        # Convert number of points to int
+        n_points = int(n_points)
+        # Convert number of  sampling points to int
+        # By increasing the number of sampling points the speed of the object decreases
+        n_sampling_points = int(n_sampling_points)
+        # Create array with time samples over 1 full function period
+
+        self.samples_len = n_sampling_points
+        
+        search = True
+        while search:
+            x = np.random.uniform(x_min,x_max,n_points)
+            y = np.random.uniform(y_min,y_max,n_points)
+            z = np.random.uniform(z_min,z_max,n_points)
+
+            # set last point equal to first to have a closed trajectory
+            x[n_points-1] = x[0]
+            y[n_points-1] = y[0]
+            z[n_points-1] = z[0]
+
+            smoothness = 0
+            tck, u = interpolate.splprep([x,y,z], s=smoothness)
+            u_fine = np.linspace(0,1,n_sampling_points)
+            x_function, y_function, z_function = interpolate.splev(u_fine, tck)
+            
+            search = False
+            for i in range(len(x_function)):
+                if (x_function[i]**2+y_function[i]**2)**(1/2) <= r_min:
+                    search = True
+
+        return x_function, y_function, z_function
+
     def get_fixed_trajectory(self, trajectory_id):
         # file_name = "obstacle_trajectories.yaml"
 
@@ -175,6 +229,17 @@ class ObjectsController:
                         n_points = rospy.get_param("object_" + repr(i) + "_n_points")
                         n_sampling_points = rospy.get_param("n_sampling_points")
                         x_trajectory, y_trajectory, z_trajectory = self.get_3d_spline(x_min, x_max, y_min, y_max, z_min, z_max, n_points, n_sampling_points)
+                    elif function == "3d_spline_excluding_cylinder":
+                        x_min = rospy.get_param("object_" + repr(i) + "_x_min")
+                        x_max = rospy.get_param("object_" + repr(i) + "_x_max")
+                        y_min = rospy.get_param("object_" + repr(i) + "_y_min")
+                        y_max = rospy.get_param("object_" + repr(i) + "_y_max")
+                        z_min = rospy.get_param("object_" + repr(i) + "_z_min")
+                        z_max = rospy.get_param("object_" + repr(i) + "_z_max")
+                        r_min = rospy.get_param("object_" + repr(i) + "_r_min")
+                        n_points = rospy.get_param("object_" + repr(i) + "_n_points")
+                        n_sampling_points = rospy.get_param("n_sampling_points")
+                        x_trajectory, y_trajectory, z_trajectory = self.get_3d_spline_excluding_cylinder(x_min, x_max, y_min, y_max, z_min, z_max, n_points, n_sampling_points, r_min)
                     elif function == "fixed_trajectory":
                         trajectory_id = rospy.get_param("object_" + repr(i) + "_trajectory_id")
                         x_trajectory, y_trajectory, z_trajectory = self.get_fixed_trajectory(trajectory_id)
