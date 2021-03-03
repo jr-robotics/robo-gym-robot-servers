@@ -30,6 +30,7 @@
     <arg name="yaw"     default="0.0"   doc="base_link coordinate with respect to the world frame"/>
 
     <!-- Robot description and related parameter files -->
+    <arg name="robot_description_file"/>
 
     <!-- Controller configurations -->
 
