@@ -7,6 +7,7 @@ from scipy import signal, interpolate
 import numpy as np 
 import copy
 import os
+import random
 
 import tf, tf.msg
 import json
@@ -125,7 +126,7 @@ class ObjectsController:
 
         return x_function, y_function, z_function
 
-    def get_3d_spline_excluding_cylinder(self, x_min, x_max, y_min, y_max, z_min, z_max, n_points = 10, n_sampling_points = 4000, r_min=0.1):
+    def get_3d_spline_ur5_workspace(self, x_min, x_max, y_min, y_max, z_min, z_max, n_points = 10, n_sampling_points = 4000):
         
         """Generate samples of the cartesian coordinates of a 3d spline that do not cross a vertical 
             cylinder of radius r_min centered in 0,0.
@@ -147,6 +148,9 @@ class ObjectsController:
 
         """
 
+        r_min_cylinder = 0.2 
+        r_min_sphere_base = 0.35 
+
         # Convert number of points to int
         n_points = int(n_points)
         # Convert number of  sampling points to int
@@ -162,6 +166,10 @@ class ObjectsController:
             y = np.random.uniform(y_min,y_max,n_points)
             z = np.random.uniform(z_min,z_max,n_points)
 
+            # set first point oustide of square of size 0.5m centered in 0,0
+            x[0] = random.choice([np.random.uniform(-1.5,-0.5),np.random.uniform(0.5,1.5)])
+            y[0] = random.choice([np.random.uniform(-1.5,-0.5),np.random.uniform(0.5,1.5)])
+
             # set last point equal to first to have a closed trajectory
             x[n_points-1] = x[0]
             y[n_points-1] = y[0]
@@ -174,7 +182,8 @@ class ObjectsController:
             
             search = False
             for i in range(len(x_function)):
-                if (x_function[i]**2+y_function[i]**2)**(1/2) <= r_min:
+                if (x_function[i]**2+y_function[i]**2)**(1/2) <= r_min_cylinder or \
+                    (x_function[i]**2+y_function[i]**2+z_function[i]**2)**(1/2) <= r_min_sphere_base :
                     search = True
 
         return x_function, y_function, z_function
@@ -229,17 +238,16 @@ class ObjectsController:
                         n_points = rospy.get_param("object_" + repr(i) + "_n_points")
                         n_sampling_points = rospy.get_param("n_sampling_points")
                         x_trajectory, y_trajectory, z_trajectory = self.get_3d_spline(x_min, x_max, y_min, y_max, z_min, z_max, n_points, n_sampling_points)
-                    elif function == "3d_spline_excluding_cylinder":
+                    elif function == "3d_spline_ur5_workspace":
                         x_min = rospy.get_param("object_" + repr(i) + "_x_min")
                         x_max = rospy.get_param("object_" + repr(i) + "_x_max")
                         y_min = rospy.get_param("object_" + repr(i) + "_y_min")
                         y_max = rospy.get_param("object_" + repr(i) + "_y_max")
                         z_min = rospy.get_param("object_" + repr(i) + "_z_min")
                         z_max = rospy.get_param("object_" + repr(i) + "_z_max")
-                        r_min = rospy.get_param("object_" + repr(i) + "_r_min")
                         n_points = rospy.get_param("object_" + repr(i) + "_n_points")
                         n_sampling_points = rospy.get_param("n_sampling_points")
-                        x_trajectory, y_trajectory, z_trajectory = self.get_3d_spline_excluding_cylinder(x_min, x_max, y_min, y_max, z_min, z_max, n_points, n_sampling_points, r_min)
+                        x_trajectory, y_trajectory, z_trajectory = self.get_3d_spline_ur5_workspace(x_min, x_max, y_min, y_max, z_min, z_max, n_points, n_sampling_points)
                     elif function == "fixed_trajectory":
                         trajectory_id = rospy.get_param("object_" + repr(i) + "_trajectory_id")
                         x_trajectory, y_trajectory, z_trajectory = self.get_fixed_trajectory(trajectory_id)
