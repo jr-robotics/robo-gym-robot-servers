@@ -34,5 +34,6 @@
     <arg name="camera1_link_yaw"    default="0.0"   doc="camera1_link coordinate with respect to the world frame"/>
     
 
-    <param name="robot_description" command="$(find xacro)/xacro '$(find panda_robot_server)/urdf/panda.xacro'/>
+    <!-- <param name="robot_description" command="$(find xacro)/xacro '$(find panda_robot_server)/urdf/panda.xacro'"/> -->
+    <param name="robot_description" command="$(find xacro)/xacro '$(find franka_ros_interface)/franka_interface/launch/interface.launch'"/>
 </launch>
