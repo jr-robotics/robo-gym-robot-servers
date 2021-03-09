@@ -3,10 +3,11 @@
 
     <!-- Copied from loar_ur.launch.xml -->
     <!-- Parameter files -->
-    <arg name="joint_limit_params"  doc="YAML file containing the joint limit values"/>
-    <arg name="kinematics_params"   doc="YAML file containing the robot's kinematic parameters."/>
+    <arg name="joint_position_limit"    doc="YAML file containing the joint limit values"/>
+    <arg name="joint_effort_limit"      doc="YAML file containing the joint effort values"/>
+    <!-- <arg name="kinematics_params"   doc="YAML file containing the robot's kinematic parameters."/>
     <arg name="physical_params"     doc="YAML file containing the physical parameters of the robots"/>
-    <arg name="visual_params"       doc="YAML file containing the visual model of the robots"/>
+    <arg name="visual_params"       doc="YAML file containing the visual model of the robots"/> --> -->
 
     <!-- Copied from load_ur.launch.xml -->
     <!-- Common parameters -->

@@ -1,9 +1,10 @@
 <?xml version="1.0"?>
 <launch>
     <!-- Parameter files -->
-    <arg name="robot_details"       default="$(find panda_gazebo)/config/robot_details.yaml"/>
+    <rosparam file="$(find panda_gazebo)/config/robot_details.yaml" command="load"/>
+    <!-- <arg name="robot_details"       default="$(find panda_gazebo)/config/robot_details.yaml"/>
     <arg name="panda_controllers"   default="$(find panda_sim_controllers)/config/panda_sim_controllers.yaml"/>
-    <arg name="gripper_controller"  default="$(find panda_sim_controllers)/config/panda_gripper_controller.yaml"/>
+    <arg name="gripper_controller"  default="$(find panda_sim_controllers)/config/panda_gripper_controller.yaml"/> -->
 
     <!-- Common parameters -->
     <arg name="transmission_hw_interface"   default="hardware_interface/EffortJointInterface"   doc="The hardware_interface to expose for each joint in the simulated robot (one of: [PositionJointInterface, VelocityJointInterface, EffortJointInterface])"/>
