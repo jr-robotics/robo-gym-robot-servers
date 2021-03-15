@@ -167,8 +167,8 @@ class ObjectsController:
             z = np.random.uniform(z_min,z_max,n_points)
 
             # set first point oustide of square of size 0.5m centered in 0,0
-            x[0] = random.choice([np.random.uniform(-1.5,-0.5),np.random.uniform(0.5,1.5)])
-            y[0] = random.choice([np.random.uniform(-1.5,-0.5),np.random.uniform(0.5,1.5)])
+            x[0] = random.choice([np.random.uniform(-1.0,-0.5),np.random.uniform(0.5,1.0)])
+            y[0] = random.choice([np.random.uniform(-1.0,-0.5),np.random.uniform(0.5,1.0)])
 
             # set last point equal to first to have a closed trajectory
             x[n_points-1] = x[0]
