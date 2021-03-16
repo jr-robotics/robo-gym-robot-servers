@@ -67,20 +67,21 @@
     </include>
 
     <!-- Robot state publisher -->
-    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
+    <!-- This is already defined in franka_interface/launch/interface.launch -->
+    <!-- <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
         <param name="publish_frequency" type="double" value="125"/>
         <param name="tf_prefix" value=""/>
-    </node>
+    </node> -->
 
     <!-- Start the 'driver' (ie: Gazebo in this case) -->
-    <include file="$(dirname)/inc/ur_control.launch.xml">
+    <!-- <include file="$(dirname)/inc/ur_control.launch.xml">
         <arg name="controller_config_file" value="$(arg controller_config_file)"/>
         <arg name="controllers" value="$(arg controllers)"/>
         <arg name="gui" value="$(eval arg('gui') and arg('gazebo_gui'))"/>
         <arg name="paused" value="false"/>
         <arg name="stopped_controllers" value="$(arg stopped_controllers)"/>
         <arg name="gazebo_world" value="$(arg world)"/>
-    </include>
+    </include> -->
 
     <!-- Launch Command Handler -->
     <node name="joint_trajectory_command_handler" pkg="panda_robot_server" type="joint_trajectory_command_handler.py" respawn="False" output="screen">
