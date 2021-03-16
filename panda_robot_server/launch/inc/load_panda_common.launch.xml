@@ -1,10 +1,19 @@
 <?xml version="1.0"?>
 <launch>
 
+    <include file="$(find franka_interface)/launch/interface.launch"/>
+
     <!-- Copied from loar_ur.launch.xml -->
     <!-- Parameter files -->
-    <arg name="joint_position_limit"    doc="YAML file containing the joint limit values"/>
-    <arg name="joint_effort_limit"      doc="YAML file containing the joint effort values"/>
+    <arg name="joint_acceleration_limit"    doc="YAML file containing the joint acceleration limit values"/>
+    <arg name="joint_velocity_limit"        doc="YAML file containing the joint acceleration limit values"/>
+    <arg name="joint_position_limit"        doc="YAML file containing the joint position limit values"/>
+    <arg name="joint_effort_limit"          doc="YAML file containing the joint effort limit values"/>
+    <arg name="gripper_config"              doc="YAML file containing the gripper config values"/>
+    <arg name="controllers_config"          doc="YAML file containing the controllers configs"/>
+
+
+    
     <!-- <arg name="kinematics_params"   doc="YAML file containing the robot's kinematic parameters."/>
     <arg name="physical_params"     doc="YAML file containing the physical parameters of the robots"/>
     <arg name="visual_params"       doc="YAML file containing the visual model of the robots"/> --> -->
@@ -36,5 +45,6 @@
     
 
     <!-- <param name="robot_description" command="$(find xacro)/xacro '$(find panda_robot_server)/urdf/panda.xacro'"/> -->
-    <param name="robot_description" command="$(find xacro)/xacro '$(find franka_ros_interface)/franka_interface/launch/interface.launch'"/>
+    <!-- <param name="robot_description" command="$(find xacro)/xacro '$(find franka_ros_interface)/franka_interface/launch/interface.launch'"/> -->
+    
 </launch>
