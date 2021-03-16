@@ -27,10 +27,10 @@ class PandaRosBridge:
     def __init__(self, real_robot=False):
 
         # Event is claer while initialization or set_state is going on
-        # self.reset = Event()
-        # self._unlock_reset_event()
-        # self.get_state_event = Event()
-        # self._lock_state_event()
+        self.reset = Event()
+        self._unlock_reset_event()
+        self.get_state_event = Event()
+        self._lock_state_event()
 
         self.real_robot = real_robot
 
@@ -52,16 +52,16 @@ class PandaRosBridge:
         self.tf_listener = tf.TransformListener()
 
         # Robot control rate
-        # self.sleep_time = (1.0 / rospy.get_param('~action_cycle_rate')) - 0.01
-        # self.control_period = rospy.Duration.from_sec(self.sleep_time)
+        self.sleep_time = (1.0 / rospy.get_param('~action_cycle_rate')) - 0.01
+        self.control_period = rospy.Duration.from_sec(self.sleep_time)
 
-        # self.reference_frame = rospy.get_param('~reference_frame', 'base')
-        # self.ee_frame = 'tool0'  # TODO is the value for self.ee_frame correct?
-        # self.target_frame = 'target'
+        self.reference_frame = rospy.get_param('~reference_frame', 'base')
+        self.ee_frame = 'tool0'  # TODO is the value for self.ee_frame correct?
+        self.target_frame = 'target'
 
         # Minimum Trajectory Point time from start
         # TODO check if this value is correct for the panda robot
-        # self.min_traj_duration = 0.5
+        self.min_traj_duration = 0.5
 
         if not self.real_robot:
             # Subscribers to link collision sensors topics
@@ -75,8 +75,8 @@ class PandaRosBridge:
         # self.safe_to_move = True
 
         # Target mode
-        # self.target_mode = rospy.get_param('~target_mode', FIXED_TARGET_MODE)
-        # self.target_mode_name = rospy.get_param('~target_model_name', 'box100')
+        self.target_mode = rospy.get_param('~target_mode', FIXED_TARGET_MODE)
+        self.target_mode_name = rospy.get_param('~target_model_name', 'box100')
 
         # Object parameters
         # self.objects_controller = rospy.get_param('objects_controller', False)
@@ -99,6 +99,14 @@ class PandaRosBridge:
             efforts = data.effort
             print(names)
             print(positions)
+            
+            
+    def callback_panda(self, data):
+        # TODO gripper might also be included in this state
+        if self.get_state_event.is_set():
+            self.panda_state[0:7]   = data.position[0:7]
+            self.panda_state[7:14]  = data.velocity[0:7]
+            self.panda_state[14:21] = data.effort[0:7]
             
             
 
@@ -136,10 +144,11 @@ class PandaRosBridge:
             self.reference_frame)
         ee_to_base_transform = position + quaternion
 
-        if self.real_robot:
-            panda_collision = False
-        else:
-            panda_collision = any(self.collision_sensors.values())
+        # TODO currently not needed
+        # if self.real_robot:
+        #     panda_collision = False
+        # else:
+        #     panda_collision = any(self.collision_sensors.values())
 
         self.get_state_event.set()
 
@@ -148,7 +157,7 @@ class PandaRosBridge:
         msg.state.extend(target)
         msg.state.extend(panda_state)
         msg.state.extend(ee_to_base_transform)
-        msg.state.extend([panda_collision])
+        # msg.state.extend([panda_collision])
         msg.success = True
 
         return msg
