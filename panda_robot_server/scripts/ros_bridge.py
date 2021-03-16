@@ -27,15 +27,17 @@ class PandaRosBridge:
     def __init__(self, real_robot=False):
 
         # Event is claer while initialization or set_state is going on
-        self.reset = Event()
-        self._unlock_reset_event()
-        self.get_state_event = Event()
-        self._lock_state_event()
+        # self.reset = Event()
+        # self._unlock_reset_event()
+        # self.get_state_event = Event()
+        # self._lock_state_event()
 
         self.real_robot = real_robot
 
         # TODO publisher, subscriber, target andw state
         self._add_publishers()
+        
+        # TODO add subscribers
 
         self.target = [0.0] * 1  # TODO define number of target floats
         # TODO define number of panda states (At least the number of joints)
@@ -50,42 +52,48 @@ class PandaRosBridge:
         self.tf_listener = tf.TransformListener()
 
         # Robot control rate
-        self.sleep_time = (1.0 / rospy.get_param('~action_cycle_rate')) - 0.01
-        self.control_period = rospy.Duration.from_sec(self.sleep_time)
+        # self.sleep_time = (1.0 / rospy.get_param('~action_cycle_rate')) - 0.01
+        # self.control_period = rospy.Duration.from_sec(self.sleep_time)
 
-        self.reference_frame = rospy.get_param('~reference_frame', 'base')
-        self.ee_frame = 'tool0'  # TODO is the value for self.ee_frame correct?
-        self.target_frame = 'target'
+        # self.reference_frame = rospy.get_param('~reference_frame', 'base')
+        # self.ee_frame = 'tool0'  # TODO is the value for self.ee_frame correct?
+        # self.target_frame = 'target'
 
         # Minimum Trajectory Point time from start
         # TODO check if this value is correct for the panda robot
-        self.min_traj_duration = 0.5
+        # self.min_traj_duration = 0.5
 
         if not self.real_robot:
             # Subscribers to link collision sensors topics
 
             # TODO add rospy.Subsribers
+            rospy.Subscriber('/joint_states', JointState, self.joint_states_callback)
             # TODO add keys to collision sensors
             self.collision_sensors = dict.fromkeys([], False)
-            pass
 
         # TODO currently not used
-        self.safe_to_move = True
+        # self.safe_to_move = True
 
         # Target mode
-        self.target_mode = rospy.get_param('~target_mode', FIXED_TARGET_MODE)
-        self.target_mode_name = rospy.get_param('~target_model_name', 'box100')
+        # self.target_mode = rospy.get_param('~target_mode', FIXED_TARGET_MODE)
+        # self.target_mode_name = rospy.get_param('~target_model_name', 'box100')
 
         # Object parameters
-        self.objects_controller = rospy.get_param('objects_controller', False)
-        self.n_objects = int(rospy.get_param('n_objects', 0))
+        # self.objects_controller = rospy.get_param('objects_controller', False)
+        # self.n_objects = int(rospy.get_param('n_objects', 0))
 
-        if self.objects_controller:
-            self.objects_model_name = []
-            for i in range(self.n_objects):
-                obj_model_name = rospy.get_param(
-                    'object_' + repr(i) + '_model_name')
-                self.objects_model_name.append(obj_model_name)
+        # if self.objects_controller:
+        #     self.objects_model_name = []
+        #     for i in range(self.n_objects):
+        #         obj_model_name = rospy.get_param(
+        #             'object_' + repr(i) + '_model_name')
+        #         self.objects_model_name.append(obj_model_name)
+        
+    def joint_states_callback(self, data):
+        if data is None or data == []:
+            pass
+        else:
+            print(data)
 
     def _add_publishers(self):
         """Adds publishers to ROS bridge
