@@ -93,7 +93,14 @@ class PandaRosBridge:
         if data is None or data == []:
             pass
         else:
-            print(data)
+            names = data.name
+            positions = data.position
+            velocities = data.velocity
+            efforts = data.effort
+            print(names)
+            print(positions)
+            
+            
 
     def _add_publishers(self):
         """Adds publishers to ROS bridge
