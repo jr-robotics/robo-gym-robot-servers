@@ -67,7 +67,7 @@ class PandaRosBridge:
             # Subscribers to link collision sensors topics
 
             # TODO add rospy.Subsribers
-            rospy.Subscriber('/joint_states', JointState, self.joint_states_callback)
+            rospy.Subscriber('/joint_states', JointState, self.callback_panda)
             # TODO add keys to collision sensors
             self.collision_sensors = dict.fromkeys([], False)
 
@@ -102,11 +102,23 @@ class PandaRosBridge:
             
             
     def callback_panda(self, data):
+        """Callback function which sets the panda state
+            - `data.name`     -> joint names
+            - `data.position` -> current joint positions
+            - `data.velocity` -> current velocity of joints
+            - `data.effort`   -> current torque (effort) of joints
+
+        Args:
+            `data` (JointStates): data containing the current joint states
+                
+        """
         # TODO gripper might also be included in this state
         if self.get_state_event.is_set():
-            self.panda_state[0:7]   = data.position[0:7]
-            self.panda_state[7:14]  = data.velocity[0:7]
-            self.panda_state[14:21] = data.effort[0:7]
+            if len(data.name) == self.panda_joint_num: # joint states without gripper
+                self.panda_state[0:7]   = data.position[0:7]
+                self.panda_state[7:14]  = data.velocity[0:7]
+                self.panda_state[14:21] = data.effort[0:7]
+            
             
             
 
