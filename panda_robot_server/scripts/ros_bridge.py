@@ -34,7 +34,7 @@ class PandaRosBridge:
 
         self.real_robot = real_robot
 
-        # TODO publisher, subscriber, target andw state
+        # TODO publisher, subscriber, target and state
         self._add_publishers()
         
         # TODO add subscribers
