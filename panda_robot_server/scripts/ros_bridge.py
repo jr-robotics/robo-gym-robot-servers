@@ -36,8 +36,6 @@ class PandaRosBridge:
 
         # TODO publisher, subscriber, target and state
         self._add_publishers()
-        
-        # TODO add subscribers
 
         self.target = [0.0] * 1  # TODO define number of target floats
         # TODO define number of panda states (At least the number of joints)
