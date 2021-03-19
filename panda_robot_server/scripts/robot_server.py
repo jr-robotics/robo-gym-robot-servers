@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 from sys import exc_info
 import grpc
 import rospy
@@ -24,7 +24,7 @@ class RobotServerServicer(robot_server_pb2_grpc.RobotServerServicer):
             # msg.state.extend(panda_state)
             # msg.state.extend(ee_to_base_transform)
             # msg.state.extend([panda_collision])
-            msg.state = [0.0] * 2
+            msg.state.extend([0.0, 0.0])
             msg.success = True
             # return self.rosbridge.get_state()
             return msg
