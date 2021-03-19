@@ -111,13 +111,10 @@ class PandaRosBridge:
                 
         """
         # TODO gripper might also be included in this state
-        if self.get_state_event.is_set():
-            if len(data.name) == self.panda_joint_num: # joint states without gripper
-                self.panda_state[0:7]   = data.position[0:7]
-                self.panda_state[7:14]  = data.velocity[0:7]
-                self.panda_state[14:21] = data.effort[0:7]
-            
-            
+        # if self.get_state_event.is_set():
+        self.panda_state[0:7]   = data.position[0:7]
+        self.panda_state[7:14]  = data.velocity[0:7]
+        self.panda_state[14:21] = data.effort[0:7]
             
 
     def _add_publishers(self):
@@ -143,11 +140,11 @@ class PandaRosBridge:
         #     target = copy.deepcopy(self.target)
         # else:
         #     raise ValueError
-        #     # raise ValueError as err(
-        #     #     'Target mode was ill defined. Got error type: ' +
-        #     #     str(type(err)) + ' with message: ' + err.message)
+            # raise ValueError as err(
+            #     'Target mode was ill defined. Got error type: ' +
+            #     str(type(err)) + ' with message: ' + err.message)
 
-        # panda_state = copy.deepcopy(self.panda_state)
+        panda_state = copy.deepcopy(self.panda_state)
 
         # # TODO is ee_to_base_transform value correctly loaded and set
         # (position, quaternion) = self.tf_listener.lookupTransform(
@@ -165,10 +162,9 @@ class PandaRosBridge:
         # Create and fill State message
         msg = robot_server_pb2.State()
         # msg.state.extend(target)
-        # msg.state.extend(panda_state)
+        msg.state.extend(panda_state)
         # msg.state.extend(ee_to_base_transform)
         # msg.state.extend([panda_collision])
-        msg.state = [0.0] * 2
         msg.success = True
 
         return msg
@@ -279,15 +275,6 @@ class PandaRosBridge:
         t_marker = Marker()
         # TODO add values to marker
         self.target_pub.publish(t_marker)
-
-    def callback_panda(self, data):
-        # TODO split and endpoint yet to be defined
-        if self._is_state_event_locked():
-            split_point = 6
-            end_point = 12
-            self.panda_state[0: split_point] = data.position[0: split_point]
-            self.panda_state[split_point: end_point] = data.velocity[0: split_point]
-        pass
 
     def _is_state_event_locked(self):
         return self.get_state_event.is_set()
