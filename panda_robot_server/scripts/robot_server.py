@@ -20,14 +20,7 @@ class RobotServerServicer(robot_server_pb2_grpc.RobotServerServicer):
     def GetState(self, request, context):
         try:
             msg = robot_server_pb2.State()
-            # msg.state.extend(target)
-            # msg.state.extend(panda_state)
-            # msg.state.extend(ee_to_base_transform)
-            # msg.state.extend([panda_collision])
-            msg.state.extend([0.0, 0.0])
-            msg.success = True
-            # return self.rosbridge.get_state()
-            return msg
+            return self.rosbridge.get_state()
         except:
             # logger.error('Failed to get state', exc_info=True)
             return self._get_state_failure()
@@ -103,6 +96,5 @@ if __name__ == '__main__':
         rospy.sleep(wait_time)
         rospy.loginfo('Initializing robot_server node')
         serve()
-        rospy.loginfo('TEST TEST')
     except(KeyboardInterrupt, SystemExit):
         pass
