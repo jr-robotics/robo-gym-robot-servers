@@ -25,7 +25,7 @@ FIXED_TARGET_MODE = 'fixed'
 class PandaRosBridge:
 
     def __init__(self, real_robot=False):
-
+        print('Initializing PandaRosBridge')
         # Event is claer while initialization or set_state is going on
         self.reset = Event()
         self._unlock_reset_event()
@@ -73,8 +73,8 @@ class PandaRosBridge:
         # self.safe_to_move = True
 
         # Target mode
-        self.target_mode = rospy.get_param('~target_mode', FIXED_TARGET_MODE)
-        self.target_mode_name = rospy.get_param('~target_model_name', 'box100')
+        # self.target_mode = rospy.get_param('~target_mode', FIXED_TARGET_MODE)
+        # self.target_mode_name = rospy.get_param('~target_model_name', 'box100')
 
         # Object parameters
         # self.objects_controller = rospy.get_param('objects_controller', False)
@@ -135,39 +135,40 @@ class PandaRosBridge:
     def get_state(self):
         self._unlock_state_event()
 
-        # Get environment state
-        state = []  # TODO currently not used in function
+        # # Get environment state
+        # state = []  # TODO currently not used in function
 
-        # currently only working on a fixed target mode
-        if self.target_mode == FIXED_TARGET_MODE:
-            target = copy.deepcopy(self.target)
-        else:
-            raise ValueError
-            # raise ValueError as err(
-            #     'Target mode was ill defined. Got error type: ' +
-            #     str(type(err)) + ' with message: ' + err.message)
-
-        panda_state = copy.deepcopy(self.panda_state)
-
-        # TODO is ee_to_base_transform value correctly loaded and set
-        (position, quaternion) = self.tf_listener.lookupTransform(
-            self.reference_frame)
-        ee_to_base_transform = position + quaternion
-
-        # TODO currently not needed
-        # if self.real_robot:
-        #     panda_collision = False
+        # # currently only working on a fixed target mode
+        # if self.target_mode == FIXED_TARGET_MODE:
+        #     target = copy.deepcopy(self.target)
         # else:
-        #     panda_collision = any(self.collision_sensors.values())
+        #     raise ValueError
+        #     # raise ValueError as err(
+        #     #     'Target mode was ill defined. Got error type: ' +
+        #     #     str(type(err)) + ' with message: ' + err.message)
 
-        self.get_state_event.set()
+        # panda_state = copy.deepcopy(self.panda_state)
+
+        # # TODO is ee_to_base_transform value correctly loaded and set
+        # (position, quaternion) = self.tf_listener.lookupTransform(
+        #     self.reference_frame)
+        # ee_to_base_transform = position + quaternion
+
+        # # TODO currently not needed
+        # # if self.real_robot:
+        # #     panda_collision = False
+        # # else:
+        # #     panda_collision = any(self.collision_sensors.values())
+
+        # self.get_state_event.set()
 
         # Create and fill State message
         msg = robot_server_pb2.State()
-        msg.state.extend(target)
-        msg.state.extend(panda_state)
-        msg.state.extend(ee_to_base_transform)
+        # msg.state.extend(target)
+        # msg.state.extend(panda_state)
+        # msg.state.extend(ee_to_base_transform)
         # msg.state.extend([panda_collision])
+        msg.state = [0.0] * 2
         msg.success = True
 
         return msg

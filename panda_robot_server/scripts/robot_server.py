@@ -10,6 +10,7 @@ import logging.config
 import yaml
 import os
 
+from robo_gym_server_modules.robot_server.grpc_msgs.python import robot_server_pb2
 
 class RobotServerServicer(robot_server_pb2_grpc.RobotServerServicer):
 
@@ -18,7 +19,15 @@ class RobotServerServicer(robot_server_pb2_grpc.RobotServerServicer):
 
     def GetState(self, request, context):
         try:
-            return self.rosbridge.get_state()
+            msg = robot_server_pb2.State()
+            # msg.state.extend(target)
+            # msg.state.extend(panda_state)
+            # msg.state.extend(ee_to_base_transform)
+            # msg.state.extend([panda_collision])
+            msg.state = [0.0] * 2
+            msg.success = True
+            # return self.rosbridge.get_state()
+            return msg
         except:
             # logger.error('Failed to get state', exc_info=True)
             return self._get_state_failure()
@@ -94,5 +103,6 @@ if __name__ == '__main__':
         rospy.sleep(wait_time)
         rospy.loginfo('Initializing robot_server node')
         serve()
+        rospy.loginfo('TEST TEST')
     except(KeyboardInterrupt, SystemExit):
         pass
