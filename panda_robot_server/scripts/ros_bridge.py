@@ -207,12 +207,12 @@ class PandaRosBridge:
                 # !!! Be careful with panda_state index here
                 pos = self.panda_state[i]
                 cmd = position_cmd[i]
-                max_vel = self.panda_joint_vel_limits[i]
-                temp_duration = max(abs(cmd - pos) / max_vel, self.min_traj_duration)
-                duration.append(temp_duration)
+                # max_vel = self.panda_joint_vel_limits[i]
+                # temp_duration = max(abs(cmd - pos) / max_vel, self.min_traj_duration)
+                # duration.append(temp_duration)
 
-            msg.points[0].time_from_start = rospy.Duration.from_sec(max(duration))
-            self.arm_cmd_pub(msg)
+            # msg.points[0].time_from_start = rospy.Duration.from_sec(max(duration))
+            self.arm_cmd_pub.publish(msg)
             rospy.sleep(self.control_period)
             return position_cmd
         else:
