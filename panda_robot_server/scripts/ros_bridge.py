@@ -70,10 +70,10 @@ class PandaRosBridge:
             self.collision_sensors = dict.fromkeys([], False)
 
         # TODO currently not used
-        # self.safe_to_move = True
+        self.safe_to_move = True
 
         # Target mode
-        # self.target_mode = rospy.get_param('~target_mode', FIXED_TARGET_MODE)
+        self.target_mode = rospy.get_param('~target_mode', FIXED_TARGET_MODE)
         # self.target_mode_name = rospy.get_param('~target_model_name', 'box100')
 
         # Object parameters
@@ -86,17 +86,6 @@ class PandaRosBridge:
         #         obj_model_name = rospy.get_param(
         #             'object_' + repr(i) + '_model_name')
         #         self.objects_model_name.append(obj_model_name)
-        
-    def joint_states_callback(self, data):
-        if data is None or data == []:
-            pass
-        else:
-            names = data.name
-            positions = data.position
-            velocities = data.velocity
-            efforts = data.effort
-            print(names)
-            print(positions)
             
             
     def callback_panda(self, data):
@@ -172,20 +161,25 @@ class PandaRosBridge:
     def set_state(self, state_msg):
         # Set environment state
         state = state_msg.state
-        self._unlock_reset_event()
+        # TODO check locking mechanism
+        # self._unlock_reset_event()
         # Set target internal value
         if self.target_mode == FIXED_TARGET_MODE:
             # TODO found out how many state values are needed for panda
-            self.target = copy.deepcopy(state[0:6])
+            # self.target = copy.deepcopy(state[0:6])
             # Publish Target Marker
-            self.publish_target_marker(self.target)
+            # self.publish_target_marker(self.target)
+            pass
 
         # TODO setup objects movement
         # if self.objects_controller:
 
         # TODO reset_steps and init of corresponding variables
-
-        self._lock_reset_event()
+        reset_steps = int(15.0 / self.sleep_time)
+        for _ in range(reset_steps):
+            self.publish_env_arm_cmd(state[0:7])
+        
+        # self._lock_reset_event()
 
         return True
 
