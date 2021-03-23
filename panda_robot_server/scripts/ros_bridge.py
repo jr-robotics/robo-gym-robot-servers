@@ -163,6 +163,7 @@ class PandaRosBridge:
         state = state_msg.state
         # TODO check locking mechanism
         # self._unlock_reset_event()
+        self.reset.clear()
         # Set target internal value
         if self.target_mode == FIXED_TARGET_MODE:
             # TODO found out how many state values are needed for panda
@@ -179,8 +180,8 @@ class PandaRosBridge:
         for _ in range(reset_steps):
             self.publish_env_arm_cmd(state[0:7])
         
-        # self._lock_reset_event()
-
+        self.reset.set()
+        
         return True
 
     def publish_env_arm_cmd(self, position_cmd):
