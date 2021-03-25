@@ -35,7 +35,7 @@ class RobotServerServicer(robot_server_pb2_grpc.RobotServerServicer):
 
     def SendAction(self, request, context):
         try:
-            # executed_action = self.rosbridge.publish_env_arm_cmd(request.action)
+            executed_action = self.rosbridge.publish_env_arm_cmd(request.action)
             return self._robot_server_get_success()
         except:
             # logger.error('Failed to send action', exc_info=True)
@@ -88,7 +88,6 @@ def _initialize_logger():
 
 
 if __name__ == '__main__':
-
     try:
         wait_time = 5
         rospy.init_node('robot_server')
