@@ -10,6 +10,7 @@ from sensor_msgs.msg import JointState
 from trajectory_msgs.msg import JointTrajectoryPoint, JointTrajectory
 from std_msgs.msg import Header, Bool
 from std_srvs.srv import Empty
+from franka_interface import ArmInterface
 
 from visualization_msgs.msg import Marker
 import PyKDL
@@ -25,17 +26,17 @@ FIXED_TARGET_MODE = 'fixed'
 class PandaRosBridge:
 
     def __init__(self, real_robot=False):
-        print('Initializing PandaRosBridge')
-        # Event is claer while initialization or set_state is going on
+        # Event is clear while initialization or set_state is going on
         self.reset = Event()
-        self._unlock_reset_event()
+        self.reset.clear()
         self.get_state_event = Event()
-        self._lock_state_event()
+        self.get_state_event.set()
 
         self.real_robot = real_robot
-
         # TODO publisher, subscriber, target and state
         self._add_publishers()
+        
+        self.panda_arm = ArmInterface()
 
         self.target = [0.0] * 1  # TODO define number of target floats
         # TODO define number of panda states (At least the number of joints)
@@ -119,10 +120,7 @@ class PandaRosBridge:
         
         
     def get_state(self):
-        self._unlock_state_event()
-
-        # # Get environment state
-        # state = []  # TODO currently not used in function
+        self.get_state_event.clear()
 
         # # currently only working on a fixed target mode
         # if self.target_mode == FIXED_TARGET_MODE:
@@ -146,8 +144,8 @@ class PandaRosBridge:
         # # else:
         # #     panda_collision = any(self.collision_sensors.values())
 
-        # self.get_state_event.set()
-
+        self.get_state_event.set()
+        
         # Create and fill State message
         msg = robot_server_pb2.State()
         # msg.state.extend(target)
@@ -161,9 +159,8 @@ class PandaRosBridge:
     def set_state(self, state_msg):
         # Set environment state
         state = state_msg.state
-        # TODO check locking mechanism
-        # self._unlock_reset_event()
         self.reset.clear()
+        
         # Set target internal value
         if self.target_mode == FIXED_TARGET_MODE:
             # TODO found out how many state values are needed for panda
@@ -196,24 +193,28 @@ class PandaRosBridge:
             type: Description of returned object.
 
         """
-        if self.safe_to_move:
-            msg = JointTrajectory()
-            msg.header = Header()
-            msg.joint_names = copy.deepcopy(self.panda_joint_names)
-            msg.points = [JointTrajectoryPoint()]
-            msg.points[0].positions = position_cmd
-            duration = []
-            for i in range(len(msg.joint_names)):
+        # if self.safe_to_move:
+        #     msg = JointTrajectory()
+        #     msg.header = Header()
+        #     msg.joint_names = copy.deepcopy(self.panda_joint_names)
+        #     msg.points = [JointTrajectoryPoint()]
+        #     msg.points[0].positions = position_cmd
+        #     duration = []
+            # for i in range(len(msg.joint_names)):
                 # TODO check if the index is in bounds
                 # !!! Be careful with panda_state index here
-                pos = self.panda_state[i]
-                cmd = position_cmd[i]
+                # pos = self.panda_state[i]
+                # cmd = position_cmd[i]
                 # max_vel = self.panda_joint_vel_limits[i]
                 # temp_duration = max(abs(cmd - pos) / max_vel, self.min_traj_duration)
                 # duration.append(temp_duration)
 
             # msg.points[0].time_from_start = rospy.Duration.from_sec(max(duration))
-            self.arm_cmd_pub.publish(msg)
+            # print(msg)
+            
+            # self.arm_cmd_pub.publish(msg)
+        if self.safe_to_move:
+            self.panda_arm.set_joint_positions(position_cmd)
             rospy.sleep(self.control_period)
             return position_cmd
         else:
@@ -270,18 +271,3 @@ class PandaRosBridge:
         t_marker = Marker()
         # TODO add values to marker
         self.target_pub.publish(t_marker)
-
-    def _is_state_event_locked(self):
-        return self.get_state_event.is_set()
-
-    def _lock_reset_event(self):
-        self.reset.set()
-
-    def _lock_state_event(self):
-        self.get_state_event.set()
-
-    def _unlock_reset_event(self):
-        self.reset.clear()
-
-    def _unlock_state_event(self):
-        self.get_state_event.clear()
