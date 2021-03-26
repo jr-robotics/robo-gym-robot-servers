@@ -171,16 +171,29 @@ class PandaRosBridge:
 
         # TODO setup objects movement
         # if self.objects_controller:
-
+    
         # TODO reset_steps and init of corresponding variables
-        reset_steps = int(15.0 / self.sleep_time)
-        for _ in range(reset_steps):
-            self.publish_env_arm_cmd(state[0:7])
+        # reset_steps = int(15.0 / self.sleep_time)
+        # self.panda_arm.move_to_joint_positions(state[0:7], use_moveit=False)
+        transformed_j_pos = self._transform_panda_list_to_dict(state[0:7])
+        
+        self.panda_arm.set_joint_positions(transformed_j_pos)
+        # for _ in range(reset_steps):
+        #     # self.publish_env_arm_cmd(state[0:7])
+        #     pass
         
         self.reset.set()
         
         return True
-
+    
+    def _transform_panda_list_to_dict(self, panda_list):
+        transformed_dict = {}
+        for idx, value in enumerate(panda_list):
+            current_joint_name = self.panda_joint_names[idx]
+            transformed_dict[current_joint_name] = value
+        return transformed_dict
+            
+            
     def publish_env_arm_cmd(self, position_cmd):
         """Publish environment JointTrajectory msg.
 
@@ -214,7 +227,7 @@ class PandaRosBridge:
             
             # self.arm_cmd_pub.publish(msg)
         if self.safe_to_move:
-            self.panda_arm.set_joint_positions(position_cmd)
+            self.panda_arm.set_joint_positions(position_cmd[0:7])
             rospy.sleep(self.control_period)
             return position_cmd
         else:
