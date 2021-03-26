@@ -1,7 +1,9 @@
 <?xml version="1.0"?>
 <launch>
 
-    <include file="$(find franka_interface)/launch/interface.launch"/>
+    <include file="$(find franka_interface)/launch/interface.launch">
+        <arg name="load_demo_planning_scene" value="false"/>
+    </include>
 
     <!-- Copied from loar_ur.launch.xml -->
     <!-- Parameter files -->
