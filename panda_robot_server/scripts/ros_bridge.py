@@ -35,7 +35,7 @@ class PandaRosBridge:
         self.real_robot = real_robot
         # TODO publisher, subscriber, target and state
         self._add_publishers()
-        
+
         self.panda_arm = ArmInterface()
 
         self.target = [0.0] * 1  # TODO define number of target floats
@@ -160,7 +160,7 @@ class PandaRosBridge:
         # Set environment state
         state = state_msg.state
         self.reset.clear()
-        
+
         # Set target internal value
         if self.target_mode == FIXED_TARGET_MODE:
             # TODO found out how many state values are needed for panda
@@ -171,25 +171,17 @@ class PandaRosBridge:
 
         # TODO setup objects movement
         # if self.objects_controller:
-    
+
         transformed_j_pos = self._transform_panda_list_to_dict(state[0:7])
         reset_steps = int(15.0 / self.sleep_time)
-        
+
         for _ in range(reset_steps):
             self.panda_arm.set_joint_positions(transformed_j_pos)
-        
+
         self.reset.set()
-        
+
         return True
-    
-    def _transform_panda_list_to_dict(self, panda_list):
-        transformed_dict = {}
-        for idx, value in enumerate(panda_list):
-            current_joint_name = self.panda_joint_names[idx]
-            transformed_dict[current_joint_name] = value
-        return transformed_dict
-            
-            
+
     def publish_env_arm_cmd(self, position_cmd):
         """Publish environment JointTrajectory msg.
 
@@ -223,7 +215,8 @@ class PandaRosBridge:
             
             # self.arm_cmd_pub.publish(msg)
         if self.safe_to_move:
-            self.panda_arm.set_joint_positions(position_cmd[0:7])
+            transformed_j_pos = self._transform_panda_list_to_dict(position_cmd[0:7])
+            self.panda_arm.set_joint_positions(transformed_j_pos)
             rospy.sleep(self.control_period)
             return position_cmd
         else:
@@ -280,3 +273,10 @@ class PandaRosBridge:
         t_marker = Marker()
         # TODO add values to marker
         self.target_pub.publish(t_marker)
+
+    def _transform_panda_list_to_dict(self, panda_list):
+        transformed_dict = {}
+        for idx, value in enumerate(panda_list):
+            current_joint_name = self.panda_joint_names[idx]
+            transformed_dict[current_joint_name] = value
+        return transformed_dict
