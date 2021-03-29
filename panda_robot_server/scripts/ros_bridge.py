@@ -172,15 +172,11 @@ class PandaRosBridge:
         # TODO setup objects movement
         # if self.objects_controller:
     
-        # TODO reset_steps and init of corresponding variables
-        # reset_steps = int(15.0 / self.sleep_time)
-        # self.panda_arm.move_to_joint_positions(state[0:7], use_moveit=False)
         transformed_j_pos = self._transform_panda_list_to_dict(state[0:7])
+        reset_steps = int(15.0 / self.sleep_time)
         
-        self.panda_arm.set_joint_positions(transformed_j_pos)
-        # for _ in range(reset_steps):
-        #     # self.publish_env_arm_cmd(state[0:7])
-        #     pass
+        for _ in range(reset_steps):
+            self.panda_arm.set_joint_positions(transformed_j_pos)
         
         self.reset.set()
         
