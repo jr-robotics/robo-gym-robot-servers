@@ -2,6 +2,10 @@
 
 import rospy
 import tf
+#TODO Switch to tf2
+import tf2_ros
+import tf_conversions
+import geometry_msgs.msg
 from geometry_msgs.msg import Twist, Pose, Pose2D
 from gazebo_msgs.msg import ModelState, ContactsState
 from gazebo_msgs.srv import GetModelState, SetModelState, GetLinkState
@@ -49,6 +53,13 @@ class UrRosBridge:
         # TF Listener
         self.tf_listener = tf.TransformListener()
 
+        # TF2 Listener
+        self.tf2_buffer = tf2_ros.Buffer()
+        self.tf2_listener = tf2_ros.TransformListener(self.tf2_buffer)
+
+        # Static TF2 Broadcaster
+        self.static_tf2_broadcaster = tf2_ros.StaticTransformBroadcaster()
+
         # Robot control rate
         self.sleep_time = (1.0/rospy.get_param("~action_cycle_rate")) - 0.01
         self.control_period = rospy.Duration.from_sec(self.sleep_time)
@@ -88,6 +99,10 @@ class UrRosBridge:
          # Target mode
         self.target_mode = rospy.get_param("~target_mode", 'fixed')
 
+        # Publish target tf2 frame 
+        if self.target_mode == 'fixed':
+            self.broadcast_static_tf2_transform(self.reference_frame, 'target', self.target)
+
         # Objects parameters
         self.objects_controller = rospy.get_param("objects_controller", False)
         self.n_objects = int(rospy.get_param("n_objects"))
@@ -118,7 +133,8 @@ class UrRosBridge:
         # Get environment state
         state =[]
         if self.target_mode == 'fixed':
-            target = copy.deepcopy(self.target)
+            trans = self.tf2_buffer.lookup_transform(self.reference_frame, 'target', rospy.Time(0))
+            target = [trans.transform.translation.x, trans.transform.translation.y, trans.transform.translation.z] + [0,0,0]
         elif self.target_mode == 'moving':
             if self.real_robot:
                 (t_position, t_quaternion) = self.tf_listener.lookupTransform(self.reference_frame,self.objects_frame[0],rospy.Time(0))
@@ -249,6 +265,8 @@ class UrRosBridge:
             self.target = copy.deepcopy(state[0:6])
             # Publish Target Marker
             self.publish_target_marker(self.target)
+            # Broadcast target tf2
+            self.broadcast_static_tf2_transform(self.reference_frame, 'target', self.target)
 
         # Setup Objects movement
         if self.objects_controller:
@@ -415,6 +433,24 @@ class UrRosBridge:
         t_marker.color.g=0.0
         t_marker.color.b=0.0
         self.target_pub.publish(t_marker)
+
+    def broadcast_static_tf2_transform(self, frame_id, child_frame_id, pose):
+
+        t = geometry_msgs.msg.TransformStamped()
+
+        t.header.stamp = rospy.Time.now()
+        t.header.frame_id = frame_id        # world
+        t.child_frame_id = child_frame_id   # object
+        t.transform.translation.x = pose[0]
+        t.transform.translation.y = pose[1]
+        t.transform.translation.z = pose[2]
+        q = tf_conversions.transformations.quaternion_from_euler(pose[3], pose[4], pose[5])
+        t.transform.rotation.x = q[0]
+        t.transform.rotation.y = q[1]
+        t.transform.rotation.z = q[2]
+        t.transform.rotation.w = q[3]
+
+        self.static_tf2_broadcaster.sendTransform(t)
 
     def callbackUR(self,data):
         if self.get_state_event.is_set():
