@@ -3,6 +3,7 @@ FROM osrf/ros:melodic-desktop-full
 ARG GIT_COMMIT=unknown
 ENV GIT_COMMIT $GIT_COMMIT
 LABEL git-commit=$GIT_COMMIT
+ARG CI_JOB_TOKEN
 
 ENV DEBIAN_FRONTEND noninteractive
 
@@ -23,6 +24,7 @@ RUN source /opt/ros/$ROS_DISTRO/setup.bash && \
     git clone -b $ROS_DISTRO https://github.com/jr-robotics/mir_robot.git && \
     git clone -b $ROS_DISTRO https://github.com/jr-robotics/universal_robot.git && \
     # git clone https://github.com/jr-robotics/Universal_Robots_ROS_Driver.git && \
+    # git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@robotics-git.joanneum.at/perception/scene_perception.git && \
     cd $ROBOGYM_WS && \
     apt-get update && \
     rosdep install --from-paths src -i -y --rosdistro $ROS_DISTRO --as-root=apt:false && \

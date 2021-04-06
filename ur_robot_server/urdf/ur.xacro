@@ -56,6 +56,16 @@
   <xacro:arg name="safety_pos_margin" default="0.15"/>
   <xacro:arg name="safety_k_position" default="20"/>
 
+  <!-- rgbd camera arguments -->
+  <xacro:arg name="camera1_gazebo" default="False"/>
+  <xacro:arg name="camera1_link_x" default="0.0"/>
+  <xacro:arg name="camera1_link_y" default="0.0"/>
+  <xacro:arg name="camera1_link_z" default="0.0"/>
+  <xacro:arg name="camera1_link_roll" default="0.0"/>
+  <xacro:arg name="camera1_link_pitch" default="0.0"/>
+  <xacro:arg name="camera1_link_yaw" default="0.0"/>
+
+
   <!-- Instantiate the Gazebo robot and pass it all the required arguments. -->
   <xacro:ur_robot_gazebo
     prefix=""
@@ -83,4 +93,16 @@
     <child link="base_link"/>
     <origin xyz="$(arg x) $(arg y) $(arg z)" rpy="$(arg roll) $(arg pitch) $(arg yaw)" />
   </joint>
+
+  <!-- simulated rgbd camera include -->
+  <xacro:if value="$(arg camera1_gazebo)">
+    <xacro:include filename="$(find scene_perception)/urdf/rgbd_camera_macro.xacro"/>
+    <xacro:rgbd_camera_gazebo camera_name="camera1"/>
+    <joint name="camera1_joint" type="fixed">
+      <parent link="world"/>
+      <child link="camera1_link"/>
+      <origin xyz="$(arg camera1_link_x) $(arg camera1_link_y) $(arg camera1_link_z)"
+        rpy="$(arg camera1_link_roll) $(arg camera1_link_pitch) $(arg camera1_link_yaw)" />
+    </joint>
+  </xacro:if>
 </robot>

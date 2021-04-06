@@ -2,11 +2,16 @@
 
 import rospy
 import tf
+#TODO Switch to tf2
+import tf2_ros
+import tf_conversions
+import geometry_msgs.msg
 from geometry_msgs.msg import Twist, Pose, Pose2D
 from gazebo_msgs.msg import ModelState, ContactsState
 from gazebo_msgs.srv import GetModelState, SetModelState, GetLinkState
 from gazebo_msgs.srv import SetModelConfiguration, SetModelConfigurationRequest
 from sensor_msgs.msg import JointState
+from std_msgs.msg import Int32MultiArray
 from trajectory_msgs.msg import JointTrajectoryPoint, JointTrajectory
 from std_msgs.msg import Float64MultiArray, Header, Bool
 from std_srvs.srv import Empty
@@ -37,8 +42,8 @@ class UrRosBridge:
         # Target RViz Marker publisher
         self.target_pub = rospy.Publisher('target_marker', Marker, queue_size=10)
 
-        # Obstacle controller publisher
-        self.obstacle_controller_pub = rospy.Publisher('move_obstacle', Bool, queue_size=10)
+        # move_objects controller publisher
+        self.move_objects_pub = rospy.Publisher('move_objects', Bool, queue_size=10)
 
         self.target = [0.0] * 6
         self.ur_state = [0.0] *12
@@ -48,14 +53,19 @@ class UrRosBridge:
         # TF Listener
         self.tf_listener = tf.TransformListener()
 
+        # TF2 Listener
+        self.tf2_buffer = tf2_ros.Buffer()
+        self.tf2_listener = tf2_ros.TransformListener(self.tf2_buffer)
+
+        # Static TF2 Broadcaster
+        self.static_tf2_broadcaster = tf2_ros.StaticTransformBroadcaster()
+
         # Robot control rate
         self.sleep_time = (1.0/rospy.get_param("~action_cycle_rate")) - 0.01
         self.control_period = rospy.Duration.from_sec(self.sleep_time)
 
         self.reference_frame = rospy.get_param("~reference_frame", "base")
         self.ee_frame = 'tool0'
-        self.target_frame = 'target'
-
 
         self.max_velocity_scale_factor = float(rospy.get_param("~max_velocity_scale_factor"))
         if ur_model == 'ur3'or ur_model == 'ur3e':
@@ -86,28 +96,129 @@ class UrRosBridge:
         #TODO
         self.safe_to_move = True
 
-        self.obstacle_controller = rospy.get_param("~obstacle_controller", False)
-
-        # Target mode
+         # Target mode
         self.target_mode = rospy.get_param("~target_mode", 'fixed')
-        self.target_model_name = rospy.get_param("~target_model_name", 'box100')
+
+        # Publish target tf2 frame 
+        if self.target_mode == 'fixed':
+            self.broadcast_static_tf2_transform(self.reference_frame, 'target', self.target)
+
+        # Objects parameters
+        self.objects_controller = rospy.get_param("objects_controller", False)
+        self.n_objects = int(rospy.get_param("n_objects"))
+
+        # Get objects model name
+        if self.objects_controller:
+            self.objects_model_name = []
+            for i in range(self.n_objects):
+                self.objects_model_name.append(rospy.get_param("object_" + repr(i) + "_model_name"))
+        
+        # Get objects TF Frame
+        self.objects_frame = []
+        for i in range(self.n_objects):
+            self.objects_frame.append(rospy.get_param("object_" + repr(i) + "_frame"))
+
+
+        # camera1
+        self.use_voxel_occupancy = rospy.get_param("~use_voxel_occupancy", False) # e.g. for target_mode=1moving1point_2_2_4_voxel
+        self.use_voxel_occupancy = True
+        if self.use_voxel_occupancy: 
+            rospy.Subscriber("occupancy_state", Int32MultiArray, self.voxel_occupancy_callback)
+            if self.target_mode == '1moving1point_2_2_4_voxel':
+                self.voxel_occupancy = [0.0]*16
+
 
     def get_state(self):
         self.get_state_event.clear()
         # Get environment state
         state =[]
         if self.target_mode == 'fixed':
-            target = copy.deepcopy(self.target)
+            trans = self.tf2_buffer.lookup_transform(self.reference_frame, 'target', rospy.Time(0))
+            target = [trans.transform.translation.x, trans.transform.translation.y, trans.transform.translation.z] + [0,0,0]
         elif self.target_mode == 'moving':
             if self.real_robot:
-                (t_position, t_quaternion) = self.tf_listener.lookupTransform(self.reference_frame,self.target_frame,rospy.Time(0))
+                (t_position, t_quaternion) = self.tf_listener.lookupTransform(self.reference_frame,self.objects_frame[0],rospy.Time(0))
                 target = t_position + [0,0,0]
             else:
-                pose = self.get_model_state_pose(self.target_model_name)
+                pose = self.get_model_state_pose(self.objects_model_name[0])
                 # Convert orientation target from Quaternion to RPY
                 quaternion = PyKDL.Rotation.Quaternion(pose[3],pose[4],pose[5],pose[6])
                 r,p,y = quaternion.GetRPY()
                 target = pose[0:3] + [r,p,y]
+        elif self.target_mode == '2moving':
+            if self.real_robot:
+                (t_position, t_quaternion) = self.tf_listener.lookupTransform(self.reference_frame,self.objects_frame[0],rospy.Time(0))
+                target = t_position + [0,0,0]
+                (o2_position, o2_quaternion) = self.tf_listener.lookupTransform(self.reference_frame,self.objects_frame[1],rospy.Time(0))
+                object2 = o2_position + [0,0,0]
+            else:
+                # Target
+                t_pose = self.get_model_state_pose(self.objects_model_name[0])
+                # Convert orientation target from Quaternion to RPY
+                t_quaternion = PyKDL.Rotation.Quaternion(t_pose[3],t_pose[4],t_pose[5],t_pose[6])
+                t_r,t_p,t_y = t_quaternion.GetRPY()
+                target = t_pose[0:3] + [t_r,t_p,t_y]
+                # Object 02
+                o2_pose = self.get_model_state_pose(self.objects_model_name[1])
+                # Convert orientation target from Quaternion to RPY
+                o2_quaternion = PyKDL.Rotation.Quaternion(o2_pose[3],o2_pose[4],o2_pose[5],o2_pose[6])
+                o2_r,o2_p,o2_y = o2_quaternion.GetRPY()
+                object2 = o2_pose[0:3] + [o2_r,o2_p,o2_y]
+
+        elif self.target_mode == '2moving2points':
+
+            (forearm_position, forearm_quaternion) = self.tf_listener.lookupTransform(self.reference_frame,'forearm_link',rospy.Time(0))
+            forearm_to_ref_tf = forearm_position + forearm_quaternion
+            
+            if self.real_robot:
+                (t_position, t_quaternion) = self.tf_listener.lookupTransform(self.reference_frame,self.objects_frame[0],rospy.Time(0))
+                target = t_position + [0,0,0]
+                (o2_position, o2_quaternion) = self.tf_listener.lookupTransform(self.reference_frame,self.objects_frame[1],rospy.Time(0))
+                object2 = o2_position + [0,0,0]
+            else:
+                # Target
+                t_pose = self.get_model_state_pose(self.objects_model_name[0])
+                # Convert orientation target from Quaternion to RPY
+                t_quaternion = PyKDL.Rotation.Quaternion(t_pose[3],t_pose[4],t_pose[5],t_pose[6])
+                t_r,t_p,t_y = t_quaternion.GetRPY()
+                target = t_pose[0:3] + [t_r,t_p,t_y]
+                # Object 02
+                o2_pose = self.get_model_state_pose(self.objects_model_name[1])
+                # Convert orientation target from Quaternion to RPY
+                o2_quaternion = PyKDL.Rotation.Quaternion(o2_pose[3],o2_pose[4],o2_pose[5],o2_pose[6])
+                o2_r,o2_p,o2_y = o2_quaternion.GetRPY()
+                object2 = o2_pose[0:3] + [o2_r,o2_p,o2_y]
+
+        elif self.target_mode == '1moving2points':
+
+            (forearm_position, forearm_quaternion) = self.tf_listener.lookupTransform(self.reference_frame,'forearm_link',rospy.Time(0))
+            forearm_to_ref_tf = forearm_position + forearm_quaternion
+            
+            if self.real_robot:
+                (t_position, t_quaternion) = self.tf_listener.lookupTransform(self.reference_frame,self.objects_frame[0],rospy.Time(0))
+                target = t_position + [0,0,0]
+            else:
+                # Target
+                t_pose = self.get_model_state_pose(self.objects_model_name[0])
+                # Convert orientation target from Quaternion to RPY
+                t_quaternion = PyKDL.Rotation.Quaternion(t_pose[3],t_pose[4],t_pose[5],t_pose[6])
+                t_r,t_p,t_y = t_quaternion.GetRPY()
+                target = t_pose[0:3] + [t_r,t_p,t_y]
+        elif self.target_mode == '1moving1point_2_2_4_voxel':
+            
+            (forearm_position, forearm_quaternion) = self.tf_listener.lookupTransform(self.reference_frame,'forearm_link',rospy.Time(0))
+            forearm_to_ref_tf = forearm_position + forearm_quaternion
+
+            if self.real_robot:
+                # (t_position, t_quaternion) = self.tf_listener.lookupTransform(self.reference_frame,self.objects_frame[0],rospy.Time(0))
+                raise NotImplementedError("voxelisation of real robot not yet implemented")
+            else:
+                pose = self.get_model_state_pose(self.objects_model_name[0])
+                # Convert orientation target from Quaternion to RPY
+                quaternion = PyKDL.Rotation.Quaternion(pose[3],pose[4],pose[5],pose[6])
+                r,p,y = quaternion.GetRPY()
+                target = pose[0:3] + [r,p,y]
+                voxel_occupancy = self.voxel_occupancy
         else: 
             raise ValueError
             
@@ -130,6 +241,16 @@ class UrRosBridge:
         msg.state.extend(ur_state)
         msg.state.extend(ee_to_base_transform)
         msg.state.extend([ur_collision])
+        if self.target_mode == '2moving':
+            msg.state.extend(object2)
+        if self.target_mode == '2moving2points':
+            msg.state.extend(object2)
+            msg.state.extend(forearm_to_ref_tf)
+        if self.target_mode == '1moving2points':
+            msg.state.extend(forearm_to_ref_tf)
+        if self.target_mode == '1moving1point_2_2_4_voxel':
+            msg.state.extend(forearm_to_ref_tf) # keep it in for now 
+            msg.state.extend(voxel_occupancy)
         msg.success = 1
         
         return msg
@@ -144,28 +265,22 @@ class UrRosBridge:
             self.target = copy.deepcopy(state[0:6])
             # Publish Target Marker
             self.publish_target_marker(self.target)
-        # Stop movement of obstacles
-        if self.obstacle_controller:
+            # Broadcast target tf2
+            self.broadcast_static_tf2_transform(self.reference_frame, 'target', self.target)
+
+        # Setup Objects movement
+        if self.objects_controller:
+            # Stop movement of objects
             msg = Bool()
             msg.data = False
-            self.obstacle_controller_pub.publish(msg)
-            if state_msg.string_params["function"] == "triangle_wave":
-                rospy.set_param("target_function", "triangle_wave")
-                rospy.set_param("x", state_msg.float_params["x"])
-                rospy.set_param("y", state_msg.float_params["y"])
-                rospy.set_param("z_amplitude", state_msg.float_params["z_amplitude"])
-                rospy.set_param("z_frequency", state_msg.float_params["z_frequency"])
-                rospy.set_param("z_offset",    state_msg.float_params["z_offset"])
-            elif state_msg.string_params["function"] == "3d_spline":
-                rospy.set_param("target_function", "3d_spline")
-                rospy.set_param("x_min", state_msg.float_params["x_min"])
-                rospy.set_param("x_max", state_msg.float_params["x_max"])
-                rospy.set_param("y_min", state_msg.float_params["y_min"])
-                rospy.set_param("y_max", state_msg.float_params["y_max"])
-                rospy.set_param("z_min", state_msg.float_params["z_min"])
-                rospy.set_param("z_max", state_msg.float_params["z_max"])
-                rospy.set_param("n_points", state_msg.float_params["n_points"])
-                rospy.set_param("n_sampling_points", state_msg.float_params["n_sampling_points"])
+            self.move_objects_pub.publish(msg)
+
+            # Loop through all the string_params and float_params and set them as ROS parameters
+            for param in state_msg.string_params:
+                rospy.set_param(param, state_msg.string_params[param])
+
+            for param in state_msg.float_params:
+                rospy.set_param(param, state_msg.float_params[param])
 
         # UR Joints Positions
         reset_steps = int(15.0/self.sleep_time)
@@ -174,11 +289,11 @@ class UrRosBridge:
         if not self.real_robot:
             # Reset collision sensors flags
             self.collision_sensors.update(dict.fromkeys(["shoulder","upper_arm","forearm","wrist_1","wrist_2","wrist_3"], False))
-        # Start movement of obstacles
-        if self.obstacle_controller:
+        # Start movement of objects
+        if self.objects_controller:
             msg = Bool()
             msg.data = True
-            self.obstacle_controller_pub.publish(msg)
+            self.move_objects_pub.publish(msg)
 
         self.reset.set()
 
@@ -319,6 +434,24 @@ class UrRosBridge:
         t_marker.color.b=0.0
         self.target_pub.publish(t_marker)
 
+    def broadcast_static_tf2_transform(self, frame_id, child_frame_id, pose):
+
+        t = geometry_msgs.msg.TransformStamped()
+
+        t.header.stamp = rospy.Time.now()
+        t.header.frame_id = frame_id        # world
+        t.child_frame_id = child_frame_id   # object
+        t.transform.translation.x = pose[0]
+        t.transform.translation.y = pose[1]
+        t.transform.translation.z = pose[2]
+        q = tf_conversions.transformations.quaternion_from_euler(pose[3], pose[4], pose[5])
+        t.transform.rotation.x = q[0]
+        t.transform.rotation.y = q[1]
+        t.transform.rotation.z = q[2]
+        t.transform.rotation.w = q[3]
+
+        self.static_tf2_broadcaster.sendTransform(t)
+
     def callbackUR(self,data):
         if self.get_state_event.is_set():
             self.ur_state[0:6]  = data.position[0:6]
@@ -359,3 +492,10 @@ class UrRosBridge:
             pass
         else:
             self.collision_sensors["wrist_3"]=True
+
+    def voxel_occupancy_callback(self, msg):
+        if self.get_state_event.is_set():
+            # occupancy_3d_array = np.reshape(msg.data, [dim.size for dim in msg.layout.dim])
+            self.voxel_occupancy = msg.data
+        else:
+            pass
