@@ -110,6 +110,7 @@
   <!-- Parameters -->
   <param name="real_robot" value="false"></param>
   <param name="reference_frame" value="$(arg reference_frame)"></param>
+
   <!-- Scene Objects Parameters -->
   <param name="objects_controller" value="$(arg objects_controller)"></param>
   <param name="n_objects" value="$(arg n_objects)"></param>
@@ -134,7 +135,6 @@
 
   <!--Launch objects controller -->
   <node if="$(arg objects_controller)" name="objects_controller" pkg="ur_robot_server" type="objects_controller.py" respawn="false" output="screen" ></node>
-
 
   <!-- Launch pointcloud voxelization node -->
   <group if="$(arg use_voxel_occupancy)">
