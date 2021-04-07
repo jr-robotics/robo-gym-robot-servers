@@ -48,6 +48,26 @@ class ObjectsController:
             move = True
         else:
             move = False
+    
+    def get_fixed_position(self, x, y, z):
+        """Generate trajectory for object in a fixed position
+
+        Args:
+            x (float): x coordinate (m).
+            y (float): y coordinate (m).
+            z (float): z coordinate (m).
+
+        Returns:
+            list: x coordinate function
+            list: y coordinate function
+            list: z coordinate function
+        """        
+        x_function = [x]
+        y_function = [y]
+        z_function = [z]
+        self.samples_len = 1
+        
+        return x_function, y_function, z_function 
 
     def get_triangle_wave(self, x, y, amplitude, frequency, offset):
 
@@ -219,8 +239,13 @@ class ObjectsController:
                 # Generate Movement Trajectories
                 objects_trajectories = []
                 for i in range(self.n_objects):
-                    function = rospy.get_param("object_" + repr(i) + "_function")
-                    if function == "triangle_wave":
+                    function = rospy.get_param("object_" + repr(i) +"_function")
+                    if function  == "fixed_position":
+                        x = rospy.get_param("object_" + repr(i) + "_x")
+                        y = rospy.get_param("object_" + repr(i) + "_y")
+                        z = rospy.get_param("object_" + repr(i) + "_z")
+                        x_trajectory, y_trajectory, z_trajectory = self.get_fixed_position(x,y,z)
+                    elif function == "triangle_wave":
                         x = rospy.get_param("object_" + repr(i) + "_x")
                         y = rospy.get_param("object_" + repr(i) + "_y")
                         a = rospy.get_param("object_" + repr(i) + "_z_amplitude")

@@ -11,10 +11,13 @@
   <arg name="action_cycle_rate" default="25" doc="Rate at which new commands are published to the robot controller"/>
   <arg name="reference_frame" default="base"  doc="Reference frame with respect to which target and ee pose are given"/>
   <arg name="target_mode" default="fixed"  doc="fixed, moving"/>
+  <arg name="use_voxel_occupancy" default="false" doc="use voxel occupancy in state"/>
 
   <!-- Scene Objects -->
   <arg name="objects_controller" default="false"  doc="Start objects controller node"/>
   <arg name="n_objects" default="0.0"  doc="Number of objects in the scene"/>
+  <arg name="publish_objects_tf" default="false"  doc="Publish tf frames of objects"/>
+  <arg name="object_trajectory_file_name" default="selected_splines"  doc="Object trajectory file name"/>
   <arg name="object_0_model_name" default="" doc="Gazebo model name of the target object"/>
   <arg name="object_0_frame" default="" doc="TF Frame name of target"/>
   <arg name="object_1_model_name" default="" doc="Gazebo model name of object 1"/>
@@ -104,6 +107,20 @@
   args="-d $(arg rviz_config)" output="screen">
   </node>
 
+  <!-- Parameters -->
+  <param name="real_robot" value="false"></param>
+  <param name="reference_frame" value="$(arg reference_frame)"></param>
+  
+  <!-- Scene Objects Parameters -->
+  <param name="objects_controller" value="$(arg objects_controller)"></param>
+  <param name="n_objects" value="$(arg n_objects)"></param>
+  <param name="publish_objects_tf" value="$(arg publish_objects_tf)"></param>
+  <param name="object_trajectory_file_name" value="$(arg object_trajectory_file_name)"></param>
+  <param name="object_0_model_name" value="$(arg object_0_model_name)"></param>
+  <param name="object_0_frame" value="$(arg object_0_frame)"></param>
+  <param name="object_1_model_name" value="$(arg object_1_model_name)"></param>
+  <param name="object_1_frame" value="$(arg object_1_frame)"></param>
+
   <!--Launch gRPC server -->
   <node name="robot_server" pkg="ur_robot_server" type="robot_server.py" respawn="false" output="screen" >
     <param name="server_port" value="$(arg server_port)"></param>
@@ -113,17 +130,26 @@
     <param name="action_cycle_rate" value="$(arg action_cycle_rate)"></param>
     <param name="reference_frame" value="$(arg reference_frame)"></param>
     <param name="target_mode" value="$(arg target_mode)"></param>
+    <param name="use_voxel_occupancy" value="$(arg use_voxel_occupancy)"></param>
   </node>
 
   <!--Launch objects controller -->
-  <node if="$(arg objects_controller)" name="objects_controller" pkg="ur_robot_server" type="objects_controller.py" respawn="false" output="screen" >
-  </node>
+  <node if="$(arg objects_controller)" name="objects_controller" pkg="ur_robot_server" type="objects_controller.py" respawn="false" output="screen" ></node>
 
-  <!-- Scene Objects Parameters -->
-  <param name="objects_controller" value="$(arg objects_controller)"></param>
-  <param name="n_objects" value="$(arg n_objects)"></param>
-  <param name="object_0_model_name" value="$(arg object_0_model_name)"></param>
-  <param name="object_0_frame" value="$(arg object_0_frame)"></param>
-  <param name="object_1_model_name" value="$(arg object_1_model_name)"></param>
-  <param name="object_1_frame" value="$(arg object_1_frame)"></param>
+  <!-- Launch pointcloud voxelization node -->
+  <group if="$(arg use_voxel_occupancy)">
+    <node name="robot_cloud_filter" pkg="scene_perception" type="robot_pointcloud_filter_node" respawn="false" output="screen">
+        <remap from="/pointcloud_in" to="/camera1/depth_registered/points"/>
+        <param name="cloud_output_topic" value="pointcloud_robot_filtered"/>
+        <rosparam command="load" file="$(find scene_perception)/config/ur5_gazebo_rgbdcam.yaml" /> 
+    </node>
+    <node name="pointcloud_voxelizer" pkg="scene_perception" type="pointcloud_voxelizer_node" respawn="false" output="screen" >
+      <remap from="/pointcloud_in" to="/pointcloud_robot_filtered"/>
+      <!-- actually link this to the target_mode -->
+      <rosparam file="$(find ur_robot_server)/config/pointcloud_voxelizer_4_2_2.yaml" />
+    </node>
+    <node name="target_broadcaster" pkg="tf" type="static_transform_publisher" args="0.706 0.706 0.0 -2.356 0 0 base occupancy_grid_frame 100"/>
+    <node name="occupancy_state_visualizer" pkg="scene_perception" type="occupancy_state_visualizer.py" respawn="false" output="screen" />
+  </group>
+
 </launch>
