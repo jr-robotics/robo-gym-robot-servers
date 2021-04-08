@@ -134,13 +134,10 @@ class PandaRosBridge:
         self.get_state_event.clear()
 
         # # currently only working on a fixed target mode
-        # if self.target_mode == FIXED_TARGET_MODE:
-        #     target = copy.deepcopy(self.target)
-        # else:
-        #     raise ValueError
-            # raise ValueError as err(
-            #     'Target mode was ill defined. Got error type: ' +
-            #     str(type(err)) + ' with message: ' + err.message)
+        if self.target_mode == FIXED_TARGET_MODE:
+            target = copy.deepcopy(self.target)
+        else:
+            raise ValueError
 
         panda_state = copy.deepcopy(self.panda_state)
 
@@ -159,7 +156,7 @@ class PandaRosBridge:
         
         # Create and fill State message
         msg = robot_server_pb2.State()
-        # msg.state.extend(target)
+        msg.state.extend(target)
         msg.state.extend(panda_state)
         # msg.state.extend(ee_to_base_transform)
         # msg.state.extend([panda_collision])
