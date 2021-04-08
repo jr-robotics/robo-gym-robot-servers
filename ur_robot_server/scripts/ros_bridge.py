@@ -184,19 +184,15 @@ class UrRosBridge:
 
         elif self.target_mode == '1moving2points':
 
-            (forearm_position, forearm_quaternion) = self.tf_listener.lookupTransform(self.reference_frame,'forearm_link',rospy.Time(0))
-            forearm_to_ref_tf = forearm_position + forearm_quaternion
+            trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.objects_frame[0], rospy.Time(0))
+            target = [trans.transform.translation.x, trans.transform.translation.y, trans.transform.translation.z] + [0,0,0]
+
+            forearm_to_ref_trans = self.tf2_buffer.lookup_transform(self.reference_frame, 'forearm_link', rospy.Time(0))
+            forearm_to_ref_tf = [forearm_to_ref_trans.transform.translation.x, forearm_to_ref_trans.transform.translation.y, \
+                                    forearm_to_ref_trans.transform.translation.z, forearm_to_ref_trans.transform.orientation.x, \
+                                    forearm_to_ref_trans.transform.orientation.y, forearm_to_ref_trans.transform.orientation.z, \
+                                    forearm_to_ref_trans.transform.orientation.w]
             
-            if self.real_robot:
-                (t_position, t_quaternion) = self.tf_listener.lookupTransform(self.reference_frame,self.objects_frame[0],rospy.Time(0))
-                target = t_position + [0,0,0]
-            else:
-                # Target
-                t_pose = self.get_model_state_pose(self.objects_model_name[0])
-                # Convert orientation target from Quaternion to RPY
-                t_quaternion = PyKDL.Rotation.Quaternion(t_pose[3],t_pose[4],t_pose[5],t_pose[6])
-                t_r,t_p,t_y = t_quaternion.GetRPY()
-                target = t_pose[0:3] + [t_r,t_p,t_y]
         elif self.target_mode == '1moving1point_2_2_4_voxel':
             
             (forearm_position, forearm_quaternion) = self.tf_listener.lookupTransform(self.reference_frame,'forearm_link',rospy.Time(0))
@@ -290,7 +286,7 @@ class UrRosBridge:
 
         self.reset.set()
         rospy.sleep(self.control_period)
-        
+
         return 1
 
     def publish_env_arm_cmd(self, position_cmd):
