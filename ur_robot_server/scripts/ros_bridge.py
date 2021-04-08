@@ -189,9 +189,9 @@ class UrRosBridge:
 
             forearm_to_ref_trans = self.tf2_buffer.lookup_transform(self.reference_frame, 'forearm_link', rospy.Time(0))
             forearm_to_ref_tf = [forearm_to_ref_trans.transform.translation.x, forearm_to_ref_trans.transform.translation.y, \
-                                    forearm_to_ref_trans.transform.translation.z, forearm_to_ref_trans.transform.orientation.x, \
-                                    forearm_to_ref_trans.transform.orientation.y, forearm_to_ref_trans.transform.orientation.z, \
-                                    forearm_to_ref_trans.transform.orientation.w]
+                                    forearm_to_ref_trans.transform.translation.z, forearm_to_ref_trans.transform.rotation.x, \
+                                    forearm_to_ref_trans.transform.rotation.y, forearm_to_ref_trans.transform.rotation.z, \
+                                    forearm_to_ref_trans.transform.rotation.w]
             
         elif self.target_mode == '1moving1point_2_2_4_voxel':
             
