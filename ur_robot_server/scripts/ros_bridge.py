@@ -296,7 +296,8 @@ class UrRosBridge:
             self.move_objects_pub.publish(msg)
 
         self.reset.set()
-
+        rospy.sleep(self.control_period)
+        
         return 1
 
     def publish_env_arm_cmd(self, position_cmd):
