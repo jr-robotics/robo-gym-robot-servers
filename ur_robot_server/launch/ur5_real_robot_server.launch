@@ -10,7 +10,6 @@
   <!-- Scene Objects -->
   <arg name="objects_controller" default="false"  doc="Start objects controller node"/>
   <arg name="n_objects" default="0.0"  doc="Number of objects in the scene"/>
-  <arg name="publish_objects_tf" default="false"  doc="Publish tf frames of objects"/>
   <arg name="object_trajectory_file_name" default="no_file" doc="Object trajectory file name"/>
   <arg name="object_0_model_name" default="" doc="Gazebo model name of the target object"/>
   <arg name="object_0_frame" default="" doc="TF Frame name of target"/>
@@ -49,7 +48,6 @@
   <param name="reference_frame" value="$(arg reference_frame)"></param>
   <!-- Scene Objects Parameters -->
   <param name="objects_controller" value="$(arg objects_controller)"></param>
-  <param name="publish_objects_tf" value="$(arg publish_objects_tf)"></param>
   <param name="object_trajectory_file_name" value="$(arg object_trajectory_file_name)"></param>
   <param name="n_objects" value="$(arg n_objects)"></param>
   <param name="object_0_model_name" value="$(arg object_0_model_name)"></param>
