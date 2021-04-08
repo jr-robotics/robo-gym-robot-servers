@@ -17,7 +17,7 @@
   <arg name="objects_controller" default="false"  doc="Start objects controller node"/>
   <arg name="n_objects" default="0.0"  doc="Number of objects in the scene"/>
   <arg name="publish_objects_tf" default="false"  doc="Publish tf frames of objects"/>
-  <arg name="object_trajectory_file_name" default="selected_splines"  doc="Object trajectory file name"/>
+  <arg name="object_trajectory_file_name" default="no_file" doc="Object trajectory file name"/>
   <arg name="object_0_model_name" default="" doc="Gazebo model name of the target object"/>
   <arg name="object_0_frame" default="" doc="TF Frame name of target"/>
   <arg name="object_1_model_name" default="" doc="Gazebo model name of object 1"/>

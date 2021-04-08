@@ -35,12 +35,13 @@ class ObjectsController:
             self.reference_frame = rospy.get_param("reference_frame", "base")
             self.pub_tf = rospy.Publisher("/tf", tf.msg.tfMessage)
 
-        object_trajectory_file_name = rospy.get_param("object_trajectory_file_name", "selected_splines")
-        file_path = os.path.join(os.path.dirname(__file__),'../object_trajectories', object_trajectory_file_name + '.json')
+        object_trajectory_file_name = rospy.get_param("object_trajectory_file_name")
+        if object_trajectory_file_name != 'no_file':
+            file_path = os.path.join(os.path.dirname(__file__),'../object_trajectories', object_trajectory_file_name + '.json')
 
-        # Load robot paramters
-        with open(file_path, 'r') as json_file:
-            self.p = json.load(json_file)
+            # Load object trajectory file 
+            with open(file_path, 'r') as json_file:
+                self.p = json.load(json_file)
     
     def callback_move_objects(self,data):
         global move 
