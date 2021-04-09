@@ -3,8 +3,8 @@
 import rospy
 import tf
 #TODO Switch to tf2
-import tf2_ros
-import tf_conversions
+# import tf2_ros
+# import tf_conversions
 from geometry_msgs.msg import Twist, Pose, Pose2D
 from gazebo_msgs.msg import ModelState, ContactsState
 from gazebo_msgs.srv import GetModelState, SetModelState, GetLinkState
@@ -54,11 +54,11 @@ class PandaRosBridge:
         self.tf_listener = tf.TransformListener()
         
         # TF2 Listener
-        self.tf2_buffer = tf2_ros.Buffer()
-        self.tf2_listener = tf2_ros.TransformListener(self.tf2_buffer)
+        # self.tf2_buffer = tf2_ros.Buffer()
+        # self.tf2_listener = tf2_ros.TransformListener(self.tf2_buffer)
         
         # Static TF2 Broadcaster
-        self.static_tf2_broadcaster = tf2_ros.StaticTransformBroadcaster()
+        # self.static_tf2_broadcaster = tf2_ros.StaticTransformBroadcaster()
         
 
         # Robot control rate
