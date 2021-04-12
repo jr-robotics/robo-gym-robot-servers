@@ -60,7 +60,6 @@ class PandaRosBridge:
         # Static TF2 Broadcaster
         # self.static_tf2_broadcaster = tf2_ros.StaticTransformBroadcaster()
         
-
         # Robot control rate
         self.sleep_time = (1.0 / rospy.get_param('~action_cycle_rate')) - 0.01
         self.control_period = rospy.Duration.from_sec(self.sleep_time)
@@ -76,7 +75,7 @@ class PandaRosBridge:
         if not self.real_robot:
             # Subscribers to link collision sensors topics
 
-            # TODO add rospy.Subsribers
+            # TODO add rospy.Subscribers
             rospy.Subscriber('/joint_states', JointState, self.callback_panda)
             # TODO add keys to collision sensors
             self.collision_sensors = dict.fromkeys([], False)
@@ -86,7 +85,7 @@ class PandaRosBridge:
 
         # Target mode
         self.target_mode = rospy.get_param('~target_mode', FIXED_TARGET_MODE)
-        # self.target_mode_name = rospy.get_param('~target_model_name', 'box100')
+        self.target_mode_name = rospy.get_param('~target_model_name', 'box100')
 
         # Object parameters
         # self.objects_controller = rospy.get_param('objects_controller', False)
@@ -136,7 +135,6 @@ class PandaRosBridge:
         # # currently only working on a fixed target mode
         if self.target_mode == FIXED_TARGET_MODE:
             target = copy.deepcopy(self.target)
-            print('\n----------------------------------------------------------------\nTarget: {}\n---------------------------------------------------------------\n'.format(target))
         else:
             raise ValueError
 
@@ -173,21 +171,23 @@ class PandaRosBridge:
         # Set target internal value
         if self.target_mode == FIXED_TARGET_MODE:
             # TODO found out how many state values are needed for panda
-            # self.target = copy.deepcopy(state[0:6])
+            self.target = copy.deepcopy(state[0:6])
             # Publish Target Marker
-            # self.publish_target_marker(self.target)
-            pass
-
+            self.publish_target_marker(self.target)
+            # TODO Broadcast target tf2
+        
+        
         # TODO setup objects movement
         # if self.objects_controller:
 
-        transformed_j_pos = self._transform_panda_list_to_dict(state[0:7])
+        transformed_j_pos = self._transform_panda_list_to_dict(state[6:13])
         reset_steps = int(15.0 / self.sleep_time)
 
         for _ in range(reset_steps):
             self.panda_arm.set_joint_positions(transformed_j_pos)
 
         self.reset.set()
+        rospy.sleep(self.control_period)
 
         return True
 
@@ -231,6 +231,21 @@ class PandaRosBridge:
         else:
             rospy.sleep(self.control_period)
             return [0.0] * self.panda_joint_num
+        
+    def get_model_state_pose(self, model_name, relative_entity_name=''):
+        # method used to retrieve model pose from gazebo simulation
+
+        rospy.wait_for_service('/gazebo/get_model_state')
+        try:
+            model_state = rospy.ServiceProxy('/gazebo/get_model_state', GetModelState)
+            s = model_state(model_name, relative_entity_name)
+
+            pose = [s.pose.position.x, s.pose.position.y, s.pose.position.z, \
+                    s.pose.orientation.x, s.pose.orientation.y, s.pose.orientation.z, s.pose.orientation.w]
+
+            return pose
+        except rospy.ServiceException as e:
+            print("Service call failed:" + e)
 
     def get_link_state(self, link_name, reference_frame=''):
         """Method is used to retrieve link state from gazebo simulation
@@ -280,8 +295,30 @@ class PandaRosBridge:
 
     def publish_target_marker(self, target_pose):
         t_marker = Marker()
-        # TODO add values to marker
+        t_marker.type = 1  # =>CUBE
+        t_marker.action = 0
+        t_marker.frame_locked = 1
+        t_marker.pose.position.x = target_pose[0]
+        t_marker.pose.position.y = target_pose[1]
+        t_marker.pose.position.z = target_pose[2]
+        rpy_orientation = PyKDL.Rotation.RPY(target_pose[3], target_pose[4], target_pose[5])
+        q_orientation = rpy_orientation.GetQuaternion()
+        t_marker.pose.orientation.x = q_orientation[0]
+        t_marker.pose.orientation.y = q_orientation[1]
+        t_marker.pose.orientation.z = q_orientation[2]
+        t_marker.pose.orientation.w = q_orientation[3]
+        t_marker.scale.x = 0.1
+        t_marker.scale.y = 0.1
+        t_marker.scale.z = 0.1
+        t_marker.id = 0
+        t_marker.header.stamp = rospy.Time.now()
+        t_marker.header.frame_id = self.reference_frame
+        t_marker.color.a = 0.7
+        t_marker.color.r = 1.0  # red
+        t_marker.color.g = 0.0
+        t_marker.color.b = 0.0
         self.target_pub.publish(t_marker)
+
 
     def _transform_panda_list_to_dict(self, panda_list):
         transformed_dict = {}
