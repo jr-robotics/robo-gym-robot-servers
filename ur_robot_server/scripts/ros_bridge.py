@@ -97,11 +97,7 @@ class UrRosBridge:
         self.safe_to_move = True
 
          # Target mode
-        self.target_mode = rospy.get_param("~target_mode", 'fixed')
-
-        # Publish target tf2 frame 
-        if self.target_mode == 'fixed':
-            self.broadcast_static_tf2_transform(self.reference_frame, 'target', self.target)
+        self.target_mode = rospy.get_param("~target_mode", '1object')
 
         # Objects parameters
         self.objects_controller = rospy.get_param("objects_controller", False)
@@ -132,13 +128,7 @@ class UrRosBridge:
         self.get_state_event.clear()
         # Get environment state
         state =[]
-        if self.target_mode == 'fixed':
-            trans = self.tf2_buffer.lookup_transform(self.reference_frame, 'target', rospy.Time(0))
-            target = [trans.transform.translation.x, trans.transform.translation.y, trans.transform.translation.z] + [0,0,0]
-        elif self.target_mode == 'moving':
-            trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.objects_frame[0], rospy.Time(0))
-            target = [trans.transform.translation.x, trans.transform.translation.y, trans.transform.translation.z] + [0,0,0]
-        elif self.target_mode == '1object':
+        if self.target_mode == '1object':
             trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.objects_frame[0], rospy.Time(0))
             target = [trans.transform.translation.x, trans.transform.translation.y, trans.transform.translation.z] + [0,0,0]
         elif self.target_mode == '2moving':
@@ -252,13 +242,6 @@ class UrRosBridge:
         state = state_msg.state 
         # Clear reset Event
         self.reset.clear()
-        # Set target internal value
-        if self.target_mode == 'fixed':
-            self.target = copy.deepcopy(state[0:6])
-            # Publish Target Marker
-            self.publish_target_marker(self.target)
-            # Broadcast target tf2
-            self.broadcast_static_tf2_transform(self.reference_frame, 'target', self.target)
 
         # Setup Objects movement
         if self.objects_controller:
