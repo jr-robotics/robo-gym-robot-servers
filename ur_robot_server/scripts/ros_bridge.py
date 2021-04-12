@@ -136,15 +136,11 @@ class UrRosBridge:
             trans = self.tf2_buffer.lookup_transform(self.reference_frame, 'target', rospy.Time(0))
             target = [trans.transform.translation.x, trans.transform.translation.y, trans.transform.translation.z] + [0,0,0]
         elif self.target_mode == 'moving':
-            if self.real_robot:
-                (t_position, t_quaternion) = self.tf_listener.lookupTransform(self.reference_frame, self.objects_frame[0], rospy.Time(0))
-                target = t_position + [0,0,0]
-            else:
-                pose = self.get_model_state_pose(self.objects_model_name[0])
-                # Convert orientation target from Quaternion to RPY
-                quaternion = PyKDL.Rotation.Quaternion(pose[3], pose[4], pose[5], pose[6])
-                r,p,y = quaternion.GetRPY()
-                target = pose[0:3] + [r,p,y]
+            trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.objects_frame[0], rospy.Time(0))
+            target = [trans.transform.translation.x, trans.transform.translation.y, trans.transform.translation.z] + [0,0,0]
+        elif self.target_mode == '1object':
+            trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.objects_frame[0], rospy.Time(0))
+            target = [trans.transform.translation.x, trans.transform.translation.y, trans.transform.translation.z] + [0,0,0]
         elif self.target_mode == '2moving':
             if self.real_robot:
                 (t_position, t_quaternion) = self.tf_listener.lookupTransform(self.reference_frame, self.objects_frame[0], rospy.Time(0))
@@ -191,19 +187,15 @@ class UrRosBridge:
 
         elif self.target_mode == '1moving2points':
 
-            (forearm_position, forearm_quaternion) = self.tf_listener.lookupTransform(self.reference_frame, 'forearm_link', rospy.Time(0))
-            forearm_to_ref_tf = forearm_position + forearm_quaternion
+            trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.objects_frame[0], rospy.Time(0))
+            target = [trans.transform.translation.x, trans.transform.translation.y, trans.transform.translation.z] + [0,0,0]
+
+            forearm_to_ref_trans = self.tf2_buffer.lookup_transform(self.reference_frame, 'forearm_link', rospy.Time(0))
+            forearm_to_ref_tf = [forearm_to_ref_trans.transform.translation.x, forearm_to_ref_trans.transform.translation.y, \
+                                    forearm_to_ref_trans.transform.translation.z, forearm_to_ref_trans.transform.rotation.x, \
+                                    forearm_to_ref_trans.transform.rotation.y, forearm_to_ref_trans.transform.rotation.z, \
+                                    forearm_to_ref_trans.transform.rotation.w]
             
-            if self.real_robot:
-                (t_position, t_quaternion) = self.tf_listener.lookupTransform(self.reference_frame, self.objects_frame[0], rospy.Time(0))
-                target = t_position + [0,0,0]
-            else:
-                # Target
-                t_pose = self.get_model_state_pose(self.objects_model_name[0])
-                # Convert orientation target from Quaternion to RPY
-                t_quaternion = PyKDL.Rotation.Quaternion(t_pose[3], t_pose[4], t_pose[5], t_pose[6])
-                t_r, t_p, t_y = t_quaternion.GetRPY()
-                target = t_pose[0:3] + [t_r, t_p, t_y]
         elif self.target_mode == '1moving1point_2_2_4_voxel':
             
             (forearm_position, forearm_quaternion) = self.tf_listener.lookupTransform(self.reference_frame, 'forearm_link', rospy.Time(0))
@@ -296,6 +288,7 @@ class UrRosBridge:
             self.move_objects_pub.publish(msg)
 
         self.reset.set()
+        rospy.sleep(self.control_period)
 
         return 1
 
