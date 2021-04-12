@@ -41,7 +41,7 @@ class PandaRosBridge:
 
         self.panda_arm = ArmInterface()
 
-        self.target = [0.0] * 1  # TODO define number of target floats
+        self.target = [0.0] * 6  # TODO define number of target floats
         # TODO define number of panda states (At least the number of joints)
         self.panda_joint_names = ['panda_joint1', 'panda_joint2', 'panda_joint3',
                                   'panda_joint4', 'panda_joint5', 'panda_joint6', 'panda_joint7']
@@ -64,7 +64,7 @@ class PandaRosBridge:
         # Robot control rate
         self.sleep_time = (1.0 / rospy.get_param('~action_cycle_rate')) - 0.01
         self.control_period = rospy.Duration.from_sec(self.sleep_time)
-
+        
         self.reference_frame = rospy.get_param('~reference_frame', 'base')
         self.ee_frame = 'tool0'  # TODO is the value for self.ee_frame correct?
         self.target_frame = 'target'
@@ -136,6 +136,7 @@ class PandaRosBridge:
         # # currently only working on a fixed target mode
         if self.target_mode == FIXED_TARGET_MODE:
             target = copy.deepcopy(self.target)
+            print('\n----------------------------------------------------------------\nTarget: {}\n---------------------------------------------------------------\n'.format(target))
         else:
             raise ValueError
 
