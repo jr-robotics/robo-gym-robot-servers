@@ -5,7 +5,7 @@
   <arg name="server_port" default ="50051"/>
   <arg name="action_cycle_rate" default="25" doc="Rate at which new commands are published to the robot controller"/>
   <arg name="reference_frame" default="base"  doc="Reference frame with respect to which target and ee pose are given"/>
-  <arg name="target_mode" default="fixed"  doc="fixed, moving"/>
+  <arg name="target_mode" default="1object"  />
 
   <!-- Scene Objects -->
   <arg name="objects_controller" default="false"  doc="Start objects controller node"/>
