@@ -1,6 +1,7 @@
 <?xml version="1.0" ?>
 <launch>
   <arg name="ur_model" doc="ur3, ur3e, ur5, ur5e, ur10, ur10e, ur16e"/>
+  <arg name="real_robot" default="false" doc="true: Real Robot, false: Simulated Robot"/>
   <arg name="gui" default="false" />
   <arg name="rviz_gui" default="true" />
   <arg name="gazebo_gui" default="false" />
@@ -25,7 +26,7 @@
 
   <!-- RViz Configuration -->
   <arg name="rviz_config_path" default = "$(find ur_robot_server)/rviz" />
-  <arg name="rviz_config_file" default="ur_sim_rl.rviz" doc="RViz configuration file"/>
+  <arg name="rviz_config_file" default="ur_rl.rviz" doc="RViz configuration file"/>
   <arg name="rviz_config" value="$(arg rviz_config_path)/$(arg rviz_config_file)"/>
 
   <!-- Robot Base position -->
