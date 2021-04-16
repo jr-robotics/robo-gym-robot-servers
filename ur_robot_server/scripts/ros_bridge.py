@@ -24,7 +24,7 @@ from robo_gym_server_modules.robot_server.grpc_msgs.python import robot_server_p
 
 class UrRosBridge:
 
-    def __init__(self,  real_robot=False, ur_model = 'ur10'):
+    def __init__(self, real_robot=False, ur_model = 'ur10'):
 
         # Event is clear while initialization or set_state is going on
         self.reset = Event()
@@ -44,7 +44,7 @@ class UrRosBridge:
         self.move_objects_pub = rospy.Publisher('move_objects', Bool, queue_size=10)
 
         self.target = [0.0] * 6
-        self.ur_state = [0.0] *12
+        self.ur_state = [0.0] * 12
 
         rospy.Subscriber("joint_states", JointState, self.callbackUR)
 
@@ -56,18 +56,18 @@ class UrRosBridge:
         self.static_tf2_broadcaster = tf2_ros.StaticTransformBroadcaster()
 
         # Robot control rate
-        self.sleep_time = (1.0/rospy.get_param("~action_cycle_rate")) - 0.01
+        self.sleep_time = (1.0 / rospy.get_param("~action_cycle_rate")) - 0.01
         self.control_period = rospy.Duration.from_sec(self.sleep_time)
 
         self.reference_frame = rospy.get_param("~reference_frame", "base")
         self.ee_frame = 'tool0'
 
         self.max_velocity_scale_factor = float(rospy.get_param("~max_velocity_scale_factor"))
-        if ur_model == 'ur3'or ur_model == 'ur3e':
+        if ur_model == 'ur3' or ur_model == 'ur3e':
             self.absolute_ur_joint_vel_limits = [3.14, 3.14, 3.14, 6.28, 6.28, 6.28]
-        elif ur_model == 'ur5'or ur_model == 'ur5e':
+        elif ur_model == 'ur5' or ur_model == 'ur5e':
             self.absolute_ur_joint_vel_limits = [3.14, 3.14, 3.14, 3.14, 3.14, 3.14]
-        elif ur_model == 'ur10'or ur_model == 'ur10e' or ur_model == 'ur16e':
+        elif ur_model == 'ur10' or ur_model == 'ur10e' or ur_model == 'ur16e':
             self.absolute_ur_joint_vel_limits = [3.14, 2.09, 2.09, 3.14, 3.14, 3.14]
         else:
             raise ValueError('ur_model not recognized')
@@ -86,7 +86,7 @@ class UrRosBridge:
             rospy.Subscriber("wrist_3_collision", ContactsState, self.wrist_3_collision_callback)
 
             # Initialization of collision sensor flags
-            self.collision_sensors = dict.fromkeys(["shoulder","upper_arm","forearm","wrist_1","wrist_2","wrist_3"], False)
+            self.collision_sensors = dict.fromkeys(["shoulder", "upper_arm", "forearm", "wrist_1", "wrist_2", "wrist_3"], False)
 
         #TODO
         self.safe_to_move = True
@@ -116,7 +116,7 @@ class UrRosBridge:
         if self.use_voxel_occupancy: 
             rospy.Subscriber("occupancy_state", Int32MultiArray, self.voxel_occupancy_callback)
             if self.target_mode == '1moving1point_2_2_4_voxel':
-                self.voxel_occupancy = [0.0]*16
+                self.voxel_occupancy = [0.0] * 16
 
 
     def get_state(self):
@@ -207,12 +207,12 @@ class UrRosBridge:
                 rospy.set_param(param, state_msg.float_params[param])
 
         # UR Joints Positions
-        reset_steps = int(15.0/self.sleep_time)
+        reset_steps = int(15.0 / self.sleep_time)
         for i in range(reset_steps):
             self.publish_env_arm_cmd(state[6:12])
         if not self.real_robot:
             # Reset collision sensors flags
-            self.collision_sensors.update(dict.fromkeys(["shoulder","upper_arm","forearm","wrist_1","wrist_2","wrist_3"], False))
+            self.collision_sensors.update(dict.fromkeys(["shoulder", "upper_arm", "forearm", "wrist_1", "wrist_2", "wrist_3"], False))
         # Start movement of objects
         if self.objects_controller:
             msg = Bool()
@@ -250,7 +250,7 @@ class UrRosBridge:
                 pos = self.ur_state[i]
                 cmd = position_cmd[i]
                 max_vel = self.ur_joint_vel_limits[i]
-                dur.append(max(abs(cmd-pos)/max_vel,self.min_traj_duration))
+                dur.append(max(abs(cmd-pos)/max_vel, self.min_traj_duration))
 
             msg.points[0].time_from_start = rospy.Duration.from_sec(max(dur))
             self.arm_cmd_pub.publish(msg)
@@ -258,7 +258,7 @@ class UrRosBridge:
             return position_cmd
         else:
             rospy.sleep(self.control_period)
-            return [0.0]*6
+            return [0.0] * 6
 
     def get_model_state(self, model_name, relative_entity_name=''):
         # method used to retrieve model state from gazebo simulation
@@ -329,34 +329,34 @@ class UrRosBridge:
             pitch_vel = link_coordinates.twist.angular.y
             yaw_vel = link_coordinates.twist.angular.z
 
-            return x, y, z, roll, pitch, yaw, x_vel, y_vel, z_vel, roll_vel, pitch_vel,  yaw_vel
+            return x, y, z, roll, pitch, yaw, x_vel, y_vel, z_vel, roll_vel, pitch_vel, yaw_vel
         except rospy.ServiceException as e:
             print("Service call failed:" + e)
 
     def publish_target_marker(self, target_pose):
         t_marker = Marker()
-        t_marker.type=1 #=>CUBE
-        t_marker.action=0
-        t_marker.frame_locked=1
-        t_marker.pose.position.x=target_pose[0]
-        t_marker.pose.position.y=target_pose[1]
-        t_marker.pose.position.z=target_pose[2]
-        rpy_orientation = PyKDL.Rotation.RPY(target_pose[3],target_pose[4],target_pose[5])
+        t_marker.type = 1  # =>CUBE
+        t_marker.action = 0
+        t_marker.frame_locked = 1
+        t_marker.pose.position.x = target_pose[0]
+        t_marker.pose.position.y = target_pose[1]
+        t_marker.pose.position.z = target_pose[2]
+        rpy_orientation = PyKDL.Rotation.RPY(target_pose[3], target_pose[4], target_pose[5])
         q_orientation = rpy_orientation.GetQuaternion()
         t_marker.pose.orientation.x = q_orientation[0]
         t_marker.pose.orientation.y = q_orientation[1]
         t_marker.pose.orientation.z = q_orientation[2]
         t_marker.pose.orientation.w = q_orientation[3]
-        t_marker.scale.x=0.1
-        t_marker.scale.y=0.1
-        t_marker.scale.z=0.1
-        t_marker.id=0
-        t_marker.header.stamp=rospy.Time.now()
-        t_marker.header.frame_id= self.reference_frame
-        t_marker.color.a=0.7
-        t_marker.color.r=1.0  # red
-        t_marker.color.g=0.0
-        t_marker.color.b=0.0
+        t_marker.scale.x = 0.1
+        t_marker.scale.y = 0.1
+        t_marker.scale.z = 0.1
+        t_marker.id = 0
+        t_marker.header.stamp = rospy.Time.now()
+        t_marker.header.frame_id = self.reference_frame
+        t_marker.color.a = 0.7
+        t_marker.color.r = 1.0  # red
+        t_marker.color.g = 0.0
+        t_marker.color.b = 0.0
         self.target_pub.publish(t_marker)
 
     def broadcast_static_tf2_transform(self, frame_id, child_frame_id, pose):
@@ -382,41 +382,41 @@ class UrRosBridge:
             self.ur_state[0:6]  = data.position[0:6]
             self.ur_state[6:12] = data.velocity[0:6]
 
-    def shoulder_collision_callback(self,data):
+    def shoulder_collision_callback(self, data):
         if data.states == []:
             pass
         else:
-            self.collision_sensors["shoulder"]=True
+            self.collision_sensors["shoulder"] = True
 
-    def upper_arm_collision_callback(self,data):
+    def upper_arm_collision_callback(self, data):
         if data.states == []:
             pass
         else:
-            self.collision_sensors["upper_arm"]=True
+            self.collision_sensors["upper_arm"] = True
 
-    def forearm_collision_callback(self,data):
+    def forearm_collision_callback(self, data):
         if data.states == []:
             pass
         else:
-            self.collision_sensors["forearm"]=True
+            self.collision_sensors["forearm"] = True
 
-    def wrist_1_collision_callback(self,data):
+    def wrist_1_collision_callback(self, data):
         if data.states == []:
             pass
         else:
-            self.collision_sensors["wrist_1"]=True
+            self.collision_sensors["wrist_1"] = True
 
-    def wrist_2_collision_callback(self,data):
+    def wrist_2_collision_callback(self, data):
         if data.states == []:
             pass
         else:
-            self.collision_sensors["wrist_2"]=True
+            self.collision_sensors["wrist_2"] = True
 
-    def wrist_3_collision_callback(self,data):
+    def wrist_3_collision_callback(self, data):
         if data.states == []:
             pass
         else:
-            self.collision_sensors["wrist_3"]=True
+            self.collision_sensors["wrist_3"] = True
 
     def voxel_occupancy_callback(self, msg):
         if self.get_state_event.is_set():

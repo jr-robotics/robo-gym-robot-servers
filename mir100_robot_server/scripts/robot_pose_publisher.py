@@ -24,7 +24,7 @@ def mir_pose_publisher():
             pose.orientation.w = model_coordinates.pose.orientation.w
 
         except rospy.ServiceException as e:
-            print("Service call failed:" + e)
+            print('Service call failed:' + e)
         pub.publish(pose)
         r.sleep()
 

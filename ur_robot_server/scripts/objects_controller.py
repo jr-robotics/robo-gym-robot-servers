@@ -42,8 +42,8 @@ class ObjectsController:
             with open(file_path, 'r') as json_file:
                 self.p = json.load(json_file)
     
-    def callback_move_objects(self,data):
-        global move 
+    def callback_move_objects(self, data):
+        global move
         if data.data == True:
             move = True
         else:
@@ -99,7 +99,7 @@ class ObjectsController:
 
         return x_function, y_function, z_function
     
-    def get_3d_spline(self, x_min, x_max, y_min, y_max, z_min, z_max, n_points = 10, n_sampling_points = 4000):
+    def get_3d_spline(self, x_min, x_max, y_min, y_max, z_min, z_max, n_points=10, n_sampling_points=4000):
         
         """Generate samples of the cartesian coordinates of a 3d spline.
 
@@ -129,10 +129,9 @@ class ObjectsController:
 
         self.samples_len = n_sampling_points
 
-
-        x = np.random.uniform(x_min,x_max,n_points)
-        y = np.random.uniform(y_min,y_max,n_points)
-        z = np.random.uniform(z_min,z_max,n_points)
+        x = np.random.uniform(x_min, x_max, n_points)
+        y = np.random.uniform(y_min, y_max, n_points)
+        z = np.random.uniform(z_min, z_max, n_points)
 
         # set last point equal to first to have a closed trajectory
         x[n_points-1] = x[0]
@@ -140,8 +139,8 @@ class ObjectsController:
         z[n_points-1] = z[0]
 
         smoothness = 0
-        tck, u = interpolate.splprep([x,y,z], s=smoothness)
-        u_fine = np.linspace(0,1,n_sampling_points)
+        tck, u = interpolate.splprep([x, y, z], s=smoothness)
+        u_fine = np.linspace(0, 1, n_sampling_points)
         x_function, y_function, z_function = interpolate.splev(u_fine, tck)
 
         return x_function, y_function, z_function

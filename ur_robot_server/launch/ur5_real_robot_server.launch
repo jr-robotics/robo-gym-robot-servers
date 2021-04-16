@@ -1,6 +1,6 @@
-<?xml version="1.0" ?>
+<?xml version="1.0"?>
 <launch>
-  <arg name="gui" default="false" />
+  <arg name="gui" default="false"/>
   <arg name="max_velocity_scale_factor" default="1.0" doc="Scale factor multplied by maximum joint velocity value"/>
   <arg name="server_port" default ="50051"/>
   <arg name="action_cycle_rate" default="25" doc="Rate at which new commands are published to the robot controller"/>
@@ -17,13 +17,14 @@
   <arg name="object_1_frame" default="" doc="TF Frame name of object 1"/>
 
   <!-- RViz Configuration -->
-  <arg name="rviz_config_path" default = "$(find ur_robot_server)/rviz" />
+  <arg name="rviz_config_path" default="$(find ur_robot_server)/rviz"/>
   <arg name="rviz_config_file" default="ur_rob_rl.rviz" doc="RViz configuration file"/>
   <arg name="rviz_config" value="$(arg rviz_config_path)/$(arg rviz_config_file)"/>
 
+
   <!-- Launch Command Handler  -->
-  <node name="joint_trajectory_command_handler" pkg="ur_robot_server" type="joint_trajectory_command_handler.py" respawn="false" output="screen" >
-    <param name="real_robot" value="true" />
+  <node name="joint_trajectory_command_handler" pkg="ur_robot_server" type="joint_trajectory_command_handler.py" respawn="false" output="screen">
+    <param name="real_robot" value="true"/>
     <param name="action_cycle_rate" value="$(arg action_cycle_rate)"></param>
   </node>
 
@@ -33,7 +34,7 @@
   </node>
 
   <!--Launch gRPC server -->
-  <node name="robot_server" pkg="ur_robot_server" type="robot_server.py" respawn="false" output="screen" >
+  <node name="robot_server" pkg="ur_robot_server" type="robot_server.py" respawn="false" output="screen">
     <param name="server_port" value="$(arg server_port)"></param>
     <param name="real_robot" value="true"></param>
     <param name="ur_model" value="ur5"></param>

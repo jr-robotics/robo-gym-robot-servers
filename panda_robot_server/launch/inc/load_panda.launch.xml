@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- Parameter files -->
+    <rosparam command="load" file="$(find panda_gazebo)/config/robot_details.yaml"/>
+
+        <!-- Use common launch file and pass all arguments to it -->
+    <include file="$(dirname)/load_panda_common.launch.xml" pass_all_args="true"/>
+
+    <!-- <arg name="joint_acceleration_limit" default="$(find panda_gazebo)/config"/> -->
+    <!-- <arg name="robot_details"       default="$(find panda_gazebo)/config/robot_details.yaml"/>
+    <arg name="panda_controllers"   default="$(find panda_sim_controllers)/config/panda_sim_controllers.yaml"/>
+    <arg name="gripper_controller"  default="$(find panda_sim_controllers)/config/panda_gripper_controller.yaml"/> -->
+
+    <!-- Common parameters -->
+    <arg name="transmission_hw_interface"   default="hardware_interface/EffortJointInterface"   doc="The hardware_interface to expose for each joint in the simulated robot (one of: [PositionJointInterface, VelocityJointInterface, EffortJointInterface])"/>
+    <arg name="safety_limits"               default="false"                                     doc="If True, enable the safety limits controller"/>
+    <arg name="safety_pos_margin"           default="0.15"                                      doc="The lower/upper limits in the safety controller"/>
+    <arg name="safety_k_position"           default="20"                                        doc="Used to set k position in the safety controller"/>
+
+
+    <!-- Robot Base position -->
+    <!-- TODO Simply copy/pasted from load_ur5.launch.xml for now, use actual values for panda in the future -->
+    <arg name="x"       default="0.0"       doc="base_link coordinate with respect to the world frame"/>
+    <arg name="y"       default="0.0"       doc="base_link coordinate with respect to the world frame"/>
+    <arg name="z"       default="0.1"       doc="base_link coordinate with respect to the world frame"/>
+    <arg name="roll"    default="0.0"       doc="base_link coordinate with respect to the world frame"/>
+    <arg name="pitch"   default="0.0"       doc="base_link coordinate with respect to the world frame"/>
+    <arg name="yaw"     default="0.0"       doc="base_link coordinate with respect to the world frame"/>
+
+    <!-- Camera 1 activate and position -->
+    <arg name="camera1_gazebo"      default="False" doc="use camera1 gazebo simulated sensor"/>
+    <arg name="camera1_link_x"      default="0.0"   doc="camera1_link coordinate with respect to the world frame"/>
+    <arg name="camera1_link_y"      default="0.0"   doc="camera1_link coordinate with respect to the world frame"/>
+    <arg name="camera1_link_z"      default="0.1"   doc="camera1_link coordinate with respect to the world frame"/>
+    <arg name="camera1_link_roll"   default="0.0"   doc="camera1_link coordinate with respect to the world frame"/>
+    <arg name="camera1_link_pitch"  default="0.0"   doc="camera1_link coordinate with respect to the world frame"/>
+    <arg name="camera1_link_yaw"    default="0.0"   doc="camera1_link coordinate with respect to the world frame"/>
+
+</launch>
