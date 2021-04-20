@@ -63,8 +63,8 @@ test_environments_with_robo-gym-master:
     IMAGE_NAME: $CI_COMMIT_BRANCH
   script:
     - echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
-    - docker pull $CI_REGISTRY_IMAGE:$PYTHON_VER-$CI_COMMIT_SHA
-    - docker tag $CI_REGISTRY_IMAGE:$PYTHON_VER-$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/$IMAGE_NAME:latest
+    - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+    - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/$IMAGE_NAME:latest
     - docker push $CI_REGISTRY_IMAGE/$IMAGE_NAME:latest
 
 deploy_docker_image:
