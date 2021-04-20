@@ -84,72 +84,85 @@ test_environments_with_robo-gym-master:
 #   only:
 #     - /^capsize.*$/
 
-
-deploy_develop_docker_image:
+.deploy_docker_image: &deploy_docker_image_def
   image: docker:18.09
   services:
     - docker:18.09-dind
   tags:
     - docker-executor
   stage: deploy
+  variables:
+    GIT_STRATEGY: none
+    IMAGE_NAME: $CI_COMMIT_BRANCH
   script:
     - echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
-    - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
-    - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/develop:latest
-    - docker push $CI_REGISTRY_IMAGE/develop:latest
+    - docker pull $CI_REGISTRY_IMAGE:$PYTHON_VER-$CI_COMMIT_SHA
+    - docker tag $CI_REGISTRY_IMAGE:$PYTHON_VER-$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/$IMAGE_NAME:latest
+    - docker push $CI_REGISTRY_IMAGE/$IMAGE_NAME:latest
+
+deploy_docker_image:
+  <<: *deploy_docker_image_def
   only:
+    - master 
     - develop
 
-deploy_master_docker_image:
+manual_deploy_docker_image:
+  <<: *deploy_docker_image_def
+  variables:
+    IMAGE_NAME: "manual_deploy"
+  only:
+    - manual
+
+deploy_docker_image_to_dockerhub:
   image: docker:18.09
   services:
     - docker:18.09-dind
   tags:
     - docker-executor
   stage: deploy
+  variables:
+    GIT_STRATEGY: none
   script:
     - echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
     - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
-    - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/master:latest
-    - docker push $CI_REGISTRY_IMAGE/master:latest
     - docker tag $CI_REGISTRY_IMAGE/master:latest joanneumrobotics/robo-gym-robot-server-side:$CI_COMMIT_SHA
     - docker tag $CI_REGISTRY_IMAGE/master:latest joanneumrobotics/robo-gym-robot-server-side:latest
     - echo "$DOCKER_HUB_TOKEN" | docker login --username $DOCKER_HUB_USER --password-stdin
     - docker push joanneumrobotics/robo-gym-robot-server-side:$CI_COMMIT_SHA
     - docker push joanneumrobotics/robo-gym-robot-server-side:latest
   only:
-    - master
+    - manual
 
-deploy_manual_docker_image:
-  image: docker:18.09
-  services:
-    - docker:18.09-dind
-  tags:
-    - docker-executor
-  stage: manual-deploy
-  script:
-    - echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
-    - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
-    - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/manual_deploy:$CI_COMMIT_SHA
-    - docker push $CI_REGISTRY_IMAGE/manual_deploy:$CI_COMMIT_SHA
-    - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/manual_deploy:latest
-    - docker push $CI_REGISTRY_IMAGE/manual_deploy:latest
-  when: manual
+# deploy_manual_docker_image:
+#   image: docker:18.09
+#   services:
+#     - docker:18.09-dind
+#   tags:
+#     - docker-executor
+#   stage: manual-deploy
+#   script:
+#     - echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
+#     - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+#     - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/manual_deploy:$CI_COMMIT_SHA
+#     - docker push $CI_REGISTRY_IMAGE/manual_deploy:$CI_COMMIT_SHA
+#     - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/manual_deploy:latest
+#     - docker push $CI_REGISTRY_IMAGE/manual_deploy:latest
+#   when: manual
 
-deploy_capsize_master_docker_image:
-  image: docker:18.09
-  services:
-    - docker:18.09-dind
-  tags:
-    - docker-executor
-  stage: deploy
-  script:
-    - echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
-    - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
-    - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/capsize_master:latest
-    - docker push $CI_REGISTRY_IMAGE/capsize_master:latest
-  only:
-    - capsize_master
+# deploy_capsize_master_docker_image:
+#   image: docker:18.09
+#   services:
+#     - docker:18.09-dind
+#   tags:
+#     - docker-executor
+#   stage: deploy
+#   script:
+#     - echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
+#     - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+#     - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/capsize_master:latest
+#     - docker push $CI_REGISTRY_IMAGE/capsize_master:latest
+#   only:
+#     - capsize_master
 
 
 
