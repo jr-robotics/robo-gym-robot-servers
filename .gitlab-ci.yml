@@ -51,39 +51,6 @@ test_environments_with_robo-gym-master:
   only:
     - master
 
-# test_environments_develop: 
-#   stage: test
-#   variables:
-#     ROBOT_SERVERS_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
-#   trigger:
-#     project: robo-gym/robo-gym
-#     branch: develop
-#     strategy: depend
-#   only:
-#     - develop
-
-# test_environments_testing: 
-#   stage: test
-#   variables:
-#     ROBOT_SERVERS_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
-#   trigger:
-#     project: robo-gym/robo-gym
-#     branch: testing
-#     strategy: depend
-#   except:
-#     - master 
-#     - develop
-#     - /^capsize.*$/
-
-# test_capsize_environments:
-#   stage: test
-#   trigger:
-#     project: robo-gym/robo-gym
-#     branch: capsize_master
-#     strategy: depend
-#   only:
-#     - /^capsize.*$/
-
 .deploy_docker_image: &deploy_docker_image_def
   image: docker:18.09
   services:
@@ -133,36 +100,6 @@ deploy_docker_image_to_dockerhub:
   only:
     - manual
 
-# deploy_manual_docker_image:
-#   image: docker:18.09
-#   services:
-#     - docker:18.09-dind
-#   tags:
-#     - docker-executor
-#   stage: manual-deploy
-#   script:
-#     - echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
-#     - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
-#     - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/manual_deploy:$CI_COMMIT_SHA
-#     - docker push $CI_REGISTRY_IMAGE/manual_deploy:$CI_COMMIT_SHA
-#     - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/manual_deploy:latest
-#     - docker push $CI_REGISTRY_IMAGE/manual_deploy:latest
-#   when: manual
-
-# deploy_capsize_master_docker_image:
-#   image: docker:18.09
-#   services:
-#     - docker:18.09-dind
-#   tags:
-#     - docker-executor
-#   stage: deploy
-#   script:
-#     - echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
-#     - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
-#     - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/capsize_master:latest
-#     - docker push $CI_REGISTRY_IMAGE/capsize_master:latest
-#   only:
-#     - capsize_master
 
 
 
