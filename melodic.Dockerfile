@@ -9,7 +9,8 @@ ENV DEBIAN_FRONTEND noninteractive
 
 RUN apt-get update && apt-get install -y \
   apt-utils build-essential psmisc vim-gtk \
-  python-catkin-tools python-rosdep python-pip
+  python-catkin-tools python-rosdep python-pip \
+  python-rospkg
   # PANDA START
 RUN apt-get update && apt-get install -q -y \
     git swig sudo python-future libcppunit-dev
