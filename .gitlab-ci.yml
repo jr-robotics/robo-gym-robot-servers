@@ -13,7 +13,7 @@ build_docker_image:
   stage: build
   script:
     - docker build -f melodic.Dockerfile --build-arg GIT_COMMIT=$CI_COMMIT_SHA --build-arg CI_JOB_TOKEN=$CI_JOB_TOKEN -t $CI_REGISTRY_IMAGE/$CI_COMMIT_SHA .
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY
+    - echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
     - docker push $CI_REGISTRY_IMAGE/$CI_COMMIT_SHA
 
 test_environments_master: 
@@ -67,7 +67,7 @@ deploy_develop_docker_image:
     - docker-executor
   stage: deploy
   script:
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY
+    - echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
     - docker pull $CI_REGISTRY_IMAGE/$CI_COMMIT_SHA
     - docker tag $CI_REGISTRY_IMAGE/$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/develop:latest
     - docker push $CI_REGISTRY_IMAGE/develop:latest
@@ -82,7 +82,7 @@ deploy_master_docker_image:
     - docker-executor
   stage: deploy
   script:
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY
+    - echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
     - docker pull $CI_REGISTRY_IMAGE/$CI_COMMIT_SHA
     - docker tag $CI_REGISTRY_IMAGE/$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/master:latest
     - docker push $CI_REGISTRY_IMAGE/master:latest
@@ -102,7 +102,7 @@ deploy_manual_docker_image:
     - docker-executor
   stage: manual-deploy
   script:
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY
+    - echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
     - docker pull $CI_REGISTRY_IMAGE/$CI_COMMIT_SHA
     - docker tag $CI_REGISTRY_IMAGE/$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/manual_deploy:$CI_COMMIT_SHA
     - docker push $CI_REGISTRY_IMAGE/manual_deploy:$CI_COMMIT_SHA
@@ -118,7 +118,7 @@ deploy_capsize_master_docker_image:
     - docker-executor
   stage: deploy
   script:
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY
+    - echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
     - docker pull $CI_REGISTRY_IMAGE/$CI_COMMIT_SHA
     - docker tag $CI_REGISTRY_IMAGE/$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/capsize_master:latest
     - docker push $CI_REGISTRY_IMAGE/capsize_master:latest
