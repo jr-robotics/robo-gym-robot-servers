@@ -39,7 +39,7 @@ build_docker_image:
     - docker tag $ROBOT_SERVERS_IMAGE robot-servers
     - docker-compose -f docker-compose.yml up -d
     - docker exec robo-gym pytest -m "not nightly"
-    - docker-compose -f docker-compose-test-melodic.yml down
+    - docker-compose -f docker-compose.yml down
 
 test_environments:
   <<: *test_environments_def 
