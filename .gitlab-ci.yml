@@ -12,14 +12,14 @@ build_docker_image:
     - docker-executor
   stage: build
   script:
-    - docker build -f melodic.Dockerfile --build-arg GIT_COMMIT=$CI_COMMIT_SHA --build-arg CI_JOB_TOKEN=$CI_JOB_TOKEN -t $CI_REGISTRY_IMAGE/$CI_COMMIT_SHA .
+    - docker build -f melodic.Dockerfile --build-arg GIT_COMMIT=$CI_COMMIT_SHA --build-arg CI_JOB_TOKEN=$CI_JOB_TOKEN -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA .
     - echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
-    - docker push $CI_REGISTRY_IMAGE/$CI_COMMIT_SHA
+    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
 
 test_environments_master: 
   stage: test
   variables:
-    ROBOT_SERVERS_IMAGE: $CI_REGISTRY_IMAGE/$CI_COMMIT_SHA
+    ROBOT_SERVERS_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
   trigger:
     project: robo-gym/robo-gym
     strategy: depend
@@ -29,7 +29,7 @@ test_environments_master:
 test_environments_develop: 
   stage: test
   variables:
-    ROBOT_SERVERS_IMAGE: $CI_REGISTRY_IMAGE/$CI_COMMIT_SHA
+    ROBOT_SERVERS_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
   trigger:
     project: robo-gym/robo-gym
     branch: develop
@@ -40,7 +40,7 @@ test_environments_develop:
 test_environments_testing: 
   stage: test
   variables:
-    ROBOT_SERVERS_IMAGE: $CI_REGISTRY_IMAGE/$CI_COMMIT_SHA
+    ROBOT_SERVERS_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
   trigger:
     project: robo-gym/robo-gym
     branch: testing
@@ -68,8 +68,8 @@ deploy_develop_docker_image:
   stage: deploy
   script:
     - echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
-    - docker pull $CI_REGISTRY_IMAGE/$CI_COMMIT_SHA
-    - docker tag $CI_REGISTRY_IMAGE/$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/develop:latest
+    - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+    - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/develop:latest
     - docker push $CI_REGISTRY_IMAGE/develop:latest
   only:
     - develop
@@ -83,8 +83,8 @@ deploy_master_docker_image:
   stage: deploy
   script:
     - echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
-    - docker pull $CI_REGISTRY_IMAGE/$CI_COMMIT_SHA
-    - docker tag $CI_REGISTRY_IMAGE/$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/master:latest
+    - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+    - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/master:latest
     - docker push $CI_REGISTRY_IMAGE/master:latest
     - docker tag $CI_REGISTRY_IMAGE/master:latest joanneumrobotics/robo-gym-robot-server-side:$CI_COMMIT_SHA
     - docker tag $CI_REGISTRY_IMAGE/master:latest joanneumrobotics/robo-gym-robot-server-side:latest
@@ -103,10 +103,10 @@ deploy_manual_docker_image:
   stage: manual-deploy
   script:
     - echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
-    - docker pull $CI_REGISTRY_IMAGE/$CI_COMMIT_SHA
-    - docker tag $CI_REGISTRY_IMAGE/$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/manual_deploy:$CI_COMMIT_SHA
+    - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+    - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/manual_deploy:$CI_COMMIT_SHA
     - docker push $CI_REGISTRY_IMAGE/manual_deploy:$CI_COMMIT_SHA
-    - docker tag $CI_REGISTRY_IMAGE/$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/manual_deploy:latest
+    - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/manual_deploy:latest
     - docker push $CI_REGISTRY_IMAGE/manual_deploy:latest
   when: manual
 
@@ -119,8 +119,8 @@ deploy_capsize_master_docker_image:
   stage: deploy
   script:
     - echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
-    - docker pull $CI_REGISTRY_IMAGE/$CI_COMMIT_SHA
-    - docker tag $CI_REGISTRY_IMAGE/$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/capsize_master:latest
+    - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+    - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/capsize_master:latest
     - docker push $CI_REGISTRY_IMAGE/capsize_master:latest
   only:
     - capsize_master
