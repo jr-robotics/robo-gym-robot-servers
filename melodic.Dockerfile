@@ -12,8 +12,7 @@ RUN apt-get update && apt-get install -y \
   python-catkin-tools python-rosdep python-pip
   # PANDA START
 RUN apt-get update && apt-get install -q -y \
-    git swig sudo python-future libcppunit-dev \
-    python-rospkg
+    git swig sudo python-future libcppunit-dev
   # PANDA END
 
 RUN rm /bin/sh && ln -s /bin/bash /bin/sh
