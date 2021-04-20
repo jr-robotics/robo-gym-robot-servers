@@ -77,8 +77,7 @@ manual_deploy_docker_image:
   <<: *deploy_docker_image_def
   variables:
     IMAGE_NAME: "manual_deploy"
-  only:
-    - manual
+  when: manual
 
 deploy_docker_image_to_dockerhub:
   image: docker:18.09
@@ -97,8 +96,7 @@ deploy_docker_image_to_dockerhub:
     - echo "$DOCKER_HUB_TOKEN" | docker login --username $DOCKER_HUB_USER --password-stdin
     - docker push joanneumrobotics/robo-gym-robot-server-side:$CI_COMMIT_SHA
     - docker push joanneumrobotics/robo-gym-robot-server-side:latest
-  only:
-    - manual
+  when: manual
 
 
 
