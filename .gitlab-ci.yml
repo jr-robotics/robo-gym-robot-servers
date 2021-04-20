@@ -4,6 +4,11 @@ stages:
   - test
   - deploy
 
+variables:
+  PYTHON_VER: "3.6"
+  ROBO_GYM_IMAGE: "$CI_REGISTRY/robo-gym/robo-gym/develop:latest"
+  ROBOT_SERVERS_IMAGE: "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+
 build_docker_image:
   image: docker:18.09
   services:
@@ -12,118 +17,87 @@ build_docker_image:
     - docker-executor
   stage: build
   script:
-    - docker build -f melodic.Dockerfile --build-arg GIT_COMMIT=$CI_COMMIT_SHA --build-arg CI_JOB_TOKEN=$CI_JOB_TOKEN -t $CI_REGISTRY_IMAGE/rs:dev-$CI_COMMIT_SHA .
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY
-    - docker push $CI_REGISTRY_IMAGE/rs:dev-$CI_COMMIT_SHA
+    - docker build -f melodic.Dockerfile --build-arg GIT_COMMIT=$CI_COMMIT_SHA --build-arg CI_JOB_TOKEN=$CI_JOB_TOKEN -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA .
+    - echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
+    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
 
-test_environments_master: 
+.test_environments: &test_environments_def
+  image: docker:18.09
+  before_script:
+  - apk add docker-compose
+  services:
+    - docker:18.09-dind
+  tags:
+    - docker-executor
   stage: test
+  script:
+    - echo "Python Version:$PYTHON_VER robo-gym image:$ROBO_GYM_IMAGE robot-servers image:$ROBOT_SERVERS_IMAGE"  
+    - echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
+    - docker pull $ROBO_GYM_IMAGE
+    - docker tag $ROBO_GYM_IMAGE robo-gym
+    - docker pull $ROBOT_SERVERS_IMAGE
+    - docker tag $ROBOT_SERVERS_IMAGE robot-servers
+    - docker-compose -f docker-compose.yml up -d
+    - docker exec robo-gym pytest -m "not nightly"
+    - docker-compose -f docker-compose.yml down
+
+test_environments:
+  <<: *test_environments_def 
+
+test_environments_with_robo-gym-master:
+  <<: *test_environments_def  
   variables:
-    ROBOT_SERVERS_IMAGE: $CI_REGISTRY_IMAGE/rs:dev-$CI_COMMIT_SHA
-  trigger:
-    project: robo-gym/robo-gym
-    strategy: depend
+    ROBO_GYM_IMAGE: "$CI_REGISTRY/robo-gym/robo-gym/master:latest"
   only:
     - master
 
-test_environments_develop: 
-  stage: test
+.deploy_docker_image: &deploy_docker_image_def
+  image: docker:18.09
+  services:
+    - docker:18.09-dind
+  tags:
+    - docker-executor
+  stage: deploy
   variables:
-    ROBOT_SERVERS_IMAGE: $CI_REGISTRY_IMAGE/rs:dev-$CI_COMMIT_SHA
-  trigger:
-    project: robo-gym/robo-gym
-    branch: develop
-    strategy: depend
-  only:
-    - develop
+    GIT_STRATEGY: none
+    IMAGE_NAME: $CI_COMMIT_BRANCH
+  script:
+    - echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
+    - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+    - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/$IMAGE_NAME:latest
+    - docker push $CI_REGISTRY_IMAGE/$IMAGE_NAME:latest
 
-test_environments_testing: 
-  stage: test
-  variables:
-    ROBOT_SERVERS_IMAGE: $CI_REGISTRY_IMAGE/rs:dev-$CI_COMMIT_SHA
-  trigger:
-    project: robo-gym/robo-gym
-    branch: testing
-    strategy: depend
-  except:
+deploy_docker_image:
+  <<: *deploy_docker_image_def
+  only:
     - master 
     - develop
-    - /^capsize.*$/
 
-test_capsize_environments:
-  stage: test
-  trigger:
-    project: robo-gym/robo-gym
-    branch: capsize_master
-    strategy: depend
-  only:
-    - /^capsize.*$/
+manual_deploy_docker_image:
+  <<: *deploy_docker_image_def
+  variables:
+    IMAGE_NAME: "manual_deploy"
+  when: manual
 
-deploy_develop_docker_image:
+deploy_docker_image_to_dockerhub:
   image: docker:18.09
   services:
     - docker:18.09-dind
   tags:
     - docker-executor
   stage: deploy
+  variables:
+    GIT_STRATEGY: none
   script:
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY
-    - docker pull $CI_REGISTRY_IMAGE/rs:dev-$CI_COMMIT_SHA
-    - docker tag $CI_REGISTRY_IMAGE/rs:dev-$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/develop:latest
-    - docker push $CI_REGISTRY_IMAGE/develop:latest
-  only:
-    - develop
-
-deploy_master_docker_image:
-  image: docker:18.09
-  services:
-    - docker:18.09-dind
-  tags:
-    - docker-executor
-  stage: deploy
-  script:
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY
-    - docker pull $CI_REGISTRY_IMAGE/rs:dev-$CI_COMMIT_SHA
-    - docker tag $CI_REGISTRY_IMAGE/rs:dev-$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/master:latest
-    - docker push $CI_REGISTRY_IMAGE/master:latest
+    - echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
+    - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
     - docker tag $CI_REGISTRY_IMAGE/master:latest joanneumrobotics/robo-gym-robot-server-side:$CI_COMMIT_SHA
     - docker tag $CI_REGISTRY_IMAGE/master:latest joanneumrobotics/robo-gym-robot-server-side:latest
     - echo "$DOCKER_HUB_TOKEN" | docker login --username $DOCKER_HUB_USER --password-stdin
     - docker push joanneumrobotics/robo-gym-robot-server-side:$CI_COMMIT_SHA
     - docker push joanneumrobotics/robo-gym-robot-server-side:latest
-  only:
-    - master
-
-deploy_manual_docker_image:
-  image: docker:18.09
-  services:
-    - docker:18.09-dind
-  tags:
-    - docker-executor
-  stage: manual-deploy
-  script:
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY
-    - docker pull $CI_REGISTRY_IMAGE/rs:dev-$CI_COMMIT_SHA
-    - docker tag $CI_REGISTRY_IMAGE/rs:dev-$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/manual_deploy:$CI_COMMIT_SHA
-    - docker push $CI_REGISTRY_IMAGE/manual_deploy:$CI_COMMIT_SHA
-    - docker tag $CI_REGISTRY_IMAGE/rs:dev-$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/manual_deploy:latest
-    - docker push $CI_REGISTRY_IMAGE/manual_deploy:latest
   when: manual
 
-deploy_capsize_master_docker_image:
-  image: docker:18.09
-  services:
-    - docker:18.09-dind
-  tags:
-    - docker-executor
-  stage: deploy
-  script:
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY
-    - docker pull $CI_REGISTRY_IMAGE/rs:dev-$CI_COMMIT_SHA
-    - docker tag $CI_REGISTRY_IMAGE/rs:dev-$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/capsize_master:latest
-    - docker push $CI_REGISTRY_IMAGE/capsize_master:latest
-  only:
-    - capsize_master
 
 
 
