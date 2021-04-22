@@ -73,10 +73,19 @@ deploy_docker_image:
     - master 
     - develop
 
-manual_deploy_docker_image:
+manual_deploy_test_docker_image:
   <<: *deploy_docker_image_def
+  stage: manual-deploy
   variables:
     IMAGE_NAME: "manual_deploy"
+  when: manual
+
+manual_deploy_docker_image:
+  <<: *deploy_docker_image_def
+  stage: manual-deploy
+  only: 
+    - master 
+    - develop
   when: manual
 
 deploy_docker_image_to_dockerhub:
@@ -96,6 +105,8 @@ deploy_docker_image_to_dockerhub:
     - echo "$DOCKER_HUB_TOKEN" | docker login --username $DOCKER_HUB_USER --password-stdin
     - docker push joanneumrobotics/robo-gym-robot-server-side:$CI_COMMIT_SHA
     - docker push joanneumrobotics/robo-gym-robot-server-side:latest
+  only:
+    - master 
   when: manual
 
 
