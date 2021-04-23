@@ -47,12 +47,8 @@ RUN source /opt/ros/$ROS_DISTRO/setup.bash && \
     # PANDA END
     # git clone https://github.com/jr-robotics/Universal_Robots_ROS_Driver.git && \
     # git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@robotics-git.joanneum.at/perception/scene_perception.git && \
-    
     cd $ROBOGYM_WS && \
     apt-get update && \
-    # PANDA START
-    
-    # PANDA END
     rosdep install --from-paths src -i -y --rosdistro $ROS_DISTRO --as-root=apt:false && \
     catkin init && \
     catkin build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebugInfo
