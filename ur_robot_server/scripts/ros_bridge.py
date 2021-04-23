@@ -20,49 +20,6 @@ import copy
 from threading import Event
 import time
 from robo_gym_server_modules.robot_server.grpc_msgs.python import robot_server_pb2
-
-# rs_state_keys = dict.fromkeys([
-#     'object_0_position_x', 
-#     'object_0_position_y',
-#     'object_0_position_z',
-#     'object_0_orientation_x',
-#     'object_0_orientation_y',
-#     'object_0_orientation_z',
-#     'object_0_orientation_w',
-
-#     'base_joint_position',
-#     'shoulder_joint_position',
-#     'elbow_joint_position',
-#     'wrist_1_joint_position',
-#     'wrist_2_joint_position',
-#     'wrist_3_joint_position',
-
-#     'base_joint_velocity',
-#     'shoulder_joint_velocity',
-#     'elbow_joint_velocity',
-#     'wrist_1_joint_velocity',
-#     'wrist_2_joint_velocity',
-#     'wrist_3_joint_velocity',
-
-#     'ee_to_ref_translation_x',
-#     'ee_to_ref_translation_y',
-#     'ee_to_ref_translation_z',
-#     'ee_to_ref_rotation_x',
-#     'ee_to_ref_rotation_y',
-#     'ee_to_ref_rotation_z',
-#     'ee_to_ref_rotation_w',
-
-#     'forearm_to_ref_translation_x',
-#     'forearm_to_ref_translation_y',
-#     'forearm_to_ref_translation_z',
-#     'forearm_to_ref_rotation_x',
-#     'forearm_to_ref_rotation_y',
-#     'forearm_to_ref_rotation_z',
-#     'forearm_to_ref_rotation_w',
-
-#     'in_collision'
-# ])
-
 class UrRosBridge:
 
     def __init__(self, real_robot=False, ur_model = 'ur10'):
@@ -164,7 +121,7 @@ class UrRosBridge:
         self.get_state_event.clear()
         # Get environment state
         state =[]
-        state_dict {}
+        state_dict = {}
         if self.target_mode == '1object':
             trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.objects_frame[0], rospy.Time(0))
             target = [trans.transform.translation.x, trans.transform.translation.y, trans.transform.translation.z] + [0,0,0]
@@ -223,6 +180,19 @@ class UrRosBridge:
             
         ur_state = copy.deepcopy(self.ur_state)
 
+        state_dict['base_joint_position'] = ur_state[2]
+        state_dict['shoulder_joint_position'] = ur_state[1]
+        state_dict['elbow_joint_position'] = ur_state[0]
+        state_dict['wrist_1_joint_position'] = ur_state[3]
+        state_dict['wrist_2_joint_position'] = ur_state[4]
+        state_dict['wrist_3_joint_position'] = ur_state[5]
+        state_dict['base_joint_velocity'] = ur_state[8]
+        state_dict['shoulder_joint_velocity'] = ur_state[7]
+        state_dict['elbow_joint_velocity'] = ur_state[6]
+        state_dict['wrist_1_joint_velocity'] = ur_state[9]
+        state_dict['wrist_2_joint_velocity'] = ur_state[10]
+        state_dict['wrist_3_joint_velocity'] = ur_state[11]
+
         ee_to_ref_trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.ee_frame, rospy.Time(0))
         ee_to_ref_trans_list = [ee_to_ref_trans.transform.translation.x, ee_to_ref_trans.transform.translation.y, \
                                             ee_to_ref_trans.transform.translation.z, ee_to_ref_trans.transform.rotation.x, \
@@ -249,40 +219,21 @@ class UrRosBridge:
         self.get_state_event.set()
 
         # Create and fill State message
-        msg = robot_server_pb2.State()
-        msg.state.extend(target)
-        msg.state.extend(ur_state)
-        msg.state.extend(ee_to_ref_trans_list)
-        msg.state.extend([ur_collision])
+        state = target + ur_state + ee_to_ref_trans_list + [ur_collision]
         if self.target_mode == '1moving2points':
-            msg.state.extend(forearm_to_ref_tf)
-        # if self.target_mode == '1moving1point_2_2_4_voxel':
-        #     msg.state.extend(forearm_to_ref_tf) # keep it in for now 
-        #     msg.state.extend(voxel_occupancy)
-        state_dict['base_joint_position'] = ur_state[2]
-        state_dict['shoulder_joint_position'] = ur_state[1]
-        state_dict['elbow_joint_position'] = ur_state[0]
-        state_dict['wrist_1_joint_position'] = ur_state[3]
-        state_dict['wrist_2_joint_position'] = ur_state[4]
-        state_dict['wrist_3_joint_position'] = ur_state[5]
-        state_dict['base_joint_velocity'] = ur_state[8]
-        state_dict['shoulder_joint_velocity'] = ur_state[7]
-        state_dict['elbow_joint_velocity'] = ur_state[6]
-        state_dict['wrist_1_joint_velocity'] = ur_state[9]
-        state_dict['wrist_2_joint_velocity'] = ur_state[10]
-        state_dict['wrist_3_joint_velocity'] = ur_state[11]
+            state += forearm_to_ref_tf
 
-        msg.state_dict = state_dict
-        msg.success = 1
-        
+        msg = robot_server_pb2.State(state=state, state_dict=state_dict, success= True)
+       
         return msg
 
     def set_state(self, state_msg):
-        # Set environment state
-        if state_msg.state_dict:
-            state = state_msg.state_dict
+       
+        if all (j in state_msg.state_dict for j in ('base_joint_position','shoulder_joint_position', 'elbow_joint_position', \
+                                                     'wrist_1_joint_position', 'wrist_2_joint_position', 'wrist_3_joint_position')):
+            state_dict = True
         else:
-            state = state_msg.state
+            state_dict = False 
 
         # Clear reset Event
         self.reset.clear()
@@ -304,10 +255,12 @@ class UrRosBridge:
         # UR Joints Positions
         reset_steps = int(15.0 / self.sleep_time)
         for i in range(reset_steps):
-            if state_msg.state_dict:
-                #TODO
+            if state_dict:
+                self.publish_env_arm_cmd([state_msg.state_dict['elbow_joint_position'], state_msg.state_dict['shoulder_joint_position'], \
+                                            state_msg.state_dict['base_joint_position'], state_msg.state_dict['wrist_1_joint_position'], \
+                                            state_msg.state_dict['wrist_2_joint_position'], state_msg.state_dict['wrist_3_joint_position']])
             else:
-                self.publish_env_arm_cmd(state[6:12])
+                self.publish_env_arm_cmd(state_msg.state[6:12])
         if not self.real_robot:
             # Reset collision sensors flags
             self.collision_sensors.update(dict.fromkeys(["shoulder", "upper_arm", "forearm", "wrist_1", "wrist_2", "wrist_3"], False))
