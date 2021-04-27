@@ -44,7 +44,6 @@ class RobotServerServicer(robot_server_pb2_grpc.RobotServerServicer):
             return robot_server_pb2.State(success = 0)
 
 def serve():
-    initialize_logger()
     logger.info('Starting UR Robot Server...')
     server_port = rospy.get_param('~server_port')
     real_robot = rospy.get_param('~real_robot')
@@ -72,10 +71,10 @@ def initialize_logger():
 
 if __name__ == '__main__':
     try:
+        initialize_logger()
         rospy.init_node('robot_server')
-        logger.info('Waiting 10s before starting initialization robot_server')
+        logger.info('Waiting 10s before starting initialization Robot Server')
         rospy.sleep(10)
-        logger.info('Initializing robot_server node')
         serve()
     except (KeyboardInterrupt, SystemExit):
         pass
