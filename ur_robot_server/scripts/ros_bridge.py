@@ -125,6 +125,46 @@ class UrRosBridge:
         # Get environment state
         state =[]
         state_dict = {}
+
+        # Joint Positions and Joint Velocities
+        ur_state = copy.deepcopy(self.ur_state)
+
+        state_dict['base_joint_position'] = ur_state[2]
+        state_dict['shoulder_joint_position'] = ur_state[1]
+        state_dict['elbow_joint_position'] = ur_state[0]
+        state_dict['wrist_1_joint_position'] = ur_state[3]
+        state_dict['wrist_2_joint_position'] = ur_state[4]
+        state_dict['wrist_3_joint_position'] = ur_state[5]
+        state_dict['base_joint_velocity'] = ur_state[8]
+        state_dict['shoulder_joint_velocity'] = ur_state[7]
+        state_dict['elbow_joint_velocity'] = ur_state[6]
+        state_dict['wrist_1_joint_velocity'] = ur_state[9]
+        state_dict['wrist_2_joint_velocity'] = ur_state[10]
+        state_dict['wrist_3_joint_velocity'] = ur_state[11]
+
+        # ee to ref transform
+        ee_to_ref_trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.ee_frame, rospy.Time(0))
+        ee_to_ref_trans_list = [ee_to_ref_trans.transform.translation.x, ee_to_ref_trans.transform.translation.y, \
+                                            ee_to_ref_trans.transform.translation.z, ee_to_ref_trans.transform.rotation.x, \
+                                            ee_to_ref_trans.transform.rotation.y, ee_to_ref_trans.transform.rotation.z, \
+                                            ee_to_ref_trans.transform.rotation.w]
+
+        state_dict['ee_to_ref_translation_x'] = ee_to_ref_trans.transform.translation.x
+        state_dict['ee_to_ref_translation_y'] = ee_to_ref_trans.transform.translation.y
+        state_dict['ee_to_ref_translation_z'] = ee_to_ref_trans.transform.translation.z
+        state_dict['ee_to_ref_rotation_x'] = ee_to_ref_trans.transform.rotation.x
+        state_dict['ee_to_ref_rotation_y'] = ee_to_ref_trans.transform.rotation.y
+        state_dict['ee_to_ref_rotation_z'] = ee_to_ref_trans.transform.rotation.z
+        state_dict['ee_to_ref_rotation_w'] = ee_to_ref_trans.transform.rotation.w
+
+        # Collision sensors
+        if self.real_robot:
+            ur_collision = False
+            state_dict['in_collision'] = 0.0
+        else:
+            ur_collision = any(self.collision_sensors.values())
+            state_dict['in_collision'] = float(any(self.collision_sensors.values()))
+
         if self.rs_mode == '1object':
             trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.objects_frame[0], rospy.Time(0))
             target = [trans.transform.translation.x, trans.transform.translation.y, trans.transform.translation.z] + [0,0,0]
@@ -180,45 +220,7 @@ class UrRosBridge:
         #         voxel_occupancy = self.voxel_occupancy
         else: 
             raise ValueError
-            
-        ur_state = copy.deepcopy(self.ur_state)
-
-        state_dict['base_joint_position'] = ur_state[2]
-        state_dict['shoulder_joint_position'] = ur_state[1]
-        state_dict['elbow_joint_position'] = ur_state[0]
-        state_dict['wrist_1_joint_position'] = ur_state[3]
-        state_dict['wrist_2_joint_position'] = ur_state[4]
-        state_dict['wrist_3_joint_position'] = ur_state[5]
-        state_dict['base_joint_velocity'] = ur_state[8]
-        state_dict['shoulder_joint_velocity'] = ur_state[7]
-        state_dict['elbow_joint_velocity'] = ur_state[6]
-        state_dict['wrist_1_joint_velocity'] = ur_state[9]
-        state_dict['wrist_2_joint_velocity'] = ur_state[10]
-        state_dict['wrist_3_joint_velocity'] = ur_state[11]
-
-        ee_to_ref_trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.ee_frame, rospy.Time(0))
-        ee_to_ref_trans_list = [ee_to_ref_trans.transform.translation.x, ee_to_ref_trans.transform.translation.y, \
-                                            ee_to_ref_trans.transform.translation.z, ee_to_ref_trans.transform.rotation.x, \
-                                            ee_to_ref_trans.transform.rotation.y, ee_to_ref_trans.transform.rotation.z, \
-                                            ee_to_ref_trans.transform.rotation.w]
-
-        state_dict['ee_to_ref_translation_x'] = ee_to_ref_trans.transform.translation.x
-        state_dict['ee_to_ref_translation_y'] = ee_to_ref_trans.transform.translation.y
-        state_dict['ee_to_ref_translation_z'] = ee_to_ref_trans.transform.translation.z
-        state_dict['ee_to_ref_rotation_x'] = ee_to_ref_trans.transform.rotation.x
-        state_dict['ee_to_ref_rotation_y'] = ee_to_ref_trans.transform.rotation.y
-        state_dict['ee_to_ref_rotation_z'] = ee_to_ref_trans.transform.rotation.z
-        state_dict['ee_to_ref_rotation_w'] = ee_to_ref_trans.transform.rotation.w
-
-
-
-        if self.real_robot:
-            ur_collision = False
-            state_dict['in_collision'] = 0.0
-        else:
-            ur_collision = any(self.collision_sensors.values())
-            state_dict['in_collision'] = float(any(self.collision_sensors.values()))
-
+                    
         self.get_state_event.set()
 
         # Create and fill State message
