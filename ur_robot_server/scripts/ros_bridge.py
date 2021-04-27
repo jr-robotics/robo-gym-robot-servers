@@ -482,7 +482,7 @@ class UrRosBridge:
         state_dict['wrist_2_joint_velocity'] = joint_states[10]
         state_dict['wrist_3_joint_velocity'] = joint_states[11]
 
-    def _add_transform_to_state_dict(self, transform, transform_name):
+    def _add_transform_to_state_dict(self, state_dict, transform, transform_name):
 
         state_dict[transform_name + '_translation_x'] = transform.transform.translation.x
         state_dict[transform_name + '_translation_y'] = transform.transform.translation.y
