@@ -12,7 +12,8 @@
   <arg name="server_port" default ="50051"/>
   <arg name="action_cycle_rate" default="25" doc="Rate at which new commands are published to the robot controller"/>
   <arg name="reference_frame" default="base"  doc="Reference frame with respect to which target and ee pose are given"/>
-  <arg name="target_mode" default="1object"  />
+  <arg name="target_mode" default="1object"  doc="DEPRECATED"/>
+  <arg name="rs_mode"  doc="Defines the working mode of the Robot Server, this influences the RS state content"/>
   <arg name="use_voxel_occupancy" default="false" doc="use voxel occupancy in state"/>
 
   <!-- Scene Objects -->
@@ -133,6 +134,7 @@
     <param name="action_cycle_rate" value="$(arg action_cycle_rate)"></param>
     <param name="reference_frame" value="$(arg reference_frame)"></param>
     <param name="target_mode" value="$(arg target_mode)"></param>
+    <param name="rs_mode" value="$(arg rs_mode)"></param>
     <param name="use_voxel_occupancy" value="$(arg use_voxel_occupancy)"></param>
   </node>
 

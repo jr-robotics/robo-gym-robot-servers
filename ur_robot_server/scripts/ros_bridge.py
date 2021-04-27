@@ -89,8 +89,11 @@ class UrRosBridge:
         #TODO
         self.safe_to_move = True
 
-         # Target mode
-        self.target_mode = rospy.get_param("~target_mode", '1object')
+        # Robot Server mode
+        if rospy.has_param('rs_mode'):
+            self.rs_mode = rospy.get_param('~rs_mode')
+        else:
+            self.rs_mode = rospy.get_param("~target_mode", '1object')
 
         # Objects parameters
         self.objects_controller = rospy.get_param("objects_controller", False)
@@ -113,7 +116,7 @@ class UrRosBridge:
         self.use_voxel_occupancy = True
         if self.use_voxel_occupancy: 
             rospy.Subscriber("occupancy_state", Int32MultiArray, self.voxel_occupancy_callback)
-            if self.target_mode == '1moving1point_2_2_4_voxel':
+            if self.rs_mode == '1moving1point_2_2_4_voxel':
                 self.voxel_occupancy = [0.0] * 16
 
 
@@ -122,7 +125,7 @@ class UrRosBridge:
         # Get environment state
         state =[]
         state_dict = {}
-        if self.target_mode == '1object':
+        if self.rs_mode == '1object':
             trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.objects_frame[0], rospy.Time(0))
             target = [trans.transform.translation.x, trans.transform.translation.y, trans.transform.translation.z] + [0,0,0]
             state_dict['object_0_position_x'] = trans.transform.translation.x
@@ -133,7 +136,7 @@ class UrRosBridge:
             state_dict['object_0_orientation_z'] = trans.transform.rotation.z
             state_dict['object_0_orientation_w'] = trans.transform.rotation.w
 
-        elif self.target_mode == '1moving2points':
+        elif self.rs_mode == '1moving2points':
 
             trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.objects_frame[0], rospy.Time(0))
             target = [trans.transform.translation.x, trans.transform.translation.y, trans.transform.translation.z] + [0,0,0]
@@ -160,7 +163,7 @@ class UrRosBridge:
             state_dict['forearm_to_ref_rotation_z'] = forearm_to_ref_trans.transform.rotation.z
             state_dict['forearm_to_ref_rotation_w'] = forearm_to_ref_trans.transform.rotation.w
             
-        # elif self.target_mode == '1moving1point_2_2_4_voxel':
+        # elif self.rs_mode == '1moving1point_2_2_4_voxel':
             
         #     (forearm_position, forearm_quaternion) = self.tf_listener.lookupTransform(self.reference_frame,'forearm_link',rospy.Time(0))
         #     forearm_to_ref_tf = forearm_position + forearm_quaternion
@@ -220,7 +223,7 @@ class UrRosBridge:
 
         # Create and fill State message
         state = target + ur_state + ee_to_ref_trans_list + [ur_collision]
-        if self.target_mode == '1moving2points':
+        if self.rs_mode == '1moving2points':
             state += forearm_to_ref_tf
 
         msg = robot_server_pb2.State(state=state, state_dict=state_dict, success= True)
