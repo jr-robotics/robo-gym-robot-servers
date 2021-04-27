@@ -128,19 +128,7 @@ class UrRosBridge:
 
         # Joint Positions and Joint Velocities
         ur_state = copy.deepcopy(self.ur_state)
-
-        state_dict['base_joint_position'] = ur_state[2]
-        state_dict['shoulder_joint_position'] = ur_state[1]
-        state_dict['elbow_joint_position'] = ur_state[0]
-        state_dict['wrist_1_joint_position'] = ur_state[3]
-        state_dict['wrist_2_joint_position'] = ur_state[4]
-        state_dict['wrist_3_joint_position'] = ur_state[5]
-        state_dict['base_joint_velocity'] = ur_state[8]
-        state_dict['shoulder_joint_velocity'] = ur_state[7]
-        state_dict['elbow_joint_velocity'] = ur_state[6]
-        state_dict['wrist_1_joint_velocity'] = ur_state[9]
-        state_dict['wrist_2_joint_velocity'] = ur_state[10]
-        state_dict['wrist_3_joint_velocity'] = ur_state[11]
+        self._add_joint_states_to_state_dict(state_dict)
 
         # ee to ref transform
         ee_to_ref_trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.ee_frame, rospy.Time(0))
@@ -480,3 +468,20 @@ class UrRosBridge:
             self.voxel_occupancy = msg.data
         else:
             pass
+
+    def _add_joint_states_to_state_dict(self, state_dict):
+        ur_state = copy.deepcopy(self.ur_state)
+
+        state_dict['base_joint_position'] = ur_state[2]
+        state_dict['shoulder_joint_position'] = ur_state[1]
+        state_dict['elbow_joint_position'] = ur_state[0]
+        state_dict['wrist_1_joint_position'] = ur_state[3]
+        state_dict['wrist_2_joint_position'] = ur_state[4]
+        state_dict['wrist_3_joint_position'] = ur_state[5]
+        state_dict['base_joint_velocity'] = ur_state[8]
+        state_dict['shoulder_joint_velocity'] = ur_state[7]
+        state_dict['elbow_joint_velocity'] = ur_state[6]
+        state_dict['wrist_1_joint_velocity'] = ur_state[9]
+        state_dict['wrist_2_joint_velocity'] = ur_state[10]
+        state_dict['wrist_3_joint_velocity'] = ur_state[11]
+
