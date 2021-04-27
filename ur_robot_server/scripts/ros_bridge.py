@@ -90,8 +90,9 @@ class UrRosBridge:
         self.safe_to_move = True
 
         # Robot Server mode
-        if rospy.has_param('rs_mode'):
-            self.rs_mode = rospy.get_param('~rs_mode')
+        rs_mode = rospy.get_param('~rs_mode')
+        if rs_mode:
+            self.rs_mode = rs_mode
         else:
             self.rs_mode = rospy.get_param("~target_mode", '1object')
 
