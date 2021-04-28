@@ -193,15 +193,7 @@ class UrRosBridge:
             object_0_trans_list = self._transform_to_list(object_0_trans)
             state += object_0_trans_list
             state_dict.update(self._get_transform_dict(object_0_trans, 'object_0_to_ref'))
-            # TODO remove this once fixed on env 
-            state_dict['object_0_position_x'] = object_0_trans.transform.translation.x
-            state_dict['object_0_position_y'] = object_0_trans.transform.translation.y
-            state_dict['object_0_position_z'] = object_0_trans.transform.translation.z
-            state_dict['object_0_orientation_x'] = object_0_trans.transform.rotation.x
-            state_dict['object_0_orientation_y'] = object_0_trans.transform.rotation.y
-            state_dict['object_0_orientation_z'] = object_0_trans.transform.rotation.z
-            state_dict['object_0_orientation_w'] = object_0_trans.transform.rotation.w
-
+            
             # Joint Positions and Joint Velocities
             joint_states = copy.deepcopy(self.ur_state)
             state += joint_states
