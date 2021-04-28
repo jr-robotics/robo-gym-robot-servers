@@ -10,7 +10,7 @@ variables:
   ROBOT_SERVERS_IMAGE: "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
 
 build_docker_image:
-  image: docker:18.09
+  # image: docker:18.09
   # services:
   #   - docker:18.09-dind
   tags:
