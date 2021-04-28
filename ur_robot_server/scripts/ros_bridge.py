@@ -89,8 +89,14 @@ class UrRosBridge:
         #TODO
         self.safe_to_move = True
 
-         # Target mode
-        self.target_mode = rospy.get_param("~target_mode", '1object')
+        # Robot Server mode
+        rs_mode = rospy.get_param('~rs_mode')
+        # TODO remove
+        rs_mode = False 
+        if rs_mode:
+            self.rs_mode = rs_mode
+        else:
+            self.rs_mode = rospy.get_param("~target_mode", '1object')
 
         # Objects parameters
         self.objects_controller = rospy.get_param("objects_controller", False)
@@ -113,7 +119,7 @@ class UrRosBridge:
         self.use_voxel_occupancy = True
         if self.use_voxel_occupancy: 
             rospy.Subscriber("occupancy_state", Int32MultiArray, self.voxel_occupancy_callback)
-            if self.target_mode == '1moving1point_2_2_4_voxel':
+            if self.rs_mode == '1moving1point_2_2_4_voxel':
                 self.voxel_occupancy = [0.0] * 16
 
 
@@ -122,107 +128,103 @@ class UrRosBridge:
         # Get environment state
         state =[]
         state_dict = {}
-        if self.target_mode == '1object':
-            trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.objects_frame[0], rospy.Time(0))
-            target = [trans.transform.translation.x, trans.transform.translation.y, trans.transform.translation.z] + [0,0,0]
-            state_dict['object_0_position_x'] = trans.transform.translation.x
-            state_dict['object_0_position_y'] = trans.transform.translation.y
-            state_dict['object_0_position_z'] = trans.transform.translation.z
-            state_dict['object_0_orientation_x'] = trans.transform.rotation.x
-            state_dict['object_0_orientation_y'] = trans.transform.rotation.y
-            state_dict['object_0_orientation_z'] = trans.transform.rotation.z
-            state_dict['object_0_orientation_w'] = trans.transform.rotation.w
 
-        elif self.target_mode == '1moving2points':
+        if self.rs_mode == 'only_robot':
 
-            trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.objects_frame[0], rospy.Time(0))
-            target = [trans.transform.translation.x, trans.transform.translation.y, trans.transform.translation.z] + [0,0,0]
+            # Joint Positions and Joint Velocities
+            joint_states = copy.deepcopy(self.ur_state)
+            state += joint_states
+            state_dict.update(self._get_joint_states_dict(joint_states))
 
-            state_dict['object_0_position_x'] = trans.transform.translation.x
-            state_dict['object_0_position_y'] = trans.transform.translation.y
-            state_dict['object_0_position_z'] = trans.transform.translation.z
-            state_dict['object_0_orientation_x'] = trans.transform.rotation.x
-            state_dict['object_0_orientation_y'] = trans.transform.rotation.y
-            state_dict['object_0_orientation_z'] = trans.transform.rotation.z
-            state_dict['object_0_orientation_w'] = trans.transform.rotation.w
+            # ee to ref transform
+            ee_to_ref_trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.ee_frame, rospy.Time(0))
+            ee_to_ref_trans_list = self._transform_to_list(ee_to_ref_trans)
+            state += ee_to_ref_trans_list
+            state_dict.update(self._get_transform_dict(ee_to_ref_trans, 'ee_to_ref'))
+        
+            # Collision sensors
+            if self.real_robot:
+                ur_collision = False
+            else:
+                ur_collision = any(self.collision_sensors.values())
+            state += [ur_collision]
+            state_dict['in_collision'] = float(ur_collision)
 
+        elif self.rs_mode == '1object':
+
+            # Object 0 Pose 
+            object_0_trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.objects_frame[0], rospy.Time(0))
+            object_0_trans_list = self._transform_to_list(object_0_trans)
+            state += object_0_trans_list
+            state_dict.update(self._get_transform_dict(object_0_trans, 'object_0_to_ref'))
+            # TODO remove this once fixed on env 
+            state_dict['object_0_position_x'] = object_0_trans.transform.translation.x
+            state_dict['object_0_position_y'] = object_0_trans.transform.translation.y
+            state_dict['object_0_position_z'] = object_0_trans.transform.translation.z
+            state_dict['object_0_orientation_x'] = object_0_trans.transform.rotation.x
+            state_dict['object_0_orientation_y'] = object_0_trans.transform.rotation.y
+            state_dict['object_0_orientation_z'] = object_0_trans.transform.rotation.z
+            state_dict['object_0_orientation_w'] = object_0_trans.transform.rotation.w
+
+
+            # Joint Positions and Joint Velocities
+            joint_states = copy.deepcopy(self.ur_state)
+            state += joint_states
+            state_dict.update(self._get_joint_states_dict(joint_states))
+
+            # ee to ref transform
+            ee_to_ref_trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.ee_frame, rospy.Time(0))
+            ee_to_ref_trans_list = self._transform_to_list(ee_to_ref_trans)
+            state += ee_to_ref_trans_list
+            state_dict.update(self._get_transform_dict(ee_to_ref_trans, 'ee_to_ref'))
+        
+            # Collision sensors
+            if self.real_robot:
+                ur_collision = False
+            else:
+                ur_collision = any(self.collision_sensors.values())
+            state += [ur_collision]
+            state_dict['in_collision'] = float(ur_collision)
+
+        elif self.rs_mode == '1moving2points':
+
+            # Object 0 Pose 
+            object_0_trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.objects_frame[0], rospy.Time(0))
+            object_0_trans_list = self._transform_to_list(object_0_trans)
+            state += object_0_trans_list
+            state_dict.update(self._get_transform_dict(object_0_trans, 'object_0_to_ref'))
+            
+            # Joint Positions and Joint Velocities
+            joint_states = copy.deepcopy(self.ur_state)
+            state += joint_states
+            state_dict.update(self._get_joint_states_dict(joint_states))
+
+            # ee to ref transform
+            ee_to_ref_trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.ee_frame, rospy.Time(0))
+            ee_to_ref_trans_list = self._transform_to_list(ee_to_ref_trans)
+            state += ee_to_ref_trans_list
+            state_dict.update(self._get_transform_dict(ee_to_ref_trans, 'ee_to_ref'))
+        
+            # Collision sensors
+            if self.real_robot:
+                ur_collision = False
+            else:
+                ur_collision = any(self.collision_sensors.values())
+            state += [ur_collision]
+            state_dict['in_collision'] = float(ur_collision)
+
+            # forearm to ref transform
             forearm_to_ref_trans = self.tf2_buffer.lookup_transform(self.reference_frame, 'forearm_link', rospy.Time(0))
-            forearm_to_ref_tf = [forearm_to_ref_trans.transform.translation.x, forearm_to_ref_trans.transform.translation.y, \
-                                    forearm_to_ref_trans.transform.translation.z, forearm_to_ref_trans.transform.rotation.x, \
-                                    forearm_to_ref_trans.transform.rotation.y, forearm_to_ref_trans.transform.rotation.z, \
-                                    forearm_to_ref_trans.transform.rotation.w]
-            
-            state_dict['forearm_to_ref_translation_x'] = forearm_to_ref_trans.transform.translation.x
-            state_dict['forearm_to_ref_translation_y'] = forearm_to_ref_trans.transform.translation.y
-            state_dict['forearm_to_ref_translation_z'] = forearm_to_ref_trans.transform.translation.z
-            state_dict['forearm_to_ref_rotation_x'] = forearm_to_ref_trans.transform.rotation.x
-            state_dict['forearm_to_ref_rotation_y'] = forearm_to_ref_trans.transform.rotation.y
-            state_dict['forearm_to_ref_rotation_z'] = forearm_to_ref_trans.transform.rotation.z
-            state_dict['forearm_to_ref_rotation_w'] = forearm_to_ref_trans.transform.rotation.w
-            
-        # elif self.target_mode == '1moving1point_2_2_4_voxel':
-            
-        #     (forearm_position, forearm_quaternion) = self.tf_listener.lookupTransform(self.reference_frame,'forearm_link',rospy.Time(0))
-        #     forearm_to_ref_tf = forearm_position + forearm_quaternion
+            forearm_to_ref_trans_list = self._transform_to_list(forearm_to_ref_trans)
+            state += forearm_to_ref_trans_list
+            state_dict.update(self._get_transform_dict(forearm_to_ref_trans, 'forearm_to_ref'))
 
-        #     if self.real_robot:
-        #         # (t_position, t_quaternion) = self.tf_listener.lookupTransform(self.reference_frame,self.objects_frame[0],rospy.Time(0))
-        #         raise NotImplementedError("voxelisation of real robot not yet implemented")
-        #     else:
-        #         pose = self.get_model_state_pose(self.objects_model_name[0])
-        #         # Convert orientation target from Quaternion to RPY
-        #         quaternion = PyKDL.Rotation.Quaternion(pose[3],pose[4],pose[5],pose[6])
-        #         r,p,y = quaternion.GetRPY()
-        #         target = pose[0:3] + [r,p,y]
-        #         voxel_occupancy = self.voxel_occupancy
         else: 
             raise ValueError
-            
-        ur_state = copy.deepcopy(self.ur_state)
-
-        state_dict['base_joint_position'] = ur_state[2]
-        state_dict['shoulder_joint_position'] = ur_state[1]
-        state_dict['elbow_joint_position'] = ur_state[0]
-        state_dict['wrist_1_joint_position'] = ur_state[3]
-        state_dict['wrist_2_joint_position'] = ur_state[4]
-        state_dict['wrist_3_joint_position'] = ur_state[5]
-        state_dict['base_joint_velocity'] = ur_state[8]
-        state_dict['shoulder_joint_velocity'] = ur_state[7]
-        state_dict['elbow_joint_velocity'] = ur_state[6]
-        state_dict['wrist_1_joint_velocity'] = ur_state[9]
-        state_dict['wrist_2_joint_velocity'] = ur_state[10]
-        state_dict['wrist_3_joint_velocity'] = ur_state[11]
-
-        ee_to_ref_trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.ee_frame, rospy.Time(0))
-        ee_to_ref_trans_list = [ee_to_ref_trans.transform.translation.x, ee_to_ref_trans.transform.translation.y, \
-                                            ee_to_ref_trans.transform.translation.z, ee_to_ref_trans.transform.rotation.x, \
-                                            ee_to_ref_trans.transform.rotation.y, ee_to_ref_trans.transform.rotation.z, \
-                                            ee_to_ref_trans.transform.rotation.w]
-
-        state_dict['ee_to_ref_translation_x'] = ee_to_ref_trans.transform.translation.x
-        state_dict['ee_to_ref_translation_y'] = ee_to_ref_trans.transform.translation.y
-        state_dict['ee_to_ref_translation_z'] = ee_to_ref_trans.transform.translation.z
-        state_dict['ee_to_ref_rotation_x'] = ee_to_ref_trans.transform.rotation.x
-        state_dict['ee_to_ref_rotation_y'] = ee_to_ref_trans.transform.rotation.y
-        state_dict['ee_to_ref_rotation_z'] = ee_to_ref_trans.transform.rotation.z
-        state_dict['ee_to_ref_rotation_w'] = ee_to_ref_trans.transform.rotation.w
-
-
-
-        if self.real_robot:
-            ur_collision = False
-            state_dict['in_collision'] = 0.0
-        else:
-            ur_collision = any(self.collision_sensors.values())
-            state_dict['in_collision'] = float(any(self.collision_sensors.values()))
-
+                    
         self.get_state_event.set()
 
         # Create and fill State message
-        state = target + ur_state + ee_to_ref_trans_list + [ur_collision]
-        if self.target_mode == '1moving2points':
-            state += forearm_to_ref_tf
-
         msg = robot_server_pb2.State(state=state, state_dict=state_dict, success= True)
        
         return msg
@@ -475,3 +477,41 @@ class UrRosBridge:
             self.voxel_occupancy = msg.data
         else:
             pass
+
+    def _get_joint_states_dict(self, joint_states):
+        
+        d = {}
+        d['base_joint_position'] = joint_states[2]
+        d['shoulder_joint_position'] = joint_states[1]
+        d['elbow_joint_position'] = joint_states[0]
+        d['wrist_1_joint_position'] = joint_states[3]
+        d['wrist_2_joint_position'] = joint_states[4]
+        d['wrist_3_joint_position'] = joint_states[5]
+        d['base_joint_velocity'] = joint_states[8]
+        d['shoulder_joint_velocity'] = joint_states[7]
+        d['elbow_joint_velocity'] = joint_states[6]
+        d['wrist_1_joint_velocity'] = joint_states[9]
+        d['wrist_2_joint_velocity'] = joint_states[10]
+        d['wrist_3_joint_velocity'] = joint_states[11]
+        
+        return d 
+
+    def _get_transform_dict(self, transform, transform_name):
+
+        d ={}
+        d[transform_name + '_translation_x'] = transform.transform.translation.x
+        d[transform_name + '_translation_y'] = transform.transform.translation.y
+        d[transform_name + '_translation_z'] = transform.transform.translation.z
+        d[transform_name + '_rotation_x'] = transform.transform.rotation.x
+        d[transform_name + '_rotation_y'] = transform.transform.rotation.y
+        d[transform_name + '_rotation_z'] = transform.transform.rotation.z
+        d[transform_name + '_rotation_w'] = transform.transform.rotation.w
+
+        return d
+
+    def _transform_to_list(self, transform):
+
+        return [transform.transform.translation.x, transform.transform.translation.y, \
+                transform.transform.translation.z, transform.transform.rotation.x, \
+                transform.transform.rotation.y, transform.transform.rotation.z, \
+                transform.transform.rotation.w]
