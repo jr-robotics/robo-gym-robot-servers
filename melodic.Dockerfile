@@ -6,33 +6,27 @@ LABEL git-commit=$GIT_COMMIT
 ARG CI_JOB_TOKEN
 
 ENV DEBIAN_FRONTEND noninteractive
+ENV ROS_DISTRO=melodic
+ENV ROBOGYM_WS=/robogym_ws
 
 RUN apt-get update && apt-get install -y \
   apt-utils build-essential psmisc vim-gtk \
   python-catkin-tools python-rosdep python-pip \
   python-rospkg
-  # PANDA START
+
+# Install pkgs required by Panda
 RUN apt-get update && apt-get install -q -y \
-    git swig sudo python-future libcppunit-dev
-  # PANDA END
-
-RUN rm /bin/sh && ln -s /bin/bash /bin/sh
-
-ENV ROS_DISTRO=melodic
-ENV ROBOGYM_WS=/robogym_ws
-
-ADD . $ROBOGYM_WS/src/robo-gym-robot-servers
-
-# PANDA START
-RUN apt-get update && apt-get install -y \
+    git swig sudo python-future libcppunit-dev \
     ros-$ROS_DISTRO-libfranka ros-$ROS_DISTRO-franka-ros \
     ros-$ROS_DISTRO-gazebo-ros-control \
     ros-${ROS_DISTRO}-rospy-message-converter ros-${ROS_DISTRO}-effort-controllers \
     ros-${ROS_DISTRO}-joint-state-controller python-pip \
     ros-${ROS_DISTRO}-moveit ros-${ROS_DISTRO}-moveit-commander \
     ros-${ROS_DISTRO}-moveit-visual-tools
-# PANDA END
 
+RUN rm /bin/sh && ln -s /bin/bash /bin/sh
+
+# Clone source of reqired ROS packages and install dependencies
 RUN source /opt/ros/$ROS_DISTRO/setup.bash && \
     mkdir -p $ROBOGYM_WS/src && \
     cd $ROBOGYM_WS/src && \
@@ -62,6 +56,16 @@ RUN \
   # PANDA END
 
 COPY ./melodic-entrypoint.sh /
+
+ARG CACHEBUST=1
+
+ADD . $ROBOGYM_WS/src/robo-gym-robot-servers
+
+# Build ROS Workspace
+RUN source /opt/ros/$ROS_DISTRO/setup.bash && \
+    cd $ROBOGYM_WS/src && \
+    catkin init && \
+    catkin build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebugInfo
 
 ENTRYPOINT ["/melodic-entrypoint.sh"]
 
