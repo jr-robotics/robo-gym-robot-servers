@@ -11,8 +11,8 @@ variables:
 
 build_docker_image:
   image: docker:18.09
-  services:
-    - docker:18.09-dind
+  # services:
+  #   - docker:18.09-dind
   tags:
     - docker-executor
   stage: build
