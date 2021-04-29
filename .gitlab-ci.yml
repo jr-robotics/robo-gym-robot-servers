@@ -36,6 +36,7 @@ build_docker_image:
 .test_environments: &test_environments_def
   image: docker:18.09
   before_script:
+  - echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
   - apk add docker-compose
   services:
     - docker:18.09-dind
