@@ -91,8 +91,6 @@ class UrRosBridge:
 
         # Robot Server mode
         rs_mode = rospy.get_param('~rs_mode')
-        # TODO remove
-        rs_mode = False 
         if rs_mode:
             self.rs_mode = rs_mode
         else:
