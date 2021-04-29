@@ -17,7 +17,17 @@ build_docker_image:
     - docker-executor
   stage: build
   script:
-    - docker build -f melodic.Dockerfile --build-arg GIT_COMMIT=$CI_COMMIT_SHA --build-arg CI_JOB_TOKEN=$CI_JOB_TOKEN -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA .
+    # fetch the latest image (not failing if image is not found)
+    - docker pull $CI_REGISTRY_IMAGE:latest || true
+    - >
+      docker build 
+      -f melodic.Dockerfile 
+      --cache-from $CI_REGISTRY_IMAGE:latest
+      --build-arg GIT_COMMIT=$CI_COMMIT_SHA 
+      --build-arg CI_JOB_TOKEN=$CI_JOB_TOKEN
+      --build-arg CACHEBUST=$CI_COMMIT_SHA 
+      -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA 
+      .
     - echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
     - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
 
