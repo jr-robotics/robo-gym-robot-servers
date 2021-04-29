@@ -63,7 +63,9 @@ ADD . $ROBOGYM_WS/src/robo-gym-robot-servers
 
 # Build ROS Workspace
 RUN source /opt/ros/$ROS_DISTRO/setup.bash && \
-    cd $ROBOGYM_WS/src && \
+    cd $ROBOGYM_WS && \
+    apt-get update && \
+    rosdep install --from-paths src -i -y --rosdistro $ROS_DISTRO --as-root=apt:false && \
     catkin init && \
     catkin build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebugInfo
 
