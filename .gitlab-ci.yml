@@ -9,6 +9,9 @@ variables:
   ROBO_GYM_IMAGE: "$CI_REGISTRY/robo-gym/robo-gym/develop:latest"
   ROBOT_SERVERS_IMAGE: "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
 
+before_script:
+- echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
+
 build_docker_image:
   image: docker:18.09
   services:
@@ -28,7 +31,6 @@ build_docker_image:
       --build-arg CACHEBUST=$CI_COMMIT_SHA 
       -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA 
       .
-    - echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
     - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
 
 .test_environments: &test_environments_def
@@ -42,7 +44,6 @@ build_docker_image:
   stage: test
   script:
     - echo "Python Version:$PYTHON_VER robo-gym image:$ROBO_GYM_IMAGE robot-servers image:$ROBOT_SERVERS_IMAGE"  
-    - echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
     - docker pull $ROBO_GYM_IMAGE
     - docker tag $ROBO_GYM_IMAGE robo-gym
     - docker pull $ROBOT_SERVERS_IMAGE
@@ -72,7 +73,6 @@ test_environments_with_robo-gym-master:
     GIT_STRATEGY: none
     IMAGE_NAME: $CI_COMMIT_BRANCH
   script:
-    - echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
     - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
     - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/$IMAGE_NAME:latest
     - docker push $CI_REGISTRY_IMAGE/$IMAGE_NAME:latest
@@ -108,7 +108,6 @@ deploy_docker_image_to_dockerhub:
   variables:
     GIT_STRATEGY: none
   script:
-    - echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
     - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
     - docker tag $CI_REGISTRY_IMAGE/master:latest joanneumrobotics/robo-gym-robot-server-side:$CI_COMMIT_SHA
     - docker tag $CI_REGISTRY_IMAGE/master:latest joanneumrobotics/robo-gym-robot-server-side:latest
