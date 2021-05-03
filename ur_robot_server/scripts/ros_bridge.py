@@ -296,50 +296,6 @@ class UrRosBridge:
         rospy.sleep(self.control_period)
         return position_cmd
 
-    def publish_target_marker(self, target_pose):
-        t_marker = Marker()
-        t_marker.type = 1  # =>CUBE
-        t_marker.action = 0
-        t_marker.frame_locked = 1
-        t_marker.pose.position.x = target_pose[0]
-        t_marker.pose.position.y = target_pose[1]
-        t_marker.pose.position.z = target_pose[2]
-        rpy_orientation = PyKDL.Rotation.RPY(target_pose[3], target_pose[4], target_pose[5])
-        q_orientation = rpy_orientation.GetQuaternion()
-        t_marker.pose.orientation.x = q_orientation[0]
-        t_marker.pose.orientation.y = q_orientation[1]
-        t_marker.pose.orientation.z = q_orientation[2]
-        t_marker.pose.orientation.w = q_orientation[3]
-        t_marker.scale.x = 0.1
-        t_marker.scale.y = 0.1
-        t_marker.scale.z = 0.1
-        t_marker.id = 0
-        t_marker.header.stamp = rospy.Time.now()
-        t_marker.header.frame_id = self.reference_frame
-        t_marker.color.a = 0.7
-        t_marker.color.r = 1.0  # red
-        t_marker.color.g = 0.0
-        t_marker.color.b = 0.0
-        self.target_pub.publish(t_marker)
-
-    def broadcast_static_tf2_transform(self, frame_id, child_frame_id, pose):
-
-        t = geometry_msgs.msg.TransformStamped()
-
-        t.header.stamp = rospy.Time.now()
-        t.header.frame_id = frame_id        # world
-        t.child_frame_id = child_frame_id   # object
-        t.transform.translation.x = pose[0]
-        t.transform.translation.y = pose[1]
-        t.transform.translation.z = pose[2]
-        q = tf_conversions.transformations.quaternion_from_euler(pose[3], pose[4], pose[5])
-        t.transform.rotation.x = q[0]
-        t.transform.rotation.y = q[1]
-        t.transform.rotation.z = q[2]
-        t.transform.rotation.w = q[3]
-
-        self.static_tf2_broadcaster.sendTransform(t)
-
     def _on_joint_states(self, msg):
         if self.get_state_event.is_set():
             for idx, name in enumerate(msg.name):
