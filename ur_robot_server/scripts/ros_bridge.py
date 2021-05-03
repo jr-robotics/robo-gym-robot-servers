@@ -32,25 +32,23 @@ class UrRosBridge:
 
         self.real_robot = real_robot
         self.ur_model = ur_model
+
+        # Joint States
         self.joint_names = ['elbow_joint', 'shoulder_lift_joint', 'shoulder_pan_joint', \
                             'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint']
-
         self.joint_position = dict.fromkeys(self.joint_names, 0.0)
         self.joint_velocity = dict.fromkeys(self.joint_names, 0.0)
-
         rospy.Subscriber("joint_states", JointState, self._on_joint_states)
 
-        # joint_trajectory_command_handler publisher
-        self.arm_cmd_pub = rospy.Publisher('env_arm_command', JointTrajectory, queue_size=1)
-
         # Robot control
+        self.arm_cmd_pub = rospy.Publisher('env_arm_command', JointTrajectory, queue_size=1) # joint_trajectory_command_handler publisher
         self.sleep_time = (1.0 / rospy.get_param("~action_cycle_rate")) - 0.01
         self.control_period = rospy.Duration.from_sec(self.sleep_time)
         self.max_velocity_scale_factor = float(rospy.get_param("~max_velocity_scale_factor"))
-        # Minimum Trajectory Point time from start
-        self.min_traj_duration = 0.5
+        self.min_traj_duration = 0.5 # minimum trajectory duration (s)
         self.joint_velocity_limits = self._get_joint_velocity_limits()
 
+        # Robot frames
         self.reference_frame = rospy.get_param("~reference_frame", "base")
         self.ee_frame = 'tool0'
 
@@ -59,19 +57,14 @@ class UrRosBridge:
         self.tf2_listener = tf2_ros.TransformListener(self.tf2_buffer)
         self.static_tf2_broadcaster = tf2_ros.StaticTransformBroadcaster()
 
-        # Target RViz Marker publisher
-        self.target_pub = rospy.Publisher('target_marker', Marker, queue_size=10) 
-
+        # Collision detection 
         if not self.real_robot:
-            # Subscribers to link collision sensors topics
-
             rospy.Subscriber("shoulder_collision", ContactsState, self._on_shoulder_collision)
             rospy.Subscriber("upper_arm_collision", ContactsState, self._on_upper_arm_collision)
             rospy.Subscriber("forearm_collision", ContactsState, self._on_forearm_collision)
             rospy.Subscriber("wrist_1_collision", ContactsState, self._on_wrist_1_collision)
             rospy.Subscriber("wrist_2_collision", ContactsState, self._on_wrist_2_collision)
             rospy.Subscriber("wrist_3_collision", ContactsState, self._on_wrist_3_collision)
-
             # Initialization of collision sensor flags
             self.collision_sensors = dict.fromkeys(["shoulder", "upper_arm", "forearm", "wrist_1", "wrist_2", "wrist_3"], False)
 
@@ -82,33 +75,26 @@ class UrRosBridge:
         else:
             self.rs_mode = rospy.get_param("~target_mode", '1object')
 
-        # move_objects controller publisher
-        self.move_objects_pub = rospy.Publisher('move_objects', Bool, queue_size=10)
-
-        # Objects parameters
+        # Objects  Controller 
         self.objects_controller = rospy.get_param("objects_controller", False)
         self.n_objects = int(rospy.get_param("n_objects"))
-
-        # Get objects model name
         if self.objects_controller:
+            self.move_objects_pub = rospy.Publisher('move_objects', Bool, queue_size=10)
+            # Get objects model name
             self.objects_model_name = []
             for i in range(self.n_objects):
                 self.objects_model_name.append(rospy.get_param("object_" + repr(i) + "_model_name"))
-        
-        # Get objects TF Frame
-        self.objects_frame = []
-        for i in range(self.n_objects):
-            self.objects_frame.append(rospy.get_param("object_" + repr(i) + "_frame"))
+            # Get objects TF Frame
+            self.objects_frame = []
+            for i in range(self.n_objects):
+                self.objects_frame.append(rospy.get_param("object_" + repr(i) + "_frame"))
 
-
-        # camera1
-        self.use_voxel_occupancy = rospy.get_param("~use_voxel_occupancy", False) # e.g. for target_mode=1moving1point_2_2_4_voxel
-        self.use_voxel_occupancy = True
+        # Voxel Occupancy
+        self.use_voxel_occupancy = rospy.get_param("~use_voxel_occupancy", False)
         if self.use_voxel_occupancy: 
             rospy.Subscriber("occupancy_state", Int32MultiArray, self._on_occupancy_state)
             if self.rs_mode == '1moving1point_2_2_4_voxel':
                 self.voxel_occupancy = [0.0] * 16
-
 
     def get_state(self):
         self.get_state_event.clear()
@@ -117,7 +103,6 @@ class UrRosBridge:
         state_dict = {}
 
         if self.rs_mode == 'only_robot':
-
             # Joint Positions and Joint Velocities
             joint_position = copy.deepcopy(self.joint_position)
             joint_velocity = copy.deepcopy(self.joint_velocity)
@@ -142,7 +127,6 @@ class UrRosBridge:
             state_dict['in_collision'] = float(ur_collision)
 
         elif self.rs_mode == '1object':
-
             # Object 0 Pose 
             object_0_trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.objects_frame[0], rospy.Time(0))
             object_0_trans_list = self._transform_to_list(object_0_trans)
@@ -173,7 +157,6 @@ class UrRosBridge:
             state_dict['in_collision'] = float(ur_collision)
 
         elif self.rs_mode == '1moving2points':
-
             # Object 0 Pose 
             object_0_trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.objects_frame[0], rospy.Time(0))
             object_0_trans_list = self._transform_to_list(object_0_trans)
