@@ -70,6 +70,7 @@ class UrRosBridge:
         else:
             raise ValueError('ur_model not recognized')
         self.ur_joint_vel_limits = [self.max_velocity_scale_factor * i for i in self.absolute_ur_joint_vel_limits]
+
         # Minimum Trajectory Point time from start
         self.min_traj_duration = 0.5
 
@@ -85,9 +86,6 @@ class UrRosBridge:
 
             # Initialization of collision sensor flags
             self.collision_sensors = dict.fromkeys(["shoulder", "upper_arm", "forearm", "wrist_1", "wrist_2", "wrist_3"], False)
-
-        #TODO
-        self.safe_to_move = True
 
         # Robot Server mode
         rs_mode = rospy.get_param('~rs_mode')
@@ -279,101 +277,24 @@ class UrRosBridge:
 
         """
 
-        if self.safe_to_move:
-            msg = JointTrajectory()
-            msg.header = Header()
-            msg.joint_names = ["elbow_joint", "shoulder_lift_joint", "shoulder_pan_joint", \
-                                "wrist_1_joint", "wrist_2_joint", "wrist_3_joint"]
-            msg.points=[JointTrajectoryPoint()]
-            msg.points[0].positions = position_cmd
-            dur = []
-            for i in range(len(msg.joint_names)):
-                # !!! Be careful here with ur_state index
-                pos = self.ur_state[i]
-                cmd = position_cmd[i]
-                max_vel = self.ur_joint_vel_limits[i]
-                dur.append(max(abs(cmd-pos)/max_vel, self.min_traj_duration))
+        msg = JointTrajectory()
+        msg.header = Header()
+        msg.joint_names = ["elbow_joint", "shoulder_lift_joint", "shoulder_pan_joint", \
+                            "wrist_1_joint", "wrist_2_joint", "wrist_3_joint"]
+        msg.points=[JointTrajectoryPoint()]
+        msg.points[0].positions = position_cmd
+        dur = []
+        for i in range(len(msg.joint_names)):
+            # !!! Be careful here with ur_state index
+            pos = self.ur_state[i]
+            cmd = position_cmd[i]
+            max_vel = self.ur_joint_vel_limits[i]
+            dur.append(max(abs(cmd-pos)/max_vel, self.min_traj_duration))
 
-            msg.points[0].time_from_start = rospy.Duration.from_sec(max(dur))
-            self.arm_cmd_pub.publish(msg)
-            rospy.sleep(self.control_period)
-            return position_cmd
-        else:
-            rospy.sleep(self.control_period)
-            return [0.0] * 6
-
-    def get_model_state(self, model_name, relative_entity_name=''):
-        # method used to retrieve model state from gazebo simulation
-
-        rospy.wait_for_service('/gazebo/get_model_state')
-        try:
-            model_state = rospy.ServiceProxy('/gazebo/get_model_state', GetModelState)
-            model_coordinates = model_state(model_name, relative_entity_name)
-            x = model_coordinates.pose.position.x
-            y = model_coordinates.pose.position.y
-
-            orientation = PyKDL.Rotation.Quaternion(model_coordinates.pose.orientation.x,
-                                                 model_coordinates.pose.orientation.y,
-                                                 model_coordinates.pose.orientation.z,
-                                                 model_coordinates.pose.orientation.w)
-
-            euler_orientation = orientation.GetRPY()
-            yaw = euler_orientation[2]
-
-            x_vel = model_coordinates.twist.linear.x
-            y_vel = model_coordinates.twist.linear.y
-            yaw_vel = model_coordinates.twist.angular.z
-
-            return [x, y, yaw, x_vel, y_vel, yaw_vel]
-        except rospy.ServiceException as e:
-            print("Service call failed:" + e)
-    
-    def get_model_state_pose(self, model_name, relative_entity_name=''):
-        # method used to retrieve model pose from gazebo simulation
-
-        rospy.wait_for_service('/gazebo/get_model_state')
-        try:
-            model_state = rospy.ServiceProxy('/gazebo/get_model_state', GetModelState)
-            s = model_state(model_name, relative_entity_name)
-
-            pose = [s.pose.position.x, s.pose.position.y, s.pose.position.z, \
-                    s.pose.orientation.x, s.pose.orientation.y, s.pose.orientation.z, s.pose.orientation.w]
-
-            return pose
-        except rospy.ServiceException as e:
-            print("Service call failed:" + e)
-
-    def get_link_state(self, link_name, reference_frame=''):
-        # method used to retrieve link state from gazebo simulation
-
-        rospy.wait_for_service('/gazebo/get_link_state')
-        try:
-            link_state_srv = rospy.ServiceProxy('/gazebo/get_link_state', GetLinkState)
-            link_coordinates = link_state_srv(link_name, reference_frame).link_state
-            x = link_coordinates.pose.position.x
-            y = link_coordinates.pose.position.y
-            z = link_coordinates.pose.position.z
-
-            orientation = PyKDL.Rotation.Quaternion(link_coordinates.pose.orientation.x,
-                                                 link_coordinates.pose.orientation.y,
-                                                 link_coordinates.pose.orientation.z,
-                                                 link_coordinates.pose.orientation.w)
-
-            euler_orientation = orientation.GetRPY()
-            roll = euler_orientation[0]
-            pitch = euler_orientation[1]
-            yaw = euler_orientation[2]
-
-            x_vel = link_coordinates.twist.linear.x
-            y_vel = link_coordinates.twist.linear.y
-            z_vel = link_coordinates.twist.linear.z
-            roll_vel = link_coordinates.twist.angular.x
-            pitch_vel = link_coordinates.twist.angular.y
-            yaw_vel = link_coordinates.twist.angular.z
-
-            return x, y, z, roll, pitch, yaw, x_vel, y_vel, z_vel, roll_vel, pitch_vel, yaw_vel
-        except rospy.ServiceException as e:
-            print("Service call failed:" + e)
+        msg.points[0].time_from_start = rospy.Duration.from_sec(max(dur))
+        self.arm_cmd_pub.publish(msg)
+        rospy.sleep(self.control_period)
+        return position_cmd
 
     def publish_target_marker(self, target_pose):
         t_marker = Marker()
