@@ -55,8 +55,6 @@ RUN \
   pip install --upgrade numpy numpy-quaternion==2020.5.11.13.33.35
   # PANDA END
 
-COPY ./melodic-entrypoint.sh /
-
 ARG CACHEBUST=1
 
 ADD . $ROBOGYM_WS/src/robo-gym-robot-servers
@@ -69,6 +67,7 @@ RUN source /opt/ros/$ROS_DISTRO/setup.bash && \
     catkin init && \
     catkin build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebugInfo
 
+COPY ./ros-entrypoint.sh /
 ENTRYPOINT ["/ros-entrypoint.sh"]
 
 CMD ["bash"]
