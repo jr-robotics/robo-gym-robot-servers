@@ -11,12 +11,12 @@ ENV ROBOGYM_WS=/robogym_ws
 
 RUN apt-get update && apt-get install -y \
   apt-utils build-essential psmisc vim-gtk \
+  git swig sudo libcppunit-dev \
   python-catkin-tools python-rosdep python-pip \
-  python-rospkg
+  python-rospkg python-future
 
 # Install pkgs required by Panda
 RUN apt-get update && apt-get install -q -y \
-    git swig sudo python-future libcppunit-dev \
     ros-$ROS_DISTRO-libfranka ros-$ROS_DISTRO-franka-ros \
     ros-$ROS_DISTRO-gazebo-ros-control \
     ros-${ROS_DISTRO}-rospy-message-converter ros-${ROS_DISTRO}-effort-controllers \
