@@ -27,7 +27,7 @@ RUN apt-get update && apt-get install -q -y \
 RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 
 COPY ./install-ros-dependencies.bash /
-RUN ["/bin/bash", "-c", "/install-ros-dependencies.bash"]
+RUN chmod +x /install-ros-dependencies.bash && /install-ros-dependencies.bash
 # Clone source of reqired ROS packages and install dependencies
 # RUN source /opt/ros/$ROS_DISTRO/setup.bash && \
 #     mkdir -p $ROBOGYM_WS/src && \
