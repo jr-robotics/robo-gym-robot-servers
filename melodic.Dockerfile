@@ -9,17 +9,17 @@ ENV DEBIAN_FRONTEND noninteractive
 ENV ROS_DISTRO=melodic
 ENV ROBOGYM_WS=/robogym_ws
 
-RUN apt-get update && apt-get install -y \
-  apt-utils build-essential psmisc vim-gtk \
-  git swig sudo libcppunit-dev \
-  python-catkin-tools python-rosdep python-pip \
-  python-rospkg python-future
+# RUN apt-get update && apt-get install -y \
+#   apt-utils build-essential psmisc vim-gtk \
+#   git swig sudo libcppunit-dev \
+#   python-catkin-tools python-rosdep python-pip \
+#   python-rospkg python-future
 
-# Install pkgs required by Panda
-RUN apt-get update && apt-get install -q -y \
-    ros-${ROS_DISTRO}-rospy-message-converter \
-    ros-${ROS_DISTRO}-moveit ros-${ROS_DISTRO}-moveit-commander \
-    ros-${ROS_DISTRO}-moveit-visual-tools
+# # Install pkgs required by Panda
+# RUN apt-get update && apt-get install -q -y \
+#     ros-${ROS_DISTRO}-rospy-message-converter \
+#     ros-${ROS_DISTRO}-moveit ros-${ROS_DISTRO}-moveit-commander \
+#     ros-${ROS_DISTRO}-moveit-visual-tools
 
 RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 
