@@ -31,6 +31,7 @@ class UrRosBridge:
         self.get_state_event.set()
 
         self.real_robot = real_robot
+        self.ur_model = ur_model
         self.joint_names = ['elbow_joint', 'shoulder_lift_joint', 'shoulder_pan_joint', \
                             'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint']
 
@@ -42,20 +43,12 @@ class UrRosBridge:
         # joint_trajectory_command_handler publisher
         self.arm_cmd_pub = rospy.Publisher('env_arm_command', JointTrajectory, queue_size=1)
 
-        # Robot control rate
+        # Robot control
         self.sleep_time = (1.0 / rospy.get_param("~action_cycle_rate")) - 0.01
         self.control_period = rospy.Duration.from_sec(self.sleep_time)
         self.max_velocity_scale_factor = float(rospy.get_param("~max_velocity_scale_factor"))
 
-        if ur_model == 'ur3' or ur_model == 'ur3e':
-            self.absolute_ur_joint_vel_limits = [3.14, 3.14, 3.14, 6.28, 6.28, 6.28]
-        elif ur_model == 'ur5' or ur_model == 'ur5e':
-            self.absolute_ur_joint_vel_limits = [3.14, 3.14, 3.14, 3.14, 3.14, 3.14]
-        elif ur_model == 'ur10' or ur_model == 'ur10e' or ur_model == 'ur16e':
-            self.absolute_ur_joint_vel_limits = [3.14, 2.09, 2.09, 3.14, 3.14, 3.14]
-        else:
-            raise ValueError('ur_model not recognized')
-        self.ur_joint_vel_limits = [self.max_velocity_scale_factor * i for i in self.absolute_ur_joint_vel_limits]
+        self.joint_velocity_limits = self._get_joint_velocity_limits()
 
         # Minimum Trajectory Point time from start
         self.min_traj_duration = 0.5
@@ -298,7 +291,7 @@ class UrRosBridge:
         for idx, name in enumerate(msg.joint_names):
             pos = self.joint_position[name]
             cmd = position_cmd[idx]
-            max_vel = self.ur_joint_vel_limits[idx]
+            max_vel = self.joint_velocity_limits[name]
             dur.append(max(abs(cmd-pos)/max_vel, self.min_traj_duration))
         msg.points[0].time_from_start = rospy.Duration.from_sec(max(dur))
         self.arm_cmd_pub.publish(msg)
@@ -440,3 +433,20 @@ class UrRosBridge:
     def _get_joint_ordered_value_list(self, joint_values):
         
         return [joint_values[name] for name in self.joint_names]
+
+    def _get_joint_velocity_limits(self):
+
+        if self.ur_model == 'ur3' or self.ur_model == 'ur3e':
+            absolute_joint_velocity_limits = {'elbow_joint': 3.14, 'shoulder_lift_joint': 3.14, 'shoulder_pan_joint': 3.14, \
+                                              'wrist_1_joint': 6.28, 'wrist_2_joint': 6.28, 'wrist_3_joint': 6.28}
+        elif self.ur_model == 'ur5' or self.ur_model == 'ur5e':
+            absolute_joint_velocity_limits = {'elbow_joint': 3.14, 'shoulder_lift_joint': 3.14, 'shoulder_pan_joint': 3.14, \
+                                              'wrist_1_joint': 3.14, 'wrist_2_joint': 3.14, 'wrist_3_joint': 3.14}
+        elif self.ur_model == 'ur10' or self.ur_model == 'ur10e' or self.ur_model == 'ur16e':
+            absolute_joint_velocity_limits = {'elbow_joint': 3.14, 'shoulder_lift_joint': 2.09, 'shoulder_pan_joint': 2.09, \
+                                              'wrist_1_joint': 3.14, 'wrist_2_joint': 3.14, 'wrist_3_joint': 3.14}
+        else:
+            raise ValueError('ur_model not recognized')
+
+        return {name: self.max_velocity_scale_factor * absolute_joint_velocity_limits[name] for name in self.joint_names}
+        
