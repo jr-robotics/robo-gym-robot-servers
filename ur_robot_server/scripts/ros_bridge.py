@@ -22,7 +22,7 @@ import time
 from robo_gym_server_modules.robot_server.grpc_msgs.python import robot_server_pb2
 class UrRosBridge:
 
-    def __init__(self, real_robot=False, ur_model = 'ur10'):
+    def __init__(self, real_robot=False, ur_model= 'ur10'):
 
         # Event is clear while initialization or set_state is going on
         self.reset = Event()
@@ -31,63 +31,42 @@ class UrRosBridge:
         self.get_state_event.set()
 
         self.real_robot = real_robot
+        self.ur_model = ur_model
 
-        # joint_trajectory_command_handler publisher
-        self.arm_cmd_pub = rospy.Publisher('env_arm_command', JointTrajectory, queue_size=1)
+        # Joint States
+        self.joint_names = ['elbow_joint', 'shoulder_lift_joint', 'shoulder_pan_joint', \
+                            'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint']
+        self.joint_position = dict.fromkeys(self.joint_names, 0.0)
+        self.joint_velocity = dict.fromkeys(self.joint_names, 0.0)
+        rospy.Subscriber("joint_states", JointState, self._on_joint_states)
 
-        # Target RViz Marker publisher
-        self.target_pub = rospy.Publisher('target_marker', Marker, queue_size=10)
-
-        # move_objects controller publisher
-        self.move_objects_pub = rospy.Publisher('move_objects', Bool, queue_size=10)
-
-        self.target = [0.0] * 6
-        self.ur_state = [0.0] * 12
-
-        rospy.Subscriber("joint_states", JointState, self.callbackUR)
-
-        # TF2 Listener
-        self.tf2_buffer = tf2_ros.Buffer()
-        self.tf2_listener = tf2_ros.TransformListener(self.tf2_buffer)
-
-        # Static TF2 Broadcaster
-        self.static_tf2_broadcaster = tf2_ros.StaticTransformBroadcaster()
-
-        # Robot control rate
+        # Robot control
+        self.arm_cmd_pub = rospy.Publisher('env_arm_command', JointTrajectory, queue_size=1) # joint_trajectory_command_handler publisher
         self.sleep_time = (1.0 / rospy.get_param("~action_cycle_rate")) - 0.01
         self.control_period = rospy.Duration.from_sec(self.sleep_time)
+        self.max_velocity_scale_factor = float(rospy.get_param("~max_velocity_scale_factor"))
+        self.min_traj_duration = 0.5 # minimum trajectory duration (s)
+        self.joint_velocity_limits = self._get_joint_velocity_limits()
 
+        # Robot frames
         self.reference_frame = rospy.get_param("~reference_frame", "base")
         self.ee_frame = 'tool0'
 
-        self.max_velocity_scale_factor = float(rospy.get_param("~max_velocity_scale_factor"))
-        if ur_model == 'ur3' or ur_model == 'ur3e':
-            self.absolute_ur_joint_vel_limits = [3.14, 3.14, 3.14, 6.28, 6.28, 6.28]
-        elif ur_model == 'ur5' or ur_model == 'ur5e':
-            self.absolute_ur_joint_vel_limits = [3.14, 3.14, 3.14, 3.14, 3.14, 3.14]
-        elif ur_model == 'ur10' or ur_model == 'ur10e' or ur_model == 'ur16e':
-            self.absolute_ur_joint_vel_limits = [3.14, 2.09, 2.09, 3.14, 3.14, 3.14]
-        else:
-            raise ValueError('ur_model not recognized')
-        self.ur_joint_vel_limits = [self.max_velocity_scale_factor * i for i in self.absolute_ur_joint_vel_limits]
-        # Minimum Trajectory Point time from start
-        self.min_traj_duration = 0.5
+        # TF2
+        self.tf2_buffer = tf2_ros.Buffer()
+        self.tf2_listener = tf2_ros.TransformListener(self.tf2_buffer)
+        self.static_tf2_broadcaster = tf2_ros.StaticTransformBroadcaster()
 
+        # Collision detection 
         if not self.real_robot:
-            # Subscribers to link collision sensors topics
-
-            rospy.Subscriber("shoulder_collision", ContactsState, self.shoulder_collision_callback)
-            rospy.Subscriber("upper_arm_collision", ContactsState, self.upper_arm_collision_callback)
-            rospy.Subscriber("forearm_collision", ContactsState, self.forearm_collision_callback)
-            rospy.Subscriber("wrist_1_collision", ContactsState, self.wrist_1_collision_callback)
-            rospy.Subscriber("wrist_2_collision", ContactsState, self.wrist_2_collision_callback)
-            rospy.Subscriber("wrist_3_collision", ContactsState, self.wrist_3_collision_callback)
-
-            # Initialization of collision sensor flags
-            self.collision_sensors = dict.fromkeys(["shoulder", "upper_arm", "forearm", "wrist_1", "wrist_2", "wrist_3"], False)
-
-        #TODO
-        self.safe_to_move = True
+            rospy.Subscriber("shoulder_collision", ContactsState, self._on_shoulder_collision)
+            rospy.Subscriber("upper_arm_collision", ContactsState, self._on_upper_arm_collision)
+            rospy.Subscriber("forearm_collision", ContactsState, self._on_forearm_collision)
+            rospy.Subscriber("wrist_1_collision", ContactsState, self._on_wrist_1_collision)
+            rospy.Subscriber("wrist_2_collision", ContactsState, self._on_wrist_2_collision)
+            rospy.Subscriber("wrist_3_collision", ContactsState, self._on_wrist_3_collision)
+        # Initialization of collision sensor flags
+        self.collision_sensors = dict.fromkeys(["shoulder", "upper_arm", "forearm", "wrist_1", "wrist_2", "wrist_3"], False)
 
         # Robot Server mode
         rs_mode = rospy.get_param('~rs_mode')
@@ -96,30 +75,26 @@ class UrRosBridge:
         else:
             self.rs_mode = rospy.get_param("~target_mode", '1object')
 
-        # Objects parameters
+        # Objects  Controller 
         self.objects_controller = rospy.get_param("objects_controller", False)
         self.n_objects = int(rospy.get_param("n_objects"))
-
-        # Get objects model name
         if self.objects_controller:
+            self.move_objects_pub = rospy.Publisher('move_objects', Bool, queue_size=10)
+            # Get objects model name
             self.objects_model_name = []
             for i in range(self.n_objects):
                 self.objects_model_name.append(rospy.get_param("object_" + repr(i) + "_model_name"))
-        
-        # Get objects TF Frame
-        self.objects_frame = []
-        for i in range(self.n_objects):
-            self.objects_frame.append(rospy.get_param("object_" + repr(i) + "_frame"))
+            # Get objects TF Frame
+            self.objects_frame = []
+            for i in range(self.n_objects):
+                self.objects_frame.append(rospy.get_param("object_" + repr(i) + "_frame"))
 
-
-        # camera1
-        self.use_voxel_occupancy = rospy.get_param("~use_voxel_occupancy", False) # e.g. for target_mode=1moving1point_2_2_4_voxel
-        self.use_voxel_occupancy = True
+        # Voxel Occupancy
+        self.use_voxel_occupancy = rospy.get_param("~use_voxel_occupancy", False)
         if self.use_voxel_occupancy: 
-            rospy.Subscriber("occupancy_state", Int32MultiArray, self.voxel_occupancy_callback)
+            rospy.Subscriber("occupancy_state", Int32MultiArray, self._on_occupancy_state)
             if self.rs_mode == '1moving1point_2_2_4_voxel':
                 self.voxel_occupancy = [0.0] * 16
-
 
     def get_state(self):
         self.get_state_event.clear()
@@ -128,11 +103,12 @@ class UrRosBridge:
         state_dict = {}
 
         if self.rs_mode == 'only_robot':
-
             # Joint Positions and Joint Velocities
-            joint_states = copy.deepcopy(self.ur_state)
-            state += joint_states
-            state_dict.update(self._get_joint_states_dict(joint_states))
+            joint_position = copy.deepcopy(self.joint_position)
+            joint_velocity = copy.deepcopy(self.joint_velocity)
+            state += self._get_joint_ordered_value_list(joint_position)
+            state += self._get_joint_ordered_value_list(joint_velocity)
+            state_dict.update(self._get_joint_states_dict(joint_position, joint_velocity))
 
             # ee to ref transform
             ee_to_ref_trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.ee_frame, rospy.Time(0))
@@ -141,15 +117,11 @@ class UrRosBridge:
             state_dict.update(self._get_transform_dict(ee_to_ref_trans, 'ee_to_ref'))
         
             # Collision sensors
-            if self.real_robot:
-                ur_collision = False
-            else:
-                ur_collision = any(self.collision_sensors.values())
+            ur_collision = any(self.collision_sensors.values())
             state += [ur_collision]
             state_dict['in_collision'] = float(ur_collision)
 
         elif self.rs_mode == '1object':
-
             # Object 0 Pose 
             object_0_trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.objects_frame[0], rospy.Time(0))
             object_0_trans_list = self._transform_to_list(object_0_trans)
@@ -157,9 +129,11 @@ class UrRosBridge:
             state_dict.update(self._get_transform_dict(object_0_trans, 'object_0_to_ref'))
 
             # Joint Positions and Joint Velocities
-            joint_states = copy.deepcopy(self.ur_state)
-            state += joint_states
-            state_dict.update(self._get_joint_states_dict(joint_states))
+            joint_position = copy.deepcopy(self.joint_position)
+            joint_velocity = copy.deepcopy(self.joint_velocity)
+            state += self._get_joint_ordered_value_list(joint_position)
+            state += self._get_joint_ordered_value_list(joint_velocity)
+            state_dict.update(self._get_joint_states_dict(joint_position, joint_velocity))
 
             # ee to ref transform
             ee_to_ref_trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.ee_frame, rospy.Time(0))
@@ -168,15 +142,11 @@ class UrRosBridge:
             state_dict.update(self._get_transform_dict(ee_to_ref_trans, 'ee_to_ref'))
         
             # Collision sensors
-            if self.real_robot:
-                ur_collision = False
-            else:
-                ur_collision = any(self.collision_sensors.values())
+            ur_collision = any(self.collision_sensors.values())
             state += [ur_collision]
             state_dict['in_collision'] = float(ur_collision)
 
         elif self.rs_mode == '1moving2points':
-
             # Object 0 Pose 
             object_0_trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.objects_frame[0], rospy.Time(0))
             object_0_trans_list = self._transform_to_list(object_0_trans)
@@ -184,9 +154,11 @@ class UrRosBridge:
             state_dict.update(self._get_transform_dict(object_0_trans, 'object_0_to_ref'))
             
             # Joint Positions and Joint Velocities
-            joint_states = copy.deepcopy(self.ur_state)
-            state += joint_states
-            state_dict.update(self._get_joint_states_dict(joint_states))
+            joint_position = copy.deepcopy(self.joint_position)
+            joint_velocity = copy.deepcopy(self.joint_velocity)
+            state += self._get_joint_ordered_value_list(joint_position)
+            state += self._get_joint_ordered_value_list(joint_velocity)
+            state_dict.update(self._get_joint_states_dict(joint_position, joint_velocity))
 
             # ee to ref transform
             ee_to_ref_trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.ee_frame, rospy.Time(0))
@@ -195,10 +167,7 @@ class UrRosBridge:
             state_dict.update(self._get_transform_dict(ee_to_ref_trans, 'ee_to_ref'))
         
             # Collision sensors
-            if self.real_robot:
-                ur_collision = False
-            else:
-                ur_collision = any(self.collision_sensors.values())
+            ur_collision = any(self.collision_sensors.values())
             state += [ur_collision]
             state_dict['in_collision'] = float(ur_collision)
 
@@ -279,209 +248,87 @@ class UrRosBridge:
 
         """
 
-        if self.safe_to_move:
-            msg = JointTrajectory()
-            msg.header = Header()
-            msg.joint_names = ["elbow_joint", "shoulder_lift_joint", "shoulder_pan_joint", \
-                                "wrist_1_joint", "wrist_2_joint", "wrist_3_joint"]
-            msg.points=[JointTrajectoryPoint()]
-            msg.points[0].positions = position_cmd
-            dur = []
-            for i in range(len(msg.joint_names)):
-                # !!! Be careful here with ur_state index
-                pos = self.ur_state[i]
-                cmd = position_cmd[i]
-                max_vel = self.ur_joint_vel_limits[i]
-                dur.append(max(abs(cmd-pos)/max_vel, self.min_traj_duration))
+        msg = JointTrajectory()
+        msg.header = Header()
+        msg.joint_names = self.joint_names
+        msg.points=[JointTrajectoryPoint()]
+        msg.points[0].positions = position_cmd
+        dur = []
+        for idx, name in enumerate(msg.joint_names):
+            pos = self.joint_position[name]
+            cmd = position_cmd[idx]
+            max_vel = self.joint_velocity_limits[name]
+            dur.append(max(abs(cmd-pos)/max_vel, self.min_traj_duration))
+        msg.points[0].time_from_start = rospy.Duration.from_sec(max(dur))
+        self.arm_cmd_pub.publish(msg)
+        rospy.sleep(self.control_period)
+        return position_cmd
 
-            msg.points[0].time_from_start = rospy.Duration.from_sec(max(dur))
-            self.arm_cmd_pub.publish(msg)
-            rospy.sleep(self.control_period)
-            return position_cmd
-        else:
-            rospy.sleep(self.control_period)
-            return [0.0] * 6
-
-    def get_model_state(self, model_name, relative_entity_name=''):
-        # method used to retrieve model state from gazebo simulation
-
-        rospy.wait_for_service('/gazebo/get_model_state')
-        try:
-            model_state = rospy.ServiceProxy('/gazebo/get_model_state', GetModelState)
-            model_coordinates = model_state(model_name, relative_entity_name)
-            x = model_coordinates.pose.position.x
-            y = model_coordinates.pose.position.y
-
-            orientation = PyKDL.Rotation.Quaternion(model_coordinates.pose.orientation.x,
-                                                 model_coordinates.pose.orientation.y,
-                                                 model_coordinates.pose.orientation.z,
-                                                 model_coordinates.pose.orientation.w)
-
-            euler_orientation = orientation.GetRPY()
-            yaw = euler_orientation[2]
-
-            x_vel = model_coordinates.twist.linear.x
-            y_vel = model_coordinates.twist.linear.y
-            yaw_vel = model_coordinates.twist.angular.z
-
-            return [x, y, yaw, x_vel, y_vel, yaw_vel]
-        except rospy.ServiceException as e:
-            print("Service call failed:" + e)
-    
-    def get_model_state_pose(self, model_name, relative_entity_name=''):
-        # method used to retrieve model pose from gazebo simulation
-
-        rospy.wait_for_service('/gazebo/get_model_state')
-        try:
-            model_state = rospy.ServiceProxy('/gazebo/get_model_state', GetModelState)
-            s = model_state(model_name, relative_entity_name)
-
-            pose = [s.pose.position.x, s.pose.position.y, s.pose.position.z, \
-                    s.pose.orientation.x, s.pose.orientation.y, s.pose.orientation.z, s.pose.orientation.w]
-
-            return pose
-        except rospy.ServiceException as e:
-            print("Service call failed:" + e)
-
-    def get_link_state(self, link_name, reference_frame=''):
-        # method used to retrieve link state from gazebo simulation
-
-        rospy.wait_for_service('/gazebo/get_link_state')
-        try:
-            link_state_srv = rospy.ServiceProxy('/gazebo/get_link_state', GetLinkState)
-            link_coordinates = link_state_srv(link_name, reference_frame).link_state
-            x = link_coordinates.pose.position.x
-            y = link_coordinates.pose.position.y
-            z = link_coordinates.pose.position.z
-
-            orientation = PyKDL.Rotation.Quaternion(link_coordinates.pose.orientation.x,
-                                                 link_coordinates.pose.orientation.y,
-                                                 link_coordinates.pose.orientation.z,
-                                                 link_coordinates.pose.orientation.w)
-
-            euler_orientation = orientation.GetRPY()
-            roll = euler_orientation[0]
-            pitch = euler_orientation[1]
-            yaw = euler_orientation[2]
-
-            x_vel = link_coordinates.twist.linear.x
-            y_vel = link_coordinates.twist.linear.y
-            z_vel = link_coordinates.twist.linear.z
-            roll_vel = link_coordinates.twist.angular.x
-            pitch_vel = link_coordinates.twist.angular.y
-            yaw_vel = link_coordinates.twist.angular.z
-
-            return x, y, z, roll, pitch, yaw, x_vel, y_vel, z_vel, roll_vel, pitch_vel, yaw_vel
-        except rospy.ServiceException as e:
-            print("Service call failed:" + e)
-
-    def publish_target_marker(self, target_pose):
-        t_marker = Marker()
-        t_marker.type = 1  # =>CUBE
-        t_marker.action = 0
-        t_marker.frame_locked = 1
-        t_marker.pose.position.x = target_pose[0]
-        t_marker.pose.position.y = target_pose[1]
-        t_marker.pose.position.z = target_pose[2]
-        rpy_orientation = PyKDL.Rotation.RPY(target_pose[3], target_pose[4], target_pose[5])
-        q_orientation = rpy_orientation.GetQuaternion()
-        t_marker.pose.orientation.x = q_orientation[0]
-        t_marker.pose.orientation.y = q_orientation[1]
-        t_marker.pose.orientation.z = q_orientation[2]
-        t_marker.pose.orientation.w = q_orientation[3]
-        t_marker.scale.x = 0.1
-        t_marker.scale.y = 0.1
-        t_marker.scale.z = 0.1
-        t_marker.id = 0
-        t_marker.header.stamp = rospy.Time.now()
-        t_marker.header.frame_id = self.reference_frame
-        t_marker.color.a = 0.7
-        t_marker.color.r = 1.0  # red
-        t_marker.color.g = 0.0
-        t_marker.color.b = 0.0
-        self.target_pub.publish(t_marker)
-
-    def broadcast_static_tf2_transform(self, frame_id, child_frame_id, pose):
-
-        t = geometry_msgs.msg.TransformStamped()
-
-        t.header.stamp = rospy.Time.now()
-        t.header.frame_id = frame_id        # world
-        t.child_frame_id = child_frame_id   # object
-        t.transform.translation.x = pose[0]
-        t.transform.translation.y = pose[1]
-        t.transform.translation.z = pose[2]
-        q = tf_conversions.transformations.quaternion_from_euler(pose[3], pose[4], pose[5])
-        t.transform.rotation.x = q[0]
-        t.transform.rotation.y = q[1]
-        t.transform.rotation.z = q[2]
-        t.transform.rotation.w = q[3]
-
-        self.static_tf2_broadcaster.sendTransform(t)
-
-    def callbackUR(self,data):
+    def _on_joint_states(self, msg):
         if self.get_state_event.is_set():
-            self.ur_state[0:6]  = data.position[0:6]
-            self.ur_state[6:12] = data.velocity[0:6]
+            for idx, name in enumerate(msg.name):
+                if name in self.joint_names:
+                    self.joint_position[name] = msg.position[idx]
+                    self.joint_velocity[name] = msg.velocity[idx]
 
-    def shoulder_collision_callback(self, data):
+    def _on_shoulder_collision(self, data):
         if data.states == []:
             pass
         else:
             self.collision_sensors["shoulder"] = True
 
-    def upper_arm_collision_callback(self, data):
+    def _on_upper_arm_collision(self, data):
         if data.states == []:
             pass
         else:
             self.collision_sensors["upper_arm"] = True
 
-    def forearm_collision_callback(self, data):
+    def _on_forearm_collision(self, data):
         if data.states == []:
             pass
         else:
             self.collision_sensors["forearm"] = True
 
-    def wrist_1_collision_callback(self, data):
+    def _on_wrist_1_collision(self, data):
         if data.states == []:
             pass
         else:
             self.collision_sensors["wrist_1"] = True
 
-    def wrist_2_collision_callback(self, data):
+    def _on_wrist_2_collision(self, data):
         if data.states == []:
             pass
         else:
             self.collision_sensors["wrist_2"] = True
 
-    def wrist_3_collision_callback(self, data):
+    def _on_wrist_3_collision(self, data):
         if data.states == []:
             pass
         else:
             self.collision_sensors["wrist_3"] = True
 
-    def voxel_occupancy_callback(self, msg):
+    def _on_occupancy_state(self, msg):
         if self.get_state_event.is_set():
             # occupancy_3d_array = np.reshape(msg.data, [dim.size for dim in msg.layout.dim])
             self.voxel_occupancy = msg.data
         else:
             pass
 
-    def _get_joint_states_dict(self, joint_states):
-        
+    def _get_joint_states_dict(self, joint_position, joint_velocity):
+
         d = {}
-        d['base_joint_position'] = joint_states[2]
-        d['shoulder_joint_position'] = joint_states[1]
-        d['elbow_joint_position'] = joint_states[0]
-        d['wrist_1_joint_position'] = joint_states[3]
-        d['wrist_2_joint_position'] = joint_states[4]
-        d['wrist_3_joint_position'] = joint_states[5]
-        d['base_joint_velocity'] = joint_states[8]
-        d['shoulder_joint_velocity'] = joint_states[7]
-        d['elbow_joint_velocity'] = joint_states[6]
-        d['wrist_1_joint_velocity'] = joint_states[9]
-        d['wrist_2_joint_velocity'] = joint_states[10]
-        d['wrist_3_joint_velocity'] = joint_states[11]
+        d['base_joint_position'] = joint_position['shoulder_pan_joint']
+        d['shoulder_joint_position'] = joint_position['shoulder_lift_joint']
+        d['elbow_joint_position'] = joint_position['elbow_joint']
+        d['wrist_1_joint_position'] = joint_position['wrist_1_joint']
+        d['wrist_2_joint_position'] = joint_position['wrist_2_joint']
+        d['wrist_3_joint_position'] = joint_position['wrist_3_joint']
+        d['base_joint_velocity'] = joint_velocity['shoulder_pan_joint']
+        d['shoulder_joint_velocity'] = joint_velocity['shoulder_lift_joint']
+        d['elbow_joint_velocity'] = joint_velocity['elbow_joint']
+        d['wrist_1_joint_velocity'] = joint_velocity['wrist_1_joint']
+        d['wrist_2_joint_velocity'] = joint_velocity['wrist_2_joint']
+        d['wrist_3_joint_velocity'] = joint_velocity['wrist_3_joint']
         
         return d 
 
@@ -504,3 +351,24 @@ class UrRosBridge:
                 transform.transform.translation.z, transform.transform.rotation.x, \
                 transform.transform.rotation.y, transform.transform.rotation.z, \
                 transform.transform.rotation.w]
+
+    def _get_joint_ordered_value_list(self, joint_values):
+        
+        return [joint_values[name] for name in self.joint_names]
+
+    def _get_joint_velocity_limits(self):
+
+        if self.ur_model == 'ur3' or self.ur_model == 'ur3e':
+            absolute_joint_velocity_limits = {'elbow_joint': 3.14, 'shoulder_lift_joint': 3.14, 'shoulder_pan_joint': 3.14, \
+                                              'wrist_1_joint': 6.28, 'wrist_2_joint': 6.28, 'wrist_3_joint': 6.28}
+        elif self.ur_model == 'ur5' or self.ur_model == 'ur5e':
+            absolute_joint_velocity_limits = {'elbow_joint': 3.14, 'shoulder_lift_joint': 3.14, 'shoulder_pan_joint': 3.14, \
+                                              'wrist_1_joint': 3.14, 'wrist_2_joint': 3.14, 'wrist_3_joint': 3.14}
+        elif self.ur_model == 'ur10' or self.ur_model == 'ur10e' or self.ur_model == 'ur16e':
+            absolute_joint_velocity_limits = {'elbow_joint': 3.14, 'shoulder_lift_joint': 2.09, 'shoulder_pan_joint': 2.09, \
+                                              'wrist_1_joint': 3.14, 'wrist_2_joint': 3.14, 'wrist_3_joint': 3.14}
+        else:
+            raise ValueError('ur_model not recognized')
+
+        return {name: self.max_velocity_scale_factor * absolute_joint_velocity_limits[name] for name in self.joint_names}
+        
