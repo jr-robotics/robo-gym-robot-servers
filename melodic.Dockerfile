@@ -69,6 +69,6 @@ RUN source /opt/ros/$ROS_DISTRO/setup.bash && \
     catkin init && \
     catkin build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebugInfo
 
-ENTRYPOINT ["/melodic-entrypoint.sh"]
+ENTRYPOINT ["/ros-entrypoint.sh"]
 
 CMD ["bash"]
