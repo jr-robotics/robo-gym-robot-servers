@@ -22,7 +22,7 @@ import time
 from robo_gym_server_modules.robot_server.grpc_msgs.python import robot_server_pb2
 class UrRosBridge:
 
-    def __init__(self, real_robot=False, ur_model):
+    def __init__(self, real_robot=False, ur_model= 'ur10'):
 
         # Event is clear while initialization or set_state is going on
         self.reset = Event()
