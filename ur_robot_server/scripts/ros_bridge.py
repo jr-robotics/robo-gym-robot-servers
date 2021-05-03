@@ -31,36 +31,22 @@ class UrRosBridge:
         self.get_state_event.set()
 
         self.real_robot = real_robot
+        self.joint_names = ['elbow_joint', 'shoulder_lift_joint', 'shoulder_pan_joint', \
+                            'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint']
+
+        self.joint_position = dict.fromkeys(self.joint_names, 0.0)
+        self.joint_velocity = dict.fromkeys(self.joint_names, 0.0)
+
+        rospy.Subscriber("joint_states", JointState, self._on_joint_states)
 
         # joint_trajectory_command_handler publisher
         self.arm_cmd_pub = rospy.Publisher('env_arm_command', JointTrajectory, queue_size=1)
 
-        # Target RViz Marker publisher
-        self.target_pub = rospy.Publisher('target_marker', Marker, queue_size=10)
-
-        # move_objects controller publisher
-        self.move_objects_pub = rospy.Publisher('move_objects', Bool, queue_size=10)
-
-        self.target = [0.0] * 6
-        self.ur_state = [0.0] * 12
-
-        rospy.Subscriber("joint_states", JointState, self.callbackUR)
-
-        # TF2 Listener
-        self.tf2_buffer = tf2_ros.Buffer()
-        self.tf2_listener = tf2_ros.TransformListener(self.tf2_buffer)
-
-        # Static TF2 Broadcaster
-        self.static_tf2_broadcaster = tf2_ros.StaticTransformBroadcaster()
-
         # Robot control rate
         self.sleep_time = (1.0 / rospy.get_param("~action_cycle_rate")) - 0.01
         self.control_period = rospy.Duration.from_sec(self.sleep_time)
-
-        self.reference_frame = rospy.get_param("~reference_frame", "base")
-        self.ee_frame = 'tool0'
-
         self.max_velocity_scale_factor = float(rospy.get_param("~max_velocity_scale_factor"))
+
         if ur_model == 'ur3' or ur_model == 'ur3e':
             self.absolute_ur_joint_vel_limits = [3.14, 3.14, 3.14, 6.28, 6.28, 6.28]
         elif ur_model == 'ur5' or ur_model == 'ur5e':
@@ -73,6 +59,17 @@ class UrRosBridge:
 
         # Minimum Trajectory Point time from start
         self.min_traj_duration = 0.5
+
+        self.reference_frame = rospy.get_param("~reference_frame", "base")
+        self.ee_frame = 'tool0'
+
+        # TF2
+        self.tf2_buffer = tf2_ros.Buffer()
+        self.tf2_listener = tf2_ros.TransformListener(self.tf2_buffer)
+        self.static_tf2_broadcaster = tf2_ros.StaticTransformBroadcaster()
+
+        # Target RViz Marker publisher
+        self.target_pub = rospy.Publisher('target_marker', Marker, queue_size=10) 
 
         if not self.real_robot:
             # Subscribers to link collision sensors topics
@@ -93,6 +90,9 @@ class UrRosBridge:
             self.rs_mode = rs_mode
         else:
             self.rs_mode = rospy.get_param("~target_mode", '1object')
+
+        # move_objects controller publisher
+        self.move_objects_pub = rospy.Publisher('move_objects', Bool, queue_size=10)
 
         # Objects parameters
         self.objects_controller = rospy.get_param("objects_controller", False)
@@ -128,9 +128,13 @@ class UrRosBridge:
         if self.rs_mode == 'only_robot':
 
             # Joint Positions and Joint Velocities
-            joint_states = copy.deepcopy(self.ur_state)
-            state += joint_states
-            state_dict.update(self._get_joint_states_dict(joint_states))
+            joint_position = copy.deepcopy(self.joint_position)
+            joint_velocity = copy.deepcopy(self.joint_velocity)
+            joint_position_list = self._get_joint_ordered_value_list(joint_position)
+            state += joint_position_list
+            joint_velocity_list = self._get_joint_ordered_value_list(joint_velocity)
+            state += joint_velocity_list
+            state_dict.update(self._get_joint_states_dict(joint_position, joint_velocity))
 
             # ee to ref transform
             ee_to_ref_trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.ee_frame, rospy.Time(0))
@@ -155,9 +159,13 @@ class UrRosBridge:
             state_dict.update(self._get_transform_dict(object_0_trans, 'object_0_to_ref'))
 
             # Joint Positions and Joint Velocities
-            joint_states = copy.deepcopy(self.ur_state)
-            state += joint_states
-            state_dict.update(self._get_joint_states_dict(joint_states))
+            joint_position = copy.deepcopy(self.joint_position)
+            joint_velocity = copy.deepcopy(self.joint_velocity)
+            joint_position_list = self._get_joint_ordered_value_list(joint_position)
+            state += joint_position_list
+            joint_velocity_list = self._get_joint_ordered_value_list(joint_velocity)
+            state += joint_velocity_list
+            state_dict.update(self._get_joint_states_dict(joint_position, joint_velocity))
 
             # ee to ref transform
             ee_to_ref_trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.ee_frame, rospy.Time(0))
@@ -182,9 +190,13 @@ class UrRosBridge:
             state_dict.update(self._get_transform_dict(object_0_trans, 'object_0_to_ref'))
             
             # Joint Positions and Joint Velocities
-            joint_states = copy.deepcopy(self.ur_state)
-            state += joint_states
-            state_dict.update(self._get_joint_states_dict(joint_states))
+            joint_position = copy.deepcopy(self.joint_position)
+            joint_velocity = copy.deepcopy(self.joint_velocity)
+            joint_position_list = self._get_joint_ordered_value_list(joint_position)
+            state += joint_position_list
+            joint_velocity_list = self._get_joint_ordered_value_list(joint_velocity)
+            state += joint_velocity_list
+            state_dict.update(self._get_joint_states_dict(joint_position, joint_velocity))
 
             # ee to ref transform
             ee_to_ref_trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.ee_frame, rospy.Time(0))
@@ -279,18 +291,15 @@ class UrRosBridge:
 
         msg = JointTrajectory()
         msg.header = Header()
-        msg.joint_names = ["elbow_joint", "shoulder_lift_joint", "shoulder_pan_joint", \
-                            "wrist_1_joint", "wrist_2_joint", "wrist_3_joint"]
+        msg.joint_names = self.joint_names
         msg.points=[JointTrajectoryPoint()]
         msg.points[0].positions = position_cmd
         dur = []
-        for i in range(len(msg.joint_names)):
-            # !!! Be careful here with ur_state index
-            pos = self.ur_state[i]
-            cmd = position_cmd[i]
-            max_vel = self.ur_joint_vel_limits[i]
+        for idx, name in enumerate(msg.joint_names):
+            pos = self.joint_position[name]
+            cmd = position_cmd[idx]
+            max_vel = self.ur_joint_vel_limits[idx]
             dur.append(max(abs(cmd-pos)/max_vel, self.min_traj_duration))
-
         msg.points[0].time_from_start = rospy.Duration.from_sec(max(dur))
         self.arm_cmd_pub.publish(msg)
         rospy.sleep(self.control_period)
@@ -340,10 +349,12 @@ class UrRosBridge:
 
         self.static_tf2_broadcaster.sendTransform(t)
 
-    def callbackUR(self,data):
+    def _on_joint_states(self, msg):
         if self.get_state_event.is_set():
-            self.ur_state[0:6]  = data.position[0:6]
-            self.ur_state[6:12] = data.velocity[0:6]
+            for idx, name in enumerate(msg.name):
+                if name in self.joint_names:
+                    self.joint_position[name] = msg.position[idx]
+                    self.joint_velocity[name] = msg.velocity[idx]
 
     def shoulder_collision_callback(self, data):
         if data.states == []:
@@ -388,21 +399,21 @@ class UrRosBridge:
         else:
             pass
 
-    def _get_joint_states_dict(self, joint_states):
-        
+    def _get_joint_states_dict(self, joint_position, joint_velocity):
+
         d = {}
-        d['base_joint_position'] = joint_states[2]
-        d['shoulder_joint_position'] = joint_states[1]
-        d['elbow_joint_position'] = joint_states[0]
-        d['wrist_1_joint_position'] = joint_states[3]
-        d['wrist_2_joint_position'] = joint_states[4]
-        d['wrist_3_joint_position'] = joint_states[5]
-        d['base_joint_velocity'] = joint_states[8]
-        d['shoulder_joint_velocity'] = joint_states[7]
-        d['elbow_joint_velocity'] = joint_states[6]
-        d['wrist_1_joint_velocity'] = joint_states[9]
-        d['wrist_2_joint_velocity'] = joint_states[10]
-        d['wrist_3_joint_velocity'] = joint_states[11]
+        d['base_joint_position'] = joint_position['shoulder_pan_joint']
+        d['shoulder_joint_position'] = joint_position['shoulder_lift_joint']
+        d['elbow_joint_position'] = joint_position['elbow_joint']
+        d['wrist_1_joint_position'] = joint_position['wrist_1_joint']
+        d['wrist_2_joint_position'] = joint_position['wrist_2_joint']
+        d['wrist_3_joint_position'] = joint_position['wrist_3_joint']
+        d['base_joint_velocity'] = joint_velocity['shoulder_pan_joint']
+        d['shoulder_joint_velocity'] = joint_velocity['shoulder_lift_joint']
+        d['elbow_joint_velocity'] = joint_velocity['elbow_joint']
+        d['wrist_1_joint_velocity'] = joint_velocity['wrist_1_joint']
+        d['wrist_2_joint_velocity'] = joint_velocity['wrist_2_joint']
+        d['wrist_3_joint_velocity'] = joint_velocity['wrist_3_joint']
         
         return d 
 
@@ -425,3 +436,7 @@ class UrRosBridge:
                 transform.transform.translation.z, transform.transform.rotation.x, \
                 transform.transform.rotation.y, transform.transform.rotation.z, \
                 transform.transform.rotation.w]
+
+    def _get_joint_ordered_value_list(self, joint_values):
+        
+        return [joint_values[name] for name in self.joint_names]
