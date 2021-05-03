@@ -65,8 +65,8 @@ class UrRosBridge:
             rospy.Subscriber("wrist_1_collision", ContactsState, self._on_wrist_1_collision)
             rospy.Subscriber("wrist_2_collision", ContactsState, self._on_wrist_2_collision)
             rospy.Subscriber("wrist_3_collision", ContactsState, self._on_wrist_3_collision)
-            # Initialization of collision sensor flags
-            self.collision_sensors = dict.fromkeys(["shoulder", "upper_arm", "forearm", "wrist_1", "wrist_2", "wrist_3"], False)
+        # Initialization of collision sensor flags
+        self.collision_sensors = dict.fromkeys(["shoulder", "upper_arm", "forearm", "wrist_1", "wrist_2", "wrist_3"], False)
 
         # Robot Server mode
         rs_mode = rospy.get_param('~rs_mode')
@@ -106,10 +106,8 @@ class UrRosBridge:
             # Joint Positions and Joint Velocities
             joint_position = copy.deepcopy(self.joint_position)
             joint_velocity = copy.deepcopy(self.joint_velocity)
-            joint_position_list = self._get_joint_ordered_value_list(joint_position)
-            state += joint_position_list
-            joint_velocity_list = self._get_joint_ordered_value_list(joint_velocity)
-            state += joint_velocity_list
+            state += self._get_joint_ordered_value_list(joint_position)
+            state += self._get_joint_ordered_value_list(joint_velocity)
             state_dict.update(self._get_joint_states_dict(joint_position, joint_velocity))
 
             # ee to ref transform
@@ -119,10 +117,7 @@ class UrRosBridge:
             state_dict.update(self._get_transform_dict(ee_to_ref_trans, 'ee_to_ref'))
         
             # Collision sensors
-            if self.real_robot:
-                ur_collision = False
-            else:
-                ur_collision = any(self.collision_sensors.values())
+            ur_collision = any(self.collision_sensors.values())
             state += [ur_collision]
             state_dict['in_collision'] = float(ur_collision)
 
@@ -136,10 +131,8 @@ class UrRosBridge:
             # Joint Positions and Joint Velocities
             joint_position = copy.deepcopy(self.joint_position)
             joint_velocity = copy.deepcopy(self.joint_velocity)
-            joint_position_list = self._get_joint_ordered_value_list(joint_position)
-            state += joint_position_list
-            joint_velocity_list = self._get_joint_ordered_value_list(joint_velocity)
-            state += joint_velocity_list
+            state += self._get_joint_ordered_value_list(joint_position)
+            state += self._get_joint_ordered_value_list(joint_velocity)
             state_dict.update(self._get_joint_states_dict(joint_position, joint_velocity))
 
             # ee to ref transform
@@ -149,10 +142,7 @@ class UrRosBridge:
             state_dict.update(self._get_transform_dict(ee_to_ref_trans, 'ee_to_ref'))
         
             # Collision sensors
-            if self.real_robot:
-                ur_collision = False
-            else:
-                ur_collision = any(self.collision_sensors.values())
+            ur_collision = any(self.collision_sensors.values())
             state += [ur_collision]
             state_dict['in_collision'] = float(ur_collision)
 
@@ -166,10 +156,8 @@ class UrRosBridge:
             # Joint Positions and Joint Velocities
             joint_position = copy.deepcopy(self.joint_position)
             joint_velocity = copy.deepcopy(self.joint_velocity)
-            joint_position_list = self._get_joint_ordered_value_list(joint_position)
-            state += joint_position_list
-            joint_velocity_list = self._get_joint_ordered_value_list(joint_velocity)
-            state += joint_velocity_list
+            state += self._get_joint_ordered_value_list(joint_position)
+            state += self._get_joint_ordered_value_list(joint_velocity)
             state_dict.update(self._get_joint_states_dict(joint_position, joint_velocity))
 
             # ee to ref transform
@@ -179,10 +167,7 @@ class UrRosBridge:
             state_dict.update(self._get_transform_dict(ee_to_ref_trans, 'ee_to_ref'))
         
             # Collision sensors
-            if self.real_robot:
-                ur_collision = False
-            else:
-                ur_collision = any(self.collision_sensors.values())
+            ur_collision = any(self.collision_sensors.values())
             state += [ur_collision]
             state_dict['in_collision'] = float(ur_collision)
 
