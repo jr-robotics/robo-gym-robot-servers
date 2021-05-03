@@ -70,7 +70,7 @@ In a terminal window:
 ##### Simulated Robot
 Simulated Robot Servers are handled by the Server Manager. If you want to manually start a Simulated Robot Server use:
 ```
-roslaunch ur_robot_server ur10_sim_robot_server.launch gui:=true
+roslaunch ur_robot_server ur_robot_server.launch ur_model:=ur10  gui:=true
 ```
 
 ##### Real Robot Server
@@ -144,5 +144,5 @@ source /opt/ros/melodic/setup.bash
 source ~/robogym_ws/devel/setup.bash
 
 # start the Robot Server
-roslaunch ur_robot_server ur10_real_robot_server.launch gui:=true max_torque_scale_factor:=0.5 max_velocity_scale_factor:=0.5 speed_scaling:=0.5
+roslaunch ur_robot_server ur_robot_server.launch ur_model:=ur10 real_robot:=true gui:=true max_torque_scale_factor:=0.5 max_velocity_scale_factor:=0.5 speed_scaling:=0.5
 ```
