@@ -17,9 +17,7 @@ RUN apt-get update && apt-get install -y \
 
 # Install pkgs required by Panda
 RUN apt-get update && apt-get install -q -y \
-    ros-$ROS_DISTRO-libfranka ros-$ROS_DISTRO-franka-ros \
-    ros-$ROS_DISTRO-gazebo-ros-control \
-    ros-${ROS_DISTRO}-rospy-message-converter ros-${ROS_DISTRO}-effort-controllers \
+    ros-${ROS_DISTRO}-rospy-message-converter \
     ros-${ROS_DISTRO}-moveit ros-${ROS_DISTRO}-moveit-commander \
     ros-${ROS_DISTRO}-moveit-visual-tools
 
