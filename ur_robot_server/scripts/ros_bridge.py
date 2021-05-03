@@ -47,11 +47,9 @@ class UrRosBridge:
         self.sleep_time = (1.0 / rospy.get_param("~action_cycle_rate")) - 0.01
         self.control_period = rospy.Duration.from_sec(self.sleep_time)
         self.max_velocity_scale_factor = float(rospy.get_param("~max_velocity_scale_factor"))
-
-        self.joint_velocity_limits = self._get_joint_velocity_limits()
-
         # Minimum Trajectory Point time from start
         self.min_traj_duration = 0.5
+        self.joint_velocity_limits = self._get_joint_velocity_limits()
 
         self.reference_frame = rospy.get_param("~reference_frame", "base")
         self.ee_frame = 'tool0'
@@ -67,12 +65,12 @@ class UrRosBridge:
         if not self.real_robot:
             # Subscribers to link collision sensors topics
 
-            rospy.Subscriber("shoulder_collision", ContactsState, self.shoulder_collision_callback)
-            rospy.Subscriber("upper_arm_collision", ContactsState, self.upper_arm_collision_callback)
-            rospy.Subscriber("forearm_collision", ContactsState, self.forearm_collision_callback)
-            rospy.Subscriber("wrist_1_collision", ContactsState, self.wrist_1_collision_callback)
-            rospy.Subscriber("wrist_2_collision", ContactsState, self.wrist_2_collision_callback)
-            rospy.Subscriber("wrist_3_collision", ContactsState, self.wrist_3_collision_callback)
+            rospy.Subscriber("shoulder_collision", ContactsState, self._on_shoulder_collision)
+            rospy.Subscriber("upper_arm_collision", ContactsState, self._on_upper_arm_collision)
+            rospy.Subscriber("forearm_collision", ContactsState, self._on_forearm_collision)
+            rospy.Subscriber("wrist_1_collision", ContactsState, self._on_wrist_1_collision)
+            rospy.Subscriber("wrist_2_collision", ContactsState, self._on_wrist_2_collision)
+            rospy.Subscriber("wrist_3_collision", ContactsState, self._on_wrist_3_collision)
 
             # Initialization of collision sensor flags
             self.collision_sensors = dict.fromkeys(["shoulder", "upper_arm", "forearm", "wrist_1", "wrist_2", "wrist_3"], False)
@@ -107,7 +105,7 @@ class UrRosBridge:
         self.use_voxel_occupancy = rospy.get_param("~use_voxel_occupancy", False) # e.g. for target_mode=1moving1point_2_2_4_voxel
         self.use_voxel_occupancy = True
         if self.use_voxel_occupancy: 
-            rospy.Subscriber("occupancy_state", Int32MultiArray, self.voxel_occupancy_callback)
+            rospy.Subscriber("occupancy_state", Int32MultiArray, self._on_occupancy_state)
             if self.rs_mode == '1moving1point_2_2_4_voxel':
                 self.voxel_occupancy = [0.0] * 16
 
@@ -349,43 +347,43 @@ class UrRosBridge:
                     self.joint_position[name] = msg.position[idx]
                     self.joint_velocity[name] = msg.velocity[idx]
 
-    def shoulder_collision_callback(self, data):
+    def _on_shoulder_collision(self, data):
         if data.states == []:
             pass
         else:
             self.collision_sensors["shoulder"] = True
 
-    def upper_arm_collision_callback(self, data):
+    def _on_upper_arm_collision(self, data):
         if data.states == []:
             pass
         else:
             self.collision_sensors["upper_arm"] = True
 
-    def forearm_collision_callback(self, data):
+    def _on_forearm_collision(self, data):
         if data.states == []:
             pass
         else:
             self.collision_sensors["forearm"] = True
 
-    def wrist_1_collision_callback(self, data):
+    def _on_wrist_1_collision(self, data):
         if data.states == []:
             pass
         else:
             self.collision_sensors["wrist_1"] = True
 
-    def wrist_2_collision_callback(self, data):
+    def _on_wrist_2_collision(self, data):
         if data.states == []:
             pass
         else:
             self.collision_sensors["wrist_2"] = True
 
-    def wrist_3_collision_callback(self, data):
+    def _on_wrist_3_collision(self, data):
         if data.states == []:
             pass
         else:
             self.collision_sensors["wrist_3"] = True
 
-    def voxel_occupancy_callback(self, msg):
+    def _on_occupancy_state(self, msg):
         if self.get_state_event.is_set():
             # occupancy_3d_array = np.reshape(msg.data, [dim.size for dim in msg.layout.dim])
             self.voxel_occupancy = msg.data
