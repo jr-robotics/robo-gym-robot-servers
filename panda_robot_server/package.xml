@@ -31,11 +31,11 @@
   <exec_depend>rviz</exec_depend>
   <exec_depend>xacro</exec_depend>
   <exec_depend>tf</exec_depend>
-  <exec_depend>ur_gazebo</exec_depend>
   <exec_depend>tmux</exec_depend>
   <exec_depend>gazebo_ros_pkgs</exec_depend>
 
   <!-- TODO lockup the configs for Franka Emika-->
+  <exec_depend>panda_gazebo</exec_depend>
   <exec_depend>franka_control</exec_depend>
   <exec_depend>franka_description</exec_depend>
   <exec_depend>franka_example_controllers</exec_depend>
@@ -44,6 +44,7 @@
   <exec_depend>franka_msgs</exec_depend>
   <exec_depend>franka_visualization</exec_depend>
   <exec_depend>panda_moveit_config</exec_depend>
+  <exec_depend>libfranka</exec_depend>
 
   <export>
     <gazebo_ros gazebo_model_path="${prefix}/models"/>

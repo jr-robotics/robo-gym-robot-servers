@@ -12,51 +12,55 @@ The compatibility of the Universal Robots environments with ROS Kinetic has been
 
 ### Robots currently implemented
 - MiR100
-- Universal Robots UR 5, UR 10
+- Universal Robots: UR3, UR3e, UR5, UR5e, UR10, UR10e, UR16
 
 
-### Installation
-
-Create a workspace folder in the home folder of your PC and clone this repository
-
-```
-mkdir -p ~/robogym_ws/src && cd ~/robogym_ws/src && git clone https://github.com/jr-robotics/robo-gym-robot-servers.git
-```
-
-Run the installation script
-
-**ROS Melodic**
-```
-~/robogym_ws/src/robo-gym-robot-servers/melodic-install.sh
+# Installation
+1. Open a new terminal and set the environment variables. Use the same terminal for all the installation steps. 
+```bash
+# Set robo-gym ROS workspace folder
+export ROBOGYM_WS=~/robogym_ws 
+# Set ROS distribution
+export ROS_DISTRO=melodic
 ```
 
-**ROS Kinetic**
-```
-~/robogym_ws/src/robo-gym-robot-servers/kinetic-install.sh
+2. Create a workspace folder in the home folder of your PC and clone this repository
+```bash
+mkdir -p $ROBOGYM_WS/src && cd $ROBOGYM_WS/src && git clone https://github.com/jr-robotics/robo-gym-robot-servers.git
 ```
 
-Add the following lines to your `.bashrc` file:
+3.  Setup your computer to accept software from packages.ros.org
+```
+sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list' && sudo apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
+```
+
+4. Install the dependencies
 
 ```bash
-# Source ROS Melodic
-source /opt/ros/melodic/setup.bash
-# Source ROS Kinetic
-# source /opt/ros/kinetic/setup.bash
-
-# Source the workspace
-source ~/robogym_ws/devel/setup.bash
+$ROBOGYM_WS/src/robo-gym-robot-servers/install-ros-dependencies.bash
 ```
 
-### How to use
 
-#### MiR100
+5. Add the sourcing of ROS and the ROS workspace to your `.bashrc` file:
 
-##### Simulated Robot
+```bash
+printf "source /opt/ros/$ROS_DISTRO/setup.bash\nsource $ROBOGYM_WS/devel/setup.bash" >> ~/.bashrc
+```
+
+## Troubleshooting
+
+For problems with step 2 and 3 refer to http://wiki.ros.org/melodic/Installation/Ubuntu.
+
+# How to use
+
+## MiR100
+
+### Simulated Robot
 Simulated Robot Servers are handled by the Server Manager. If you want to manually start a Simulated Robot Server use:
 ```
 roslaunch mir100_robot_server sim_robot_server.launch gui:=true
 ```
-##### Real Robot
+### Real Robot
 
 - Connect to the robot's network
 
@@ -65,16 +69,16 @@ In a terminal window:
 - Launch MiR100 Robot Server `roslaunch mir100_robot_server real_robot_server.launch gui:=true`
 
 
-#### Universal Robots
+## Universal Robots
 
-##### Simulated Robot
+### Simulated Robot
 Simulated Robot Servers are handled by the Server Manager. If you want to manually start a Simulated Robot Server use:
 ```
 roslaunch ur_robot_server ur_robot_server.launch ur_model:=ur10  gui:=true
 ```
 
-##### Real Robot Server
-###### Install UR ROS Driver
+### Real Robot Server
+#### Install UR ROS Driver
 
 To control the UR Robots we use the new [UR ROS Driver](https://github.com/jr-robotics/Universal_Robots_ROS_Driver).
 At the current status the [UR ROS Driver](https://github.com/jr-robotics/Universal_Robots_ROS_Driver) and the [Universal_robot](https://github.com/jr-robotics/universal_robot) package use two different robot descriptions, for this reason it is needed to setup the UR ROS Driver in a separate workspace to avoid conflicts between the two packages.
@@ -108,7 +112,7 @@ catkin build
 
 For additional instructions on how to setup the driver on the robot follow the README of the [UR ROS Driver](https://github.com/jr-robotics/Universal_Robots_ROS_Driver).
 
-###### How to use
+#### How to use
 
 *NOTE:* The following instructions and command lines have been written for the UR 10 but they apply to all the supported UR robots, for instance for using the UR 5 Robot Server it is sufficient to replace `ur10` with `ur5` in all the following command lines.
 
