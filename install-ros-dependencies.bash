@@ -1,5 +1,7 @@
 #!/bin/sh
 
+sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu `lsb_release -sc` main" > /etc/apt/sources.list.d/ros-latest.list'
+wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
 sudo apt-get update && apt-get install -y \
   apt-utils build-essential psmisc vim-gtk \
   git swig sudo libcppunit-dev \
@@ -30,3 +32,7 @@ apt-get update
 rosdep install --from-paths src -i -y --rosdistro $ROS_DISTRO --as-root=apt:false 
 catkin init 
 catkin build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebugInfo
+pip install --upgrade pip && \
+pip install robo-gym-server-modules scipy numpy
+# Panda requirement
+pip install --upgrade numpy numpy-quaternion==2020.5.11.13.33.35
