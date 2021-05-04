@@ -1,12 +1,13 @@
-FROM osrf/ros:melodic-desktop-full
+ARG ROS_DISTRO=melodic
+FROM osrf/ros:$ROS_DISTRO-desktop-full
 
+ARG ROS_DISTRO
 ARG GIT_COMMIT=unknown
-ENV GIT_COMMIT $GIT_COMMIT
 LABEL git-commit=$GIT_COMMIT
 ARG CI_JOB_TOKEN
 
 ENV DEBIAN_FRONTEND noninteractive
-ENV ROS_DISTRO=melodic
+ENV ROS_DISTRO=$ROS_DISTRO
 ENV ROBOGYM_WS=/robogym_ws
 
 RUN rm /bin/sh && ln -s /bin/bash /bin/sh
