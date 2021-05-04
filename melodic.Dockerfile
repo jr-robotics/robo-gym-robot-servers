@@ -14,13 +14,6 @@ RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 COPY ./install-ros-dependencies.bash /
 RUN chmod +x /install-ros-dependencies.bash && /install-ros-dependencies.bash
 
-# RUN \
-#   pip install --upgrade pip && \
-#   pip install robo-gym-server-modules && \
-#   pip install scipy numpy && \
-#   # Panda requirement
-#   pip install --upgrade numpy numpy-quaternion==2020.5.11.13.33.35
-
 ARG CACHEBUST=1
 
 ADD . $ROBOGYM_WS/src/robo-gym-robot-servers
