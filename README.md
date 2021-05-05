@@ -16,35 +16,48 @@ The compatibility of the Universal Robots environments with ROS Kinetic has been
 
 
 # Installation
-1. Open a new terminal and set the environment variables. Use the same terminal for all the installation steps. 
-```bash
+
+Ubuntu 18.04 - ROS Melodic 
+
+1. Install the required packages
+```sh
+sudo apt-get update && sudo apt-get install apt-utils build-essential psmisc vim-gtk git swig sudo libcppunit-dev python-catkin-tools python-rosdep python-pip python-rospkg python-future
+```
+
+2. Open a new terminal and set the environment variables. Use the same terminal for all the installation steps. 
+```sh
 # Set robo-gym ROS workspace folder
 export ROBOGYM_WS=~/robogym_ws 
 # Set ROS distribution
 export ROS_DISTRO=melodic
 ```
 
-2. Create a workspace folder in the home folder of your PC and clone this repository
-```bash
+3. Create a workspace folder in the home folder of your PC and clone this repository
+```sh
 mkdir -p $ROBOGYM_WS/src && cd $ROBOGYM_WS/src && git clone https://github.com/jr-robotics/robo-gym-robot-servers.git
 ```
 
-3.  Setup your computer to accept software from packages.ros.org
-```
+4.  Setup your computer to accept software from packages.ros.org
+```sh
 sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list' && sudo apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
 ```
 
-4. Install the dependencies
-
-```bash
-chmod +x $ROBOGYM_WS/src/robo-gym-robot-servers/$ROS_DISTRO-install.bash && /
-sudo -E sh -c $ROBOGYM_WS/src/robo-gym-robot-servers/$ROS_DISTRO-install.bash
+5. Clone required packages, build the workspace and install required python modules
+```sh
+source /opt/ros/$ROS_DISTRO/setup.bash &&\
+git clone -b $ROS_DISTRO https://github.com/jr-robotics/mir_robot.git &&\
+git clone -b $ROS_DISTRO https://github.com/jr-robotics/universal_robot.git &&\ 
+cd $ROBOGYM_WS &&\
+sudo apt-get update &&\
+rosdep install --from-paths src -i -y --rosdistro $ROS_DISTRO --as-root=apt:false &&\
+catkin init &&\
+catkin build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebugInfo &&\
+pip install --upgrade pip &&\
+pip install robo-gym-server-modules scipy numpy &&\
 ```
 
-
-5. Add the sourcing of ROS and the ROS workspace to your `.bashrc` file:
-
-```bash
+6. Add the sourcing of ROS and the ROS workspace to your `.bashrc` file:
+```sh
 printf "source /opt/ros/$ROS_DISTRO/setup.bash\nsource $ROBOGYM_WS/devel/setup.bash" >> ~/.bashrc
 ```
 
