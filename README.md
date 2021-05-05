@@ -37,8 +37,8 @@ sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main
 4. Install the dependencies
 
 ```bash
-chmod +x $ROBOGYM_WS/src/robo-gym-robot-servers/install-ros-dependencies.bash && /
-sudo -E sh -c $ROBOGYM_WS/src/robo-gym-robot-servers/install-ros-dependencies.bash
+chmod +x $ROBOGYM_WS/src/robo-gym-robot-servers/$ROS_DISTRO-install.bash && /
+sudo -E sh -c $ROBOGYM_WS/src/robo-gym-robot-servers/$ROS_DISTRO-install.bash
 ```
 
 
