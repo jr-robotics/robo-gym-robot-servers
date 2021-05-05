@@ -24,6 +24,24 @@ The compatibility of the Universal Robots environments with ROS Kinetic has been
 sudo apt-get update && sudo apt-get install apt-utils build-essential psmisc vim-gtk git swig sudo libcppunit-dev python3-catkin-tools python3-rosdep python3-pip python3-rospkg python3-future python3-osrf-pycommon
 ```
 
+2. Open a new terminal and set the environment variables. Use the same terminal for all the installation steps. 
+```sh
+# Set robo-gym ROS workspace folder
+export ROBOGYM_WS=~/robogym_ws 
+# Set ROS distribution
+export ROS_DISTRO=noetic
+```
+
+3. Create a workspace folder in the home folder of your PC and clone this repository
+```sh
+mkdir -p $ROBOGYM_WS/src && cd $ROBOGYM_WS/src && git clone https://github.com/jr-robotics/robo-gym-robot-servers.git
+```
+
+4.  Setup your computer to accept software from packages.ros.org
+```sh
+sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list' && sudo apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
+```
+
 ## Ubuntu 18.04 - ROS Melodic 
 <details>
 <summary>Click to expand</summary>
