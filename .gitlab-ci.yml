@@ -24,7 +24,7 @@ build_docker_image:
     - docker pull $CI_REGISTRY_IMAGE:latest || true
     - >
       docker build 
-      -f Dockerfile 
+      -f melodic.Dockerfile 
       --cache-from $CI_REGISTRY_IMAGE:latest
       --build-arg GIT_COMMIT=$CI_COMMIT_SHA 
       --build-arg CI_JOB_TOKEN=$CI_JOB_TOKEN
