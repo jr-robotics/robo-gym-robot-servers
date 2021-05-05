@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y \
   apt-utils build-essential psmisc vim-gtk \
   git swig sudo libcppunit-dev \
   python3-catkin-tools python3-rosdep python3-pip \
-  python3-rospkg python3-future
+  python3-rospkg python3-future python3-osrf-pycommon
 
 # # Panda 
 # # TODO check if these can be removed

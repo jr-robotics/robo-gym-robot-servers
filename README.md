@@ -21,7 +21,7 @@ The compatibility of the Universal Robots environments with ROS Kinetic has been
 
 1. Install the required packages
 ```sh
-sudo apt-get update && sudo apt-get install apt-utils build-essential psmisc vim-gtk git swig sudo libcppunit-dev python3-catkin-tools python3-rosdep python3-pip python3-rospkg python3-future
+sudo apt-get update && sudo apt-get install apt-utils build-essential psmisc vim-gtk git swig sudo libcppunit-dev python3-catkin-tools python3-rosdep python3-pip python3-rospkg python3-future python3-osrf-pycommon
 ```
 
 ## Ubuntu 18.04 - ROS Melodic 
