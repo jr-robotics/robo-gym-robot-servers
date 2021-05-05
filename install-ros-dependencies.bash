@@ -29,7 +29,7 @@ cd $ROBOGYM_WS
 apt-get update 
 rosdep install --from-paths src -i -y --rosdistro $ROS_DISTRO --as-root=apt:false 
 catkin init 
-catkin build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebugInfo
+catkin build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebugInfo -DPYTHON_EXECUTABLE=/usr/bin/python
 pip install --upgrade pip && \
 pip install robo-gym-server-modules scipy numpy
 # Panda requirement
