@@ -17,7 +17,17 @@ The compatibility of the Universal Robots environments with ROS Kinetic has been
 
 # Installation
 
-Ubuntu 18.04 - ROS Melodic 
+## Ubuntu 20.04 - ROS Noetic
+
+1. Install the required packages
+```sh
+sudo apt-get update && sudo apt-get install apt-utils build-essential psmisc vim-gtk git swig sudo libcppunit-dev python3-catkin-tools python3-rosdep python3-pip python3-rospkg python3-future
+```
+
+## Ubuntu 18.04 - ROS Melodic 
+<details>
+<summary>Click to expand</summary>
+<p>
 
 1. Install the required packages
 ```sh
@@ -60,6 +70,9 @@ pip install robo-gym-server-modules scipy numpy &&\
 ```sh
 printf "source /opt/ros/$ROS_DISTRO/setup.bash\nsource $ROBOGYM_WS/devel/setup.bash" >> ~/.bashrc
 ```
+
+</p>
+</details>  
 
 ## Troubleshooting
 

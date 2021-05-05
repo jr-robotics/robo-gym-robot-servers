@@ -13,7 +13,7 @@ variables:
 before_script:
 - echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
 
-build_docker_image:
+.build_docker_image: &build_docker_image_def
   image: docker:18.09
   services:
     - docker:18.09-dind
@@ -36,6 +36,13 @@ build_docker_image:
     - docker tag $CI_REGISTRY_IMAGE:$ROS_DISTRO-$CI_COMMIT_SHA $CI_REGISTRY_IMAGE:$ROS_DISTRO-latest
     - docker push $CI_REGISTRY_IMAGE:$ROS_DISTRO-latest
 
+build_melodic_docker_image:
+  <<: *build_docker_image_def
+
+build_noetic_docker_image:
+  <<: *build_docker_image_def
+  variables:
+    ROS_DISTRO: "noetic"
 
 .test_environments: &test_environments_def
   image: docker:18.09
