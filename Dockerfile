@@ -12,8 +12,8 @@ ENV ROBOGYM_WS=/robogym_ws
 
 RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 
-COPY ./install-ros-dependencies.bash /
-RUN chmod +x /install-ros-dependencies.bash && /install-ros-dependencies.bash
+COPY ./$ROS_DISTRO-install.bash /
+RUN chmod +x /$ROS_DISTRO-install.bash && /$ROS_DISTRO-install.bash
 
 ARG CACHEBUST=1
 

@@ -1,16 +1,3 @@
-#!/bin/sh
-
-if [[ $ROS_DISTRO == 'melodic' ]]
-then
-    export PYTHON=python 
-elif [[ $ROS_DISTRO == 'noetic' ]]
-then
-    export PYTHON=python3
-else
-    echo "ROS_DISTRO is not specified or invalid"
-    break
-fi  
-
 sudo apt-get update && apt-get install -y \
   apt-utils build-essential psmisc vim-gtk \
   git swig sudo libcppunit-dev \
@@ -40,7 +27,7 @@ cd $ROBOGYM_WS
 apt-get update 
 rosdep install --from-paths src -i -y --rosdistro $ROS_DISTRO --as-root=apt:false 
 catkin init 
-catkin build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebugInfo -DPYTHON_EXECUTABLE=/usr/bin/$PYTHON
+catkin build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebugInfo
 pip install --upgrade pip && \
 pip install robo-gym-server-modules scipy numpy
 # Panda requirement
