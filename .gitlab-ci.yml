@@ -6,8 +6,9 @@ stages:
 
 variables:
   PYTHON_VER: "3.6"
+  ROS_DISTRO: "melodic"
   ROBO_GYM_IMAGE: "$CI_REGISTRY/robo-gym/robo-gym/develop:latest"
-  ROBOT_SERVERS_IMAGE: "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+  ROBOT_SERVERS_IMAGE: "$CI_REGISTRY_IMAGE:$ROS_DISTRO-$CI_COMMIT_SHA"
 
 before_script:
 - echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
@@ -21,19 +22,20 @@ build_docker_image:
   stage: build
   script:
     # fetch the latest image (not failing if image is not found)
-    - docker pull $CI_REGISTRY_IMAGE:latest || true
+    - docker pull $CI_REGISTRY_IMAGE:$ROS_DISTRO-latest || true
     - >
       docker build 
-      -f melodic.Dockerfile 
-      --cache-from $CI_REGISTRY_IMAGE:latest
+      -f $ROS_DISTRO.Dockerfile 
+      --cache-from $CI_REGISTRY_IMAGE:$ROS_DISTRO-latest
       --build-arg GIT_COMMIT=$CI_COMMIT_SHA 
       --build-arg CI_JOB_TOKEN=$CI_JOB_TOKEN
       --build-arg CACHEBUST=$CI_COMMIT_SHA 
-      -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA 
+      -t $CI_REGISTRY_IMAGE:$ROS_DISTRO-$CI_COMMIT_SHA 
       .
-    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
-    - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE:latest
-    - docker push $CI_REGISTRY_IMAGE:latest
+    - docker push $CI_REGISTRY_IMAGE:$ROS_DISTRO-$CI_COMMIT_SHA
+    - docker tag $CI_REGISTRY_IMAGE:$ROS_DISTRO-$CI_COMMIT_SHA $CI_REGISTRY_IMAGE:$ROS_DISTRO-latest
+    - docker push $CI_REGISTRY_IMAGE:$ROS_DISTRO-latest
+
 
 .test_environments: &test_environments_def
   image: docker:18.09
@@ -76,9 +78,9 @@ test_environments_with_robo-gym-master:
     GIT_STRATEGY: none
     IMAGE_NAME: $CI_COMMIT_BRANCH
   script:
-    - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
-    - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/$IMAGE_NAME:latest
-    - docker push $CI_REGISTRY_IMAGE/$IMAGE_NAME:latest
+    - docker pull $CI_REGISTRY_IMAGE:$ROS_DISTRO-$CI_COMMIT_SHA
+    - docker tag $CI_REGISTRY_IMAGE:$ROS_DISTRO-$CI_COMMIT_SHA $CI_REGISTRY_IMAGE:$ROS_DISTRO-$IMAGE_NAME-latest
+    - docker push $CI_REGISTRY_IMAGE:$ROS_DISTRO-$IMAGE_NAME-latest
 
 deploy_docker_image:
   <<: *deploy_docker_image_def
@@ -111,9 +113,9 @@ deploy_docker_image_to_dockerhub:
   variables:
     GIT_STRATEGY: none
   script:
-    - docker pull $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
-    - docker tag $CI_REGISTRY_IMAGE/master:latest joanneumrobotics/robo-gym-robot-server-side:$CI_COMMIT_SHA
-    - docker tag $CI_REGISTRY_IMAGE/master:latest joanneumrobotics/robo-gym-robot-server-side:latest
+    - docker pull $CI_REGISTRY_IMAGE:$ROS_DISTRO-$CI_COMMIT_SHA
+    - docker tag $CI_REGISTRY_IMAGE:$ROS_DISTRO-$CI_COMMIT_SHA joanneumrobotics/robo-gym-robot-server-side:$CI_COMMIT_SHA
+    - docker tag $CI_REGISTRY_IMAGE:$ROS_DISTRO-$CI_COMMIT_SHA joanneumrobotics/robo-gym-robot-server-side:latest
     - echo "$DOCKER_HUB_TOKEN" | docker login --username $DOCKER_HUB_USER --password-stdin
     - docker push joanneumrobotics/robo-gym-robot-server-side:$CI_COMMIT_SHA
     - docker push joanneumrobotics/robo-gym-robot-server-side:latest
