@@ -77,7 +77,8 @@ git clone -b $ROS_DISTRO https://github.com/jr-robotics/mir_robot.git &&\
 git clone -b $ROS_DISTRO https://github.com/jr-robotics/universal_robot.git &&\ 
 cd $ROBOGYM_WS &&\
 sudo apt-get update &&\
-rosdep install --from-paths src -i -y --rosdistro $ROS_DISTRO --as-root=apt:false &&\
+sudo rosdep init && rosdep update &&\
+rosdep install --from-paths src -i -y --rosdistro $ROS_DISTRO &&\
 catkin init &&\
 catkin build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebugInfo &&\
 pip install --upgrade pip &&\
