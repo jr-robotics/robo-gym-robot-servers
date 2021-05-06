@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import rospy
 from trajectory_msgs.msg import JointTrajectoryPoint, JointTrajectory
-from Queue import Queue
+from queue import Queue
 
 class JointTrajectoryCH:
     def __init__(self):

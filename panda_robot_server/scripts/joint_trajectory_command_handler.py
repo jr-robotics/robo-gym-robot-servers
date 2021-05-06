@@ -3,10 +3,7 @@
 import rospy
 from trajectory_msgs.msg import JointTrajectoryPoint, JointTrajectory
 
-try: # import either Python2 or Python3 version
-   from queue import Queue as Queue
-except ImportError:
-   from Queue import Queue as Queue
+from queue import Queue
 
 
 class JointTrajectoryCH:
