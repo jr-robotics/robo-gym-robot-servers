@@ -8,8 +8,8 @@ find_package(catkin REQUIRED COMPONENTS
 
 catkin_package()
 
+catkin_python_setup()
 catkin_install_python(PROGRAMS scripts/cmd_vel_command_handler.py 
                                scripts/robot_pose_publisher.py
                                scripts/robot_server.py
-                               scripts/ros_bridge.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
