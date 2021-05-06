@@ -80,7 +80,7 @@ sudo apt-get update &&\
 sudo rosdep init && rosdep update &&\
 rosdep install --from-paths src -i -y --rosdistro $ROS_DISTRO &&\
 catkin init &&\
-catkin build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebugInfo &&\
+catkin build &&\
 pip install --upgrade pip &&\
 pip install robo-gym-server-modules scipy numpy &&\
 ```
