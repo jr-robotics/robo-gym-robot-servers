@@ -53,7 +53,8 @@ sudo rosdep init && rosdep update &&\
 rosdep install --from-paths src -i -y --rosdistro $ROS_DISTRO &&\
 catkin init &&\
 catkin build &&\
-pip3 install robo-gym-server-modules scipy numpy
+pip3 install robo-gym-server-modules scipy numpy &&\
+pip3 install --upgrade protobuf
 ```
 
 ## Ubuntu 18.04 - ROS Melodic 
