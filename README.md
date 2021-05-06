@@ -57,6 +57,11 @@ pip3 install robo-gym-server-modules scipy numpy &&\
 pip3 install --upgrade protobuf
 ```
 
+6. Add the sourcing of ROS and the ROS workspace to your `.bashrc` file:
+```sh
+printf "source /opt/ros/$ROS_DISTRO/setup.bash\nsource $ROBOGYM_WS/devel/setup.bash" >> ~/.bashrc
+```
+
 ## Ubuntu 18.04 - ROS Melodic 
 <details>
 <summary>Click to expand</summary>
