@@ -43,7 +43,7 @@ RUN source /opt/ros/$ROS_DISTRO/setup.bash &&\
     catkin init &&\
     catkin build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebugInfo &&\
     pip install --upgrade pip &&\
-    pip install robo-gym-server-modules scipy numpy &&\
+    pip install robo-gym-server-modules scipy numpy future &&\
     # Panda requirement
     pip install --upgrade numpy numpy-quaternion==2020.5.11.13.33.35
 

@@ -2,7 +2,7 @@
 
 import rospy
 from geometry_msgs.msg import Twist
-from Queue import Queue
+from queue import Queue
 
 class CmdVelCH:
     def __init__(self):
