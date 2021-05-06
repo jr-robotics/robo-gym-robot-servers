@@ -42,6 +42,20 @@ mkdir -p $ROBOGYM_WS/src && cd $ROBOGYM_WS/src && git clone https://github.com/j
 sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list' && sudo apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
 ```
 
+5. Clone required packages, build the workspace and install required python modules
+```sh
+source /opt/ros/$ROS_DISTRO/setup.bash &&\
+git clone -b $ROS_DISTRO https://github.com/jr-robotics/mir_robot.git &&\
+#git clone -b $ROS_DISTRO https://github.com/jr-robotics/universal_robot.git &&\ 
+cd $ROBOGYM_WS &&\
+sudo apt-get update &&\
+sudo rosdep init && rosdep update &&\
+rosdep install --from-paths src -i -y --rosdistro $ROS_DISTRO &&\
+catkin init &&\
+catkin build &&\
+pip3 install robo-gym-server-modules scipy numpy
+```
+
 ## Ubuntu 18.04 - ROS Melodic 
 <details>
 <summary>Click to expand</summary>
@@ -82,7 +96,7 @@ rosdep install --from-paths src -i -y --rosdistro $ROS_DISTRO &&\
 catkin init &&\
 catkin build &&\
 pip install --upgrade pip &&\
-pip install robo-gym-server-modules scipy numpy &&\
+pip install robo-gym-server-modules scipy numpy
 ```
 
 6. Add the sourcing of ROS and the ROS workspace to your `.bashrc` file:
