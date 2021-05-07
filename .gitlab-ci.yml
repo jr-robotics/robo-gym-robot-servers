@@ -64,8 +64,14 @@ build_noetic_docker_image:
     - docker exec robo-gym pytest -m "not nightly"
     - docker-compose -f docker-compose.yml down
 
-test_environments:
+test_environments_melodic:
   <<: *test_environments_def 
+
+test_environments_noetic:
+  <<: *test_environments_def 
+  variables:
+    ROS_DISTRO: noetic
+  when: manual 
 
 test_environments_with_robo-gym-master:
   <<: *test_environments_def  
