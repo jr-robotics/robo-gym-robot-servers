@@ -39,7 +39,7 @@ RUN source /opt/ros/$ROS_DISTRO/setup.bash &&\
     # git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@robotics-git.joanneum.at/perception/scene_perception.git 
     cd $ROBOGYM_WS &&\
     apt-get update &&\
-    rosdep install --from-paths src -i -y --rosdistro $ROS_DISTRO --as-root=apt:false &&\
+    rosdep update && rosdep install --from-paths src -i -y --rosdistro $ROS_DISTRO --as-root=apt:false &&\
     catkin init &&\
     catkin build &&\
     pip3 install robo-gym-server-modules scipy numpy
@@ -55,7 +55,7 @@ RUN source /opt/ros/$ROS_DISTRO/setup.bash && \
     cd $ROBOGYM_WS && \
     apt-get update && \
     # rosdep install --from-paths src -i -y --rosdistro $ROS_DISTRO --as-root=apt:false && \
-    rosdep install --from-paths src/robo-gym-robot-servers/ur_robot_server -i -y --rosdistro $ROS_DISTRO --as-root=apt:false && \
+    rosdep update && rosdep install --from-paths src/robo-gym-robot-servers/ur_robot_server -i -y --rosdistro $ROS_DISTRO --as-root=apt:false && \
     # catkin build
     catkin build ur_robot_server
 
