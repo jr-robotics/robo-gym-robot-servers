@@ -27,7 +27,7 @@ RUN source /opt/ros/$ROS_DISTRO/setup.bash &&\
     mkdir -p $ROBOGYM_WS/src &&\
     cd $ROBOGYM_WS/src &&\
     git clone -b $ROS_DISTRO https://github.com/jr-robotics/mir_robot.git &&\
-    # git clone -b $ROS_DISTRO https://github.com/jr-robotics/universal_robot.git &&\ 
+    git clone -b $ROS_DISTRO https://github.com/jr-robotics/universal_robot.git &&\ 
     # PANDA START
     # git clone -b v0.7.1-dev https://github.com/jr-robotics/franka_ros_interface &&\
     # git clone https://github.com/jr-robotics/franka_panda_description &&\ 
@@ -46,9 +46,9 @@ RUN source /opt/ros/$ROS_DISTRO/setup.bash &&\
     # Panda requirement
     # pip install --upgrade numpy numpy-quaternion==2020.5.11.13.33.35
 
-# ARG CACHEBUST=1
+ARG CACHEBUST=1
 
-# ADD . $ROBOGYM_WS/src/robo-gym-robot-servers
+ADD . $ROBOGYM_WS/src/robo-gym-robot-servers
 
 # # Build ROS Workspace
 # RUN source /opt/ros/$ROS_DISTRO/setup.bash && \
