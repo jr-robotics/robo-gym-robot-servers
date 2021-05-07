@@ -50,12 +50,14 @@ ARG CACHEBUST=1
 
 ADD . $ROBOGYM_WS/src/robo-gym-robot-servers
 
-# # Build ROS Workspace
-# RUN source /opt/ros/$ROS_DISTRO/setup.bash && \
-#     cd $ROBOGYM_WS && \
-#     apt-get update && \
-#     rosdep install --from-paths src -i -y --rosdistro $ROS_DISTRO --as-root=apt:false && \
-#     catkin build --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebugInfo
+# Build ROS Workspace
+RUN source /opt/ros/$ROS_DISTRO/setup.bash && \
+    cd $ROBOGYM_WS && \
+    apt-get update && \
+    # rosdep install --from-paths src -i -y --rosdistro $ROS_DISTRO --as-root=apt:false && \
+    rosdep install --from-paths src/ur_robot_server -i -y --rosdistro $ROS_DISTRO --as-root=apt:false && \
+    # catkin build
+    catkin build ur_robot_server
 
 COPY ./ros-entrypoint.sh /
 ENTRYPOINT ["/ros-entrypoint.sh"]
