@@ -64,8 +64,16 @@ build_noetic_docker_image:
     - docker exec robo-gym pytest -m "not nightly"
     - docker-compose -f docker-compose.yml down
 
-test_environments:
+test_environments_melodic:
   <<: *test_environments_def 
+  needs: ["build_melodic_docker_image"]
+
+test_environments_noetic:
+  <<: *test_environments_def 
+  variables:
+    ROS_DISTRO: noetic
+  when: manual
+  needs: ["build_noetic_docker_image"] 
 
 test_environments_with_robo-gym-master:
   <<: *test_environments_def  
@@ -73,6 +81,37 @@ test_environments_with_robo-gym-master:
     ROBO_GYM_IMAGE: "$CI_REGISTRY/robo-gym/robo-gym/master:latest"
   only:
     - master
+.full_test_environments: &full_test_environments_def
+  image: docker:18.09
+  before_script:
+  - echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
+  - apk add docker-compose
+  services:
+    - docker:18.09-dind
+  tags:
+    - docker-executor
+  stage: test
+  script:
+    - echo "Python Version:$PYTHON_VER robo-gym image:$ROBO_GYM_IMAGE robot-servers image:$ROBOT_SERVERS_IMAGE"  
+    - docker pull $ROBO_GYM_IMAGE
+    - docker tag $ROBO_GYM_IMAGE robo-gym
+    - docker pull $ROBOT_SERVERS_IMAGE
+    - docker tag $ROBOT_SERVERS_IMAGE robot-servers
+    - docker-compose -f docker-compose.yml up -d
+    - docker exec robo-gym pytest -m "not nightly"
+    - docker-compose -f docker-compose.yml down
+
+full_test_environments_melodic:
+  <<: *full_test_environments_def 
+  when: manual
+  needs: ["build_melodic_docker_image"]
+
+full_test_environments_noetic:
+  <<: *full_test_environments_def 
+  variables:
+    ROS_DISTRO: noetic
+  when: manual
+  needs: ["build_noetic_docker_image"] 
 
 .deploy_docker_image: &deploy_docker_image_def
   image: docker:18.09
