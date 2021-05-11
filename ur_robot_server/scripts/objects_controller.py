@@ -1,15 +1,13 @@
 #!/usr/bin/env python
 import rospy
 from std_msgs.msg import Bool
-from geometry_msgs.msg import Pose, Twist, TransformStamped
+from geometry_msgs.msg import TransformStamped
 from gazebo_msgs.msg import ModelState
 from scipy import signal, interpolate 
 import numpy as np 
 import copy
 import os
 import random
-
-import tf, tf.msg
 import tf2_ros
 import json
 
