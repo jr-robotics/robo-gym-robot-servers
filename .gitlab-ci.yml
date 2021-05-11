@@ -35,6 +35,8 @@ before_script:
     - docker push $CI_REGISTRY_IMAGE:$ROS_DISTRO-$CI_COMMIT_SHA
     - docker tag $CI_REGISTRY_IMAGE:$ROS_DISTRO-$CI_COMMIT_SHA $CI_REGISTRY_IMAGE:$ROS_DISTRO-latest
     - docker push $CI_REGISTRY_IMAGE:$ROS_DISTRO-latest
+  except:
+    - /^docs.*$/
 
 build_melodic_docker_image:
   <<: *build_docker_image_def
@@ -63,6 +65,8 @@ build_noetic_docker_image:
     - docker-compose -f docker-compose.yml up -d
     - docker exec robo-gym pytest -m "not nightly"
     - docker-compose -f docker-compose.yml down
+  except:
+    - /^docs.*$/
 
 test_environments_melodic:
   <<: *test_environments_def 
@@ -100,6 +104,8 @@ test_environments_with_robo-gym-master:
     - docker-compose -f docker-compose.yml up -d
     - docker exec robo-gym pytest -m "not nightly"
     - docker-compose -f docker-compose.yml down
+  except:
+    - /^docs.*$/
 
 full_test_environments_melodic:
   <<: *full_test_environments_def 
@@ -127,6 +133,8 @@ full_test_environments_noetic:
     - docker pull $CI_REGISTRY_IMAGE:$ROS_DISTRO-$CI_COMMIT_SHA
     - docker tag $CI_REGISTRY_IMAGE:$ROS_DISTRO-$CI_COMMIT_SHA $CI_REGISTRY_IMAGE:$ROS_DISTRO-$IMAGE_NAME-latest
     - docker push $CI_REGISTRY_IMAGE:$ROS_DISTRO-$IMAGE_NAME-latest
+  except:
+    - /^docs.*$/
 
 deploy_docker_image:
   <<: *deploy_docker_image_def
@@ -168,6 +176,8 @@ deploy_docker_image_to_dockerhub:
   only:
     - master 
   when: manual
+  except:
+    - /^docs.*$/
 
 
 
