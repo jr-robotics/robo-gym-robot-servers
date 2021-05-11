@@ -29,6 +29,7 @@
         </geometry>
         <material>
           <ambient>0.56 0.86 0.63 1</ambient>
+          <diffuse>0.56 0.86 0.63 1</diffuse>
         </material>
       </visual>
     </link>
