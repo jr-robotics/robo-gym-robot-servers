@@ -1,22 +1,33 @@
 # robo-gym-robot-servers
 
-Repository containing Robot Servers ROS packages
+Repository containing Robot Servers ROS packages for the [robo-gym](https://github.com/jr-robotics/robo-gym) toolkit. 
 
-The packages have been tested for ROS Noetic (recommended) and Melodic.
+The `robo-gym-robot-servers` provide an interface to the Gazebo simulations and to the real robots. 
+
+## Supported Systems 
+
+Recommended System Setup: Ubuntu 20.04 - ROS Noetic - Python [>3.7]
+
+The packages have been tested for ROS Noetic and Melodic.
 We will try to maintain compatibility with ROS Melodic for as long as possible, nevertheless our main efforts will be based on ROS Noetic. 
 
-*WARNING for ROS Kinetic users*: 
 
-The compatibility of the Universal Robots environments with ROS Kinetic has been maintained until version [v0.1.8](https://github.com/jr-robotics/robo-gym-robot-servers/tree/v0.1.8) included. After this version we integrated a refactored version of the [universal_robot repository](https://github.com/jr-robotics/universal_robot) which is not compatible with ROS Kinetic. To use the UR environments on ROS kinetic you need to use v0.1.8 of the robo-gym package and v.0.1.8 of the robo-gym-robot-servers. See [#16](https://github.com/jr-robotics/robo-gym/issues/16) for more details. 
+
 
 ### Robots currently implemented
 - MiR100
 - Universal Robots: UR3, UR3e, UR5, UR5e, UR10, UR10e, UR16
 
+<br>
+
+#### *WARNING for ROS Kinetic users*
+
+The compatibility of the Universal Robots environments with ROS Kinetic has been maintained until version [v0.1.8](https://github.com/jr-robotics/robo-gym-robot-servers/tree/v0.1.8) included. After this version we integrated a refactored version of the [universal_robot repository](https://github.com/jr-robotics/universal_robot) which is not compatible with ROS Kinetic. To use the UR environments on ROS kinetic you need to use v0.1.8 of the robo-gym package and v.0.1.8 of the robo-gym-robot-servers. See [#16](https://github.com/jr-robotics/robo-gym/issues/16) for more details. 
+
 
 # Installation
 
-## Ubuntu 20.04 - ROS Noetic
+## Ubuntu 20.04 - ROS Noetic - Python [>3.7]
 
 1. Install the required packages
 ```sh
@@ -61,7 +72,8 @@ pip3 install --upgrade protobuf
 printf "source /opt/ros/$ROS_DISTRO/setup.bash\nsource $ROBOGYM_WS/devel/setup.bash" >> ~/.bashrc
 ```
 
-## Ubuntu 18.04 - ROS Melodic 
+## Ubuntu 18.04 - ROS Melodic - Python 2
+
 <details>
 <summary>Click to expand</summary>
 <p>
@@ -111,10 +123,6 @@ printf "source /opt/ros/$ROS_DISTRO/setup.bash\nsource $ROBOGYM_WS/devel/setup.b
 
 </p>
 </details>  
-
-## Troubleshooting
-
-For problems with step 2 and 3 refer to http://wiki.ros.org/noetic/Installation/Ubuntu.
 
 # How to use
 
