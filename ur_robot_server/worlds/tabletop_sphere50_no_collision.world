@@ -7,7 +7,7 @@
     </include>
     <!-- A ground plane -->
     <include>
-      <uri>model://ground_plane</uri>
+      <uri>model://green_ground</uri>
     </include>
     <!-- Sphere D 50mm -->
     <include>

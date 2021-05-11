@@ -7,7 +7,7 @@
     </include>
     <!-- A ground plane -->
     <include>
-      <uri>model://ground_plane</uri>
+      <uri>model://green_ground</uri>
     </include>
     <physics type = "ode">
         <max_step_size>0.001</max_step_size> 
