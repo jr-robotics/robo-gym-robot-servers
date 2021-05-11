@@ -13,6 +13,16 @@ variables:
 before_script:
 - echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
 
+# The pipeline needs at minimum one job to run 
+dummy:
+  stage: build
+  variables:
+    GIT_STRATEGY: none
+  script:
+    - ":"
+  only:
+    - /^docs.*$/
+
 .build_docker_image: &build_docker_image_def
   image: docker:18.09
   services:
