@@ -2,23 +2,13 @@
 
 import rospy
 import tf2_ros
-import tf_conversions
-import geometry_msgs.msg
-from geometry_msgs.msg import Twist, Pose, Pose2D
-from gazebo_msgs.msg import ModelState, ContactsState
-from gazebo_msgs.srv import GetModelState, SetModelState, GetLinkState
-from gazebo_msgs.srv import SetModelConfiguration, SetModelConfigurationRequest
+from gazebo_msgs.msg import ContactsState
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Int32MultiArray
 from trajectory_msgs.msg import JointTrajectoryPoint, JointTrajectory
-from std_msgs.msg import Float64MultiArray, Header, Bool
-from std_srvs.srv import Empty
-from visualization_msgs.msg import Marker
-from nav_msgs.msg import Odometry
-import PyKDL
+from std_msgs.msg import Header, Bool
 import copy
 from threading import Event
-import time
 from robo_gym_server_modules.robot_server.grpc_msgs.python import robot_server_pb2
 class UrRosBridge:
 
