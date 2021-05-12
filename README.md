@@ -4,17 +4,19 @@ Repository containing Robot Servers ROS packages for the [robo-gym](https://gith
 
 The `robo-gym-robot-servers` provide an interface to the Gazebo simulations and to the real robots. 
 
-## Supported Systems 
+- [Supported Systems](#supported-systems)
+- [Installation](#installation)
+- [How to use](#how-to-use)
+- [Troubleshooting](#troubleshooting)
+
+# Supported Systems 
 
 Recommended System Setup: Ubuntu 20.04 - ROS Noetic - Python [>3.7]
 
 The packages have been tested for ROS Noetic and Melodic.
 We will try to maintain compatibility with ROS Melodic for as long as possible, nevertheless our main efforts will be based on ROS Noetic. 
 
-
-
-
-### Robots currently implemented
+## Robots currently implemented
 - MiR100
 - Universal Robots: UR3, UR3e, UR5, UR5e, UR10, UR10e, UR16
 
@@ -217,3 +219,7 @@ source ~/robogym_ws/devel/setup.bash
 # start the Robot Server
 roslaunch ur_robot_server ur_robot_server.launch ur_model:=ur10 real_robot:=true gui:=true max_torque_scale_factor:=0.5 max_velocity_scale_factor:=0.5 speed_scaling:=0.5
 ```
+
+# Troubleshooting
+
+The Robot Server uses the standard ROS logging system, you can find the latest log of the Robot Server at: `.ros/log/latest/robot_server-*.log`
