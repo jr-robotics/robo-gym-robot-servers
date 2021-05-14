@@ -10,6 +10,7 @@ from std_msgs.msg import Header, Bool
 import copy
 from threading import Event
 from robo_gym_server_modules.robot_server.grpc_msgs.python import robot_server_pb2
+import numpy as np
 class UrRosBridge:
 
     def __init__(self, real_robot=False, ur_model= 'ur10'):
@@ -203,14 +204,14 @@ class UrRosBridge:
                 rospy.set_param(param, state_msg.float_params[param])
 
         # UR Joints Positions
-        reset_steps = int(15.0 / self.sleep_time)
-        for i in range(reset_steps):
-            if state_dict:
-                self.publish_env_arm_cmd([state_msg.state_dict['elbow_joint_position'], state_msg.state_dict['shoulder_joint_position'], \
+        if state_dict:
+            goal_joint_position = [state_msg.state_dict['elbow_joint_position'], state_msg.state_dict['shoulder_joint_position'], \
                                             state_msg.state_dict['base_joint_position'], state_msg.state_dict['wrist_1_joint_position'], \
-                                            state_msg.state_dict['wrist_2_joint_position'], state_msg.state_dict['wrist_3_joint_position']])
-            else:
-                self.publish_env_arm_cmd(state_msg.state[6:12])
+                                            state_msg.state_dict['wrist_2_joint_position'], state_msg.state_dict['wrist_3_joint_position']]
+        else:
+            goal_joint_position = state_msg.state[6:12]
+        self.set_joint_position(goal_joint_position)
+        
         if not self.real_robot:
             # Reset collision sensors flags
             self.collision_sensors.update(dict.fromkeys(["shoulder", "upper_arm", "forearm", "wrist_1", "wrist_2", "wrist_3"], False))
@@ -225,17 +226,20 @@ class UrRosBridge:
 
         return 1
 
+    def set_joint_position(self, goal_joint_position):
+        """Set robot joint positions to a desired value
+        """        
+
+        position_reached = False
+        while not position_reached:
+            self.publish_env_arm_cmd(goal_joint_position)
+            self.get_state_event.clear()
+            joint_position = copy.deepcopy(self.joint_position)
+            position_reached = np.isclose(goal_joint_position, self._get_joint_ordered_value_list(joint_position), atol=0.02).all()
+            self.get_state_event.set()
+
     def publish_env_arm_cmd(self, position_cmd):
         """Publish environment JointTrajectory msg.
-
-        Publish JointTrajectory message to the env_command topic.
-
-        Args:
-            position_cmd (type): Description of parameter `positions`.
-
-        Returns:
-            type: Description of returned object.
-
         """
 
         msg = JointTrajectory()
