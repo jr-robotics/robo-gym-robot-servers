@@ -39,13 +39,6 @@ class UrRosBridge:
         self.min_traj_duration = 0.5 # minimum trajectory duration (s)
         self.joint_velocity_limits = self._get_joint_velocity_limits()
 
-        # Publisher to JointTrajectory robot controller
-        if self.real_robot:
-            # self.jt_pub = rospy.Publisher('/scaled_pos_traj_controller/command', JointTrajectory, queue_size=10)
-            self.jt_pub = rospy.Publisher('/pos_traj_controller/command', JointTrajectory, queue_size=10)
-        else:
-            self.jt_pub = rospy.Publisher('/eff_joint_traj_controller/command', JointTrajectory, queue_size=10)
-
         # Robot frames
         self.reference_frame = rospy.get_param("~reference_frame", "base")
         self.ee_frame = 'tool0'
@@ -210,7 +203,7 @@ class UrRosBridge:
             for param in state_msg.float_params:
                 rospy.set_param(param, state_msg.float_params[param])
 
-        # UR Joints Positions        
+        # UR Joints Positions
         if state_dict:
             goal_joint_position = [state_msg.state_dict['elbow_joint_position'], state_msg.state_dict['shoulder_joint_position'], \
                                             state_msg.state_dict['base_joint_position'], state_msg.state_dict['wrist_1_joint_position'], \
@@ -237,26 +230,13 @@ class UrRosBridge:
         """Set robot joint positions to a desired value
         """        
 
-        msg = JointTrajectory()
-        msg.header = Header()
-        msg.joint_names = self.joint_names
-        msg.points=[JointTrajectoryPoint()]
-        msg.points[0].positions = goal_joint_position
-        dur = []
-        for idx, name in enumerate(msg.joint_names):
-            pos = self.joint_position[name]
-            cmd = goal_joint_position[idx]
-            max_vel = self.joint_velocity_limits[name]
-            dur.append(max(abs(cmd-pos)/max_vel, self.min_traj_duration))
-        msg.points[0].time_from_start = rospy.Duration.from_sec(max(dur))
-        self.jt_pub.publish(msg)
         position_reached = False
         while not position_reached:
+            self.publish_env_arm_cmd(goal_joint_position)
             self.get_state_event.clear()
             joint_position = copy.deepcopy(self.joint_position)
-            position_reached = np.isclose(goal_joint_position, self._get_joint_ordered_value_list(joint_position), atol=0.1).all()
+            position_reached = np.isclose(goal_joint_position, self._get_joint_ordered_value_list(joint_position), atol=0.01).all()
             self.get_state_event.set()
-            rospy.sleep(0.5)
 
     def publish_env_arm_cmd(self, position_cmd):
         """Publish environment JointTrajectory msg.
