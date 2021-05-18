@@ -235,7 +235,7 @@ class UrRosBridge:
             self.publish_env_arm_cmd(goal_joint_position)
             self.get_state_event.clear()
             joint_position = copy.deepcopy(self.joint_position)
-            position_reached = np.isclose(goal_joint_position, self._get_joint_ordered_value_list(joint_position), atol=0.05).all()
+            position_reached = np.isclose(goal_joint_position, self._get_joint_ordered_value_list(joint_position), atol=0.03).all()
             self.get_state_event.set()
 
     def publish_env_arm_cmd(self, position_cmd):
