@@ -1,5 +1,6 @@
 <?xml version="1.0" ?>
 <sdf version="1.5">
+<!-- TODO need to figure out the value for the Franka Emika robot -->
   <world name="default">
     <!-- A global light source -->
     <include>
@@ -7,7 +8,7 @@
     </include>
     <!-- A ground plane -->
     <include>
-      <uri>model://green_ground</uri>
+      <uri>model://ground_plane</uri>
     </include>
     <physics type = "ode">
         <max_step_size>0.001</max_step_size> 

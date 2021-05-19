@@ -1,0 +1,144 @@
+<?xml version="1.0" ?>
+<launch>
+  <arg name="ur_model" doc="ur3, ur3e, ur5, ur5e, ur10, ur10e, ur16e"/>
+  <arg name="real_robot" default="false" doc="true: Real Robot, false: Simulated Robot"/>
+  <arg name="gui" default="false" />
+  <arg name="rviz_gui" default="true" />
+  <arg name="gazebo_gui" default="false" />
+  <arg name="world_path" default = "$(find ur_robot_server)/worlds" />
+  <arg name="world_name" default="empty.world"/>
+  <arg name="world" value ="$(arg world_path)/$(arg world_name)"/>
+  <arg name="max_velocity_scale_factor" default="1.0" doc="Scale factor multplied by maximum joint velocity value"/>
+  <arg name="server_port" default ="50051"/>
+  <arg name="action_cycle_rate" default="25" doc="Rate at which new commands are published to the robot controller"/>
+  <arg name="reference_frame" default="base"  doc="Reference frame with respect to which target and ee pose are given"/>
+  <arg name="target_mode" default="only_robot"  doc="DEPRECATED"/>
+  <arg name="rs_mode"  default="false" doc="Defines the working mode of the Robot Server, this influences the RS state content"/>
+  <arg name="use_voxel_occupancy" default="false" doc="use voxel occupancy in state"/>
+
+  <!-- Scene Objects -->
+  <arg name="objects_controller" default="false"  doc="Start objects controller node"/>
+  <arg name="n_objects" default="0.0"  doc="Number of objects in the scene"/>
+  <arg name="object_trajectory_file_name" default="no_file" doc="Object trajectory file name"/>
+  <arg name="object_0_model_name" default="" doc="Gazebo model name of the target object"/>
+  <arg name="object_0_frame" default="" doc="TF Frame name of target"/>
+  <arg name="object_1_model_name" default="" doc="Gazebo model name of object 1"/>
+  <arg name="object_1_frame" default="" doc="TF Frame name of object 1"/>
+
+  <!-- RViz Configuration -->
+  <arg name="rviz_config_path" default = "$(find ur_robot_server)/rviz" />
+  <arg name="rviz_config_file" default="ur_rl.rviz" doc="RViz configuration file"/>
+  <arg name="rviz_config" value="$(arg rviz_config_path)/$(arg rviz_config_file)"/>
+
+  <!-- Robot Simulation -->
+  <group unless="$(arg real_robot)">
+    <!-- Robot Base position -->
+    <arg name="x" default="0.0" doc="base_link coordinate with respect to the world frame"/>
+    <arg name="y" default="0.0" doc="base_link coordinate with respect to the world frame"/>
+    <arg name="z" default="0.1" doc="base_link coordinate with respect to the world frame"/>
+    <arg name="roll" default="0.0" doc="base_link coordinate with respect to the world frame"/>
+    <arg name="pitch" default="0.0" doc="base_link coordinate with respect to the world frame"/>
+    <arg name="yaw" default="0.0" doc="base_link coordinate with respect to the world frame"/>
+
+    <!-- Camera 1 activate and position -->
+    <arg name="camera1_gazebo" default="False" doc="use camera1 gazebo simulated sensor"/>
+    <arg name="camera1_link_x" default="0.0" doc="camera1_link coordinate with respect to the world frame"/>
+    <arg name="camera1_link_y" default="0.0" doc="camera1_link coordinate with respect to the world frame"/>
+    <arg name="camera1_link_z" default="0.1" doc="camera1_link coordinate with respect to the world frame"/>
+    <arg name="camera1_link_roll" default="0.0" doc="camera1_link coordinate with respect to the world frame"/>
+    <arg name="camera1_link_pitch" default="0.0" doc="camera1_link coordinate with respect to the world frame"/>
+    <arg name="camera1_link_yaw" default="0.0" doc="camera1_link coordinate with respect to the world frame"/>
+
+    <!--Robot description and related parameter files -->
+    <arg name="robot_description_file" default="$(dirname)/inc/load_$(arg ur_model).launch.xml" doc="Launch file which populates the 'robot_description' parameter."/>
+    <arg name="joint_limit_params" default="$(find ur_description)/config/$(arg ur_model)/joint_limits.yaml"/>
+    <arg name="kinematics_params" default="$(find ur_description)/config/$(arg ur_model)/default_kinematics.yaml"/>
+    <arg name="physical_params" default="$(find ur_description)/config/$(arg ur_model)/physical_parameters.yaml"/>
+    <arg name="visual_params" default="$(find ur_description)/config/$(arg ur_model)/visual_parameters.yaml"/>
+
+    <!-- Controller configuration -->
+    <arg name="controller_config_file" default="$(find ur_robot_server)/config/$(arg ur_model)_controllers.yaml" doc="Config file used for defining the ROS-Control controllers."/>
+    <arg name="controllers" default="joint_state_controller eff_joint_traj_controller" doc="Controllers that are activated by default."/>
+    <arg name="stopped_controllers" default="joint_group_eff_controller" doc="Controllers that are initally loaded, but not started."/>
+
+    <!-- Load urdf on the parameter server -->
+    <include file="$(arg robot_description_file)">
+      <arg name="joint_limit_params" value="$(arg joint_limit_params)"/>
+      <arg name="kinematics_params" value="$(arg kinematics_params)"/>
+      <arg name="physical_params" value="$(arg physical_params)"/>
+      <arg name="visual_params" value="$(arg visual_params)"/>
+      <arg name="x" value="$(arg x)"/>
+      <arg name="y" value="$(arg y)"/>
+      <arg name="z" value="$(arg z)"/>
+      <arg name="roll" value="$(arg roll)"/>
+      <arg name="pitch" value="$(arg pitch)"/>
+      <arg name="yaw" value="$(arg yaw)"/>
+
+      <arg name="camera1_gazebo" value="$(arg camera1_gazebo)"/>
+      <arg name="camera1_link_x" value="$(arg camera1_link_x)"/>
+      <arg name="camera1_link_y" value="$(arg camera1_link_y)"/>
+      <arg name="camera1_link_z" value="$(arg camera1_link_z)"/>
+      <arg name="camera1_link_roll" value="$(arg camera1_link_roll)"/>
+      <arg name="camera1_link_pitch" value="$(arg camera1_link_pitch)"/>
+      <arg name="camera1_link_yaw" value="$(arg camera1_link_yaw)"/>
+    </include>
+
+    <!-- Robot state publisher -->
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
+      <param name="publish_frequency" type="double" value="125" />
+      <param name="tf_prefix" value="" />
+    </node>
+
+    <!-- Start the 'driver' (ie: Gazebo in this case) -->
+    <include file="$(dirname)/inc/ur_control.launch.xml">
+      <arg name="controller_config_file" value="$(arg controller_config_file)"/>
+      <arg name="controllers" value="$(arg controllers)"/>
+      <arg name="gui" value="$(eval arg('gui') and arg('gazebo_gui'))"/>
+      <arg name="paused" value="false"/>
+      <arg name="stopped_controllers" value="$(arg stopped_controllers)"/>
+      <arg name="gazebo_world" value="$(arg world)"/>
+    </include>
+  </group>
+
+  <!-- Launch Command Handler  -->
+  <node name="joint_trajectory_command_handler" pkg="ur_robot_server" type="joint_trajectory_command_handler.py" respawn="false" output="screen" >
+    <param name="real_robot" value="$(arg real_robot)" />
+    <param name="action_cycle_rate" value="$(arg action_cycle_rate)"></param>
+  </node>
+
+
+  <!-- Launch RViz -->
+  <node if="$(eval arg('gui') and arg('rviz_gui'))" name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false"
+  args="-d $(arg rviz_config)" output="screen">
+  </node>
+
+  <!-- Global Parameters -->
+  <param name="real_robot" value="$(arg real_robot)"></param>
+  <param name="reference_frame" value="$(arg reference_frame)"></param>
+
+  <!-- Scene Objects Parameters -->
+  <param name="objects_controller" value="$(arg objects_controller)"></param>
+  <param name="n_objects" value="$(arg n_objects)"></param>
+  <param name="object_trajectory_file_name" value="$(arg object_trajectory_file_name)"></param>
+  <param name="object_0_model_name" value="$(arg object_0_model_name)"></param>
+  <param name="object_0_frame" value="$(arg object_0_frame)"></param>
+  <param name="object_1_model_name" value="$(arg object_1_model_name)"></param>
+  <param name="object_1_frame" value="$(arg object_1_frame)"></param>
+
+  <!--Launch gRPC server -->
+  <node name="robot_server" pkg="ur_robot_server" type="robot_server.py" respawn="false" output="screen" >
+    <param name="server_port" value="$(arg server_port)"></param>
+    <param name="real_robot" value="$(arg real_robot)"></param>
+    <param name="ur_model" value="$(arg ur_model)"></param>
+    <param name="max_velocity_scale_factor" value="$(arg max_velocity_scale_factor)"></param>
+    <param name="action_cycle_rate" value="$(arg action_cycle_rate)"></param>
+    <param name="reference_frame" value="$(arg reference_frame)"></param>
+    <param name="target_mode" value="$(arg target_mode)"></param>
+    <param name="rs_mode" value="$(arg rs_mode)"></param>
+    <param name="use_voxel_occupancy" value="$(arg use_voxel_occupancy)"></param>
+  </node>
+
+  <!--Launch objects controller -->
+  <node if="$(arg objects_controller)" name="objects_controller" pkg="ur_robot_server" type="objects_controller.py" respawn="false" output="screen" ></node>
+
+</launch>

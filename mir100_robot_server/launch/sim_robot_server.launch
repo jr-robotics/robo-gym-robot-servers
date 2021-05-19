@@ -1,47 +1,47 @@
 <?xml version="1.0" ?>
 <launch>
-  <arg name="gui" default="false" />
-  <arg name="gazebo_gui" default="false" />
-  <arg name="world_path" default = "$(find mir100_robot_server)/worlds" />
-  <arg name="world_name" default="empty_world_target.world"/>
-  <arg name="world" value ="$(arg world_path)/$(arg world_name)"/>
-  <arg name="server_port" default ="50051"/>
+  <arg name="gui"         default="false"/>
+  <arg name="gazebo_gui"  default="false"/>
+  <arg name="world_path"  default="$(find mir100_robot_server)/worlds"/>
+  <arg name="world_name"  default="empty_world_target.world"/>
+  <arg name="world" value="$(arg world_path)/$(arg world_name)"/>
+  <arg name="server_port" default="50051"/>
 
-  <arg name="robot_x"   default="0.0" />
-  <arg name="robot_y"   default="0.0" />
-  <arg name="robot_yaw" default="0.0" />
+  <arg name="robot_x"   default="0.0"/>
+  <arg name="robot_y"   default="0.0"/>
+  <arg name="robot_yaw" default="0.0"/>
 
   <!-- spawn robot and bring up controllers etc. -->
   <include file="$(find mir_gazebo)/launch/mir_empty_world.launch">
-    <arg name="robot_x"   value="$(arg robot_x)" />
-    <arg name="robot_y"   value="$(arg robot_y)" />
-    <arg name="robot_yaw" value="$(arg robot_yaw)" />
-    <arg name="gui" value="$(arg gazebo_gui)" />
-    <arg name="world_name" value="$(arg world)"/>
-    <arg name="teleop" value="false"/>
+    <arg name="robot_x"     value="$(arg robot_x)"/>
+    <arg name="robot_y"     value="$(arg robot_y)"/>
+    <arg name="robot_yaw"   value="$(arg robot_yaw)"/>
+    <arg name="gui"         value="$(arg gazebo_gui)"/>
+    <arg name="world_name"  value="$(arg world)"/>
+    <arg name="teleop"      value="false"/>
   </include>
 
   <!-- Launch fake localization node -->
   <include file="$(find mir_gazebo)/launch/fake_localization.launch"></include>
 
   <!-- Launch robot_pose publisher -->
-  <node name="robot_pose_publisher" pkg="mir100_robot_server" type="robot_pose_publisher.py" respawn="false" output="screen" >
+  <node name="robot_pose_publisher" pkg="mir100_robot_server" type="robot_pose_publisher.py" respawn="false" output="screen">
   </node>
 
   <!-- Launch Command Handler -->
-  <node name="cmd_vel_command_handler" pkg="mir100_robot_server" type="cmd_vel_command_handler.py" respawn="false" output="screen" >
+  <node name="cmd_vel_command_handler" pkg="mir100_robot_server" type="cmd_vel_command_handler.py" respawn="false" output="screen">
     <param name="action_cycle_rate" value="10"></param>
   </node>
 
   <!-- Launch RViz -->
   <node if="$(arg gui)" name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false"
-  args="-d $(find mir100_robot_server)/rviz/mir_sim_rl.rviz" output="screen">
+      args="-d $(find mir100_robot_server)/rviz/mir_sim_rl.rviz" output="screen">
   </node>
 
   <!--Launch gRPC server -->
-  <node name="robot_server" pkg="mir100_robot_server" type="robot_server.py" respawn="false" output="screen" >
+  <node name="robot_server" pkg="mir100_robot_server" type="robot_server.py" respawn="false" output="screen">
     <param name="server_port" value="$(arg server_port)"></param>
-    <param name="real_robot" value="false"></param>
+    <param name="real_robot"  value="false"></param>
   </node>
 
 </launch>

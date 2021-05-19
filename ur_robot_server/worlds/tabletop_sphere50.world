@@ -9,6 +9,16 @@
     <include>
       <uri>model://green_ground</uri>
     </include>
+    <!-- Sphere D 50mm -->
+    <include>
+      <uri>model://sphere50</uri>
+      <pose>0 0.0 2.0 0 0 0</pose>
+    </include>
+    <!-- Table Top -->
+    <include>
+      <uri>model://tabletop</uri>
+      <pose>-0.05 0.2 0.05 0 0 0</pose>
+    </include>
     <physics type = "ode">
         <max_step_size>0.001</max_step_size> 
         <real_time_factor>1</real_time_factor> 

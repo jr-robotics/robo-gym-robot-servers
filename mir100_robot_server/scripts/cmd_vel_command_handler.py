@@ -2,15 +2,14 @@
 
 import rospy
 from geometry_msgs.msg import Twist
-from Queue import Queue
-
+from queue import Queue
 
 class CmdVelCH:
     def __init__(self):
         rospy.init_node('cmd_vel_command_handler')
         # Publisher to Differential Drive robot controller
         self.cmd_vel_pub = rospy.Publisher('cmd_vel', Twist, queue_size=10)
-        ac_rate = rospy.get_param("~action_cycle_rate")
+        ac_rate = rospy.get_param('~action_cycle_rate')
         self.rate = rospy.Rate(ac_rate)
         # Subscriber to Velocity Command coming from Environment
         rospy.Subscriber('env_cmd_vel', Twist, self.callback_env_cmd_vel, queue_size=1)
@@ -18,7 +17,7 @@ class CmdVelCH:
         # Queue with maximum size 1
         self.queue = Queue(maxsize=1)
 
-    def callback_env_cmd_vel(self,data):
+    def callback_env_cmd_vel(self, data):
         try:
             # Add to the Queue the next command to execute
             self.queue.put(data)

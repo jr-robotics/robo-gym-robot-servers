@@ -4,7 +4,26 @@ stages:
   - test
   - deploy
 
-build_docker_image:
+variables:
+  PYTHON_VER: "3.6"
+  ROS_DISTRO: "melodic"
+  ROBO_GYM_IMAGE: "$CI_REGISTRY/robo-gym/robo-gym/develop:latest"
+  ROBOT_SERVERS_IMAGE: "$CI_REGISTRY_IMAGE:$ROS_DISTRO-$CI_COMMIT_SHA"
+
+before_script:
+- echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
+
+# The pipeline needs at minimum one job to run 
+dummy:
+  stage: build
+  variables:
+    GIT_STRATEGY: none
+  script:
+    - ":"
+  only:
+    - /^docs.*$/
+
+.build_docker_image: &build_docker_image_def
   image: docker:18.09
   services:
     - docker:18.09-dind
@@ -12,106 +31,164 @@ build_docker_image:
     - docker-executor
   stage: build
   script:
-    - docker build -f melodic.Dockerfile --build-arg GIT_COMMIT=$CI_COMMIT_SHA --build-arg CI_JOB_TOKEN=$CI_JOB_TOKEN -t $CI_REGISTRY_IMAGE/rs:dev-$CI_COMMIT_SHA .
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY
-    - docker push $CI_REGISTRY_IMAGE/rs:dev-$CI_COMMIT_SHA
+    # fetch the latest image (not failing if image is not found)
+    - docker pull $CI_REGISTRY_IMAGE:$ROS_DISTRO-latest || true
+    - >
+      docker build 
+      -f $ROS_DISTRO.Dockerfile 
+      --cache-from $CI_REGISTRY_IMAGE:$ROS_DISTRO-latest
+      --build-arg GIT_COMMIT=$CI_COMMIT_SHA 
+      --build-arg CI_JOB_TOKEN=$CI_JOB_TOKEN
+      --build-arg CACHEBUST=$CI_COMMIT_SHA 
+      -t $CI_REGISTRY_IMAGE:$ROS_DISTRO-$CI_COMMIT_SHA 
+      .
+    - docker push $CI_REGISTRY_IMAGE:$ROS_DISTRO-$CI_COMMIT_SHA
+    - docker tag $CI_REGISTRY_IMAGE:$ROS_DISTRO-$CI_COMMIT_SHA $CI_REGISTRY_IMAGE:$ROS_DISTRO-latest
+    - docker push $CI_REGISTRY_IMAGE:$ROS_DISTRO-latest
+  except:
+    - /^docs.*$/
 
-test_environments: 
-  stage: test
+build_melodic_docker_image:
+  <<: *build_docker_image_def
+
+build_noetic_docker_image:
+  <<: *build_docker_image_def
   variables:
-    ROBOT_SERVERS_IMAGE: $CI_REGISTRY_IMAGE/rs:dev-$CI_COMMIT_SHA
-  trigger:
-    project: robo-gym/robo-gym
-    strategy: depend
+    ROS_DISTRO: "noetic"
+
+.test_environments: &test_environments_def
+  image: docker:18.09
+  before_script:
+  - echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
+  - apk add docker-compose
+  services:
+    - docker:18.09-dind
+  tags:
+    - docker-executor
+  stage: test
+  script:
+    - echo "Python Version:$PYTHON_VER robo-gym image:$ROBO_GYM_IMAGE robot-servers image:$ROBOT_SERVERS_IMAGE"  
+    - docker pull $ROBO_GYM_IMAGE
+    - docker tag $ROBO_GYM_IMAGE robo-gym
+    - docker pull $ROBOT_SERVERS_IMAGE
+    - docker tag $ROBOT_SERVERS_IMAGE robot-servers
+    - docker-compose -f docker-compose.yml up -d
+    - docker exec robo-gym pytest -m "not nightly"
+    - docker-compose -f docker-compose.yml down
+  except:
+    - /^docs.*$/
+
+test_environments_melodic:
+  <<: *test_environments_def 
+  needs: ["build_melodic_docker_image"]
+
+test_environments_noetic:
+  <<: *test_environments_def 
+  variables:
+    ROS_DISTRO: noetic
+  when: manual
+  needs: ["build_noetic_docker_image"] 
+
+test_environments_with_robo-gym-master:
+  <<: *test_environments_def  
+  variables:
+    ROBO_GYM_IMAGE: "$CI_REGISTRY/robo-gym/robo-gym/master:latest"
   only:
     - master
-
-test_environments_develop: 
+.full_test_environments: &full_test_environments_def
+  image: docker:18.09
+  before_script:
+  - echo -n $CI_JOB_TOKEN | docker login -u gitlab-ci-token --password-stdin $CI_REGISTRY
+  - apk add docker-compose
+  services:
+    - docker:18.09-dind
+  tags:
+    - docker-executor
   stage: test
-  variables:
-    ROBOT_SERVERS_IMAGE: $CI_REGISTRY_IMAGE/rs:dev-$CI_COMMIT_SHA
-  trigger:
-    project: robo-gym/robo-gym
-    branch: develop
-    strategy: depend
+  script:
+    - echo "Python Version:$PYTHON_VER robo-gym image:$ROBO_GYM_IMAGE robot-servers image:$ROBOT_SERVERS_IMAGE"  
+    - docker pull $ROBO_GYM_IMAGE
+    - docker tag $ROBO_GYM_IMAGE robo-gym
+    - docker pull $ROBOT_SERVERS_IMAGE
+    - docker tag $ROBOT_SERVERS_IMAGE robot-servers
+    - docker-compose -f docker-compose.yml up -d
+    - docker exec robo-gym pytest -m "not nightly"
+    - docker-compose -f docker-compose.yml down
   except:
-    - /^capsize.*$/
-    - master 
+    - /^docs.*$/
 
-test_capsize_environments:
-  stage: test
-  trigger:
-    project: robo-gym/robo-gym
-    branch: capsize_master
-    strategy: depend
-  only:
-    - /^capsize.*$/
+full_test_environments_melodic:
+  <<: *full_test_environments_def 
+  when: manual
+  needs: ["build_melodic_docker_image"]
 
-deploy_develop_docker_image:
+full_test_environments_noetic:
+  <<: *full_test_environments_def 
+  variables:
+    ROS_DISTRO: noetic
+  when: manual
+  needs: ["build_noetic_docker_image"] 
+
+.deploy_docker_image: &deploy_docker_image_def
   image: docker:18.09
   services:
     - docker:18.09-dind
   tags:
     - docker-executor
   stage: deploy
+  variables:
+    GIT_STRATEGY: none
+    IMAGE_NAME: $CI_COMMIT_BRANCH
   script:
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY
-    - docker pull $CI_REGISTRY_IMAGE/rs:dev-$CI_COMMIT_SHA
-    - docker tag $CI_REGISTRY_IMAGE/rs:dev-$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/develop:latest
-    - docker push $CI_REGISTRY_IMAGE/develop:latest
+    - docker pull $CI_REGISTRY_IMAGE:$ROS_DISTRO-$CI_COMMIT_SHA
+    - docker tag $CI_REGISTRY_IMAGE:$ROS_DISTRO-$CI_COMMIT_SHA $CI_REGISTRY_IMAGE:$ROS_DISTRO-$IMAGE_NAME-latest
+    - docker push $CI_REGISTRY_IMAGE:$ROS_DISTRO-$IMAGE_NAME-latest
+  except:
+    - /^docs.*$/
+
+deploy_docker_image:
+  <<: *deploy_docker_image_def
   only:
+    - master 
     - develop
 
-deploy_master_docker_image:
+manual_deploy_test_docker_image:
+  <<: *deploy_docker_image_def
+  stage: manual-deploy
+  variables:
+    IMAGE_NAME: "manual_deploy"
+  when: manual
+
+manual_deploy_docker_image:
+  <<: *deploy_docker_image_def
+  stage: manual-deploy
+  only: 
+    - master 
+    - develop
+  when: manual
+
+deploy_docker_image_to_dockerhub:
   image: docker:18.09
   services:
     - docker:18.09-dind
   tags:
     - docker-executor
   stage: deploy
+  variables:
+    GIT_STRATEGY: none
   script:
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY
-    - docker pull $CI_REGISTRY_IMAGE/rs:dev-$CI_COMMIT_SHA
-    - docker tag $CI_REGISTRY_IMAGE/rs:dev-$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/master:latest
-    - docker push $CI_REGISTRY_IMAGE/master:latest
-    - docker tag $CI_REGISTRY_IMAGE/master:latest joanneumrobotics/robo-gym-robot-server-side:$CI_COMMIT_SHA
-    - docker tag $CI_REGISTRY_IMAGE/master:latest joanneumrobotics/robo-gym-robot-server-side:latest
+    - docker pull $CI_REGISTRY_IMAGE:$ROS_DISTRO-$CI_COMMIT_SHA
+    - docker tag $CI_REGISTRY_IMAGE:$ROS_DISTRO-$CI_COMMIT_SHA joanneumrobotics/robo-gym-robot-server-side:$CI_COMMIT_SHA
+    - docker tag $CI_REGISTRY_IMAGE:$ROS_DISTRO-$CI_COMMIT_SHA joanneumrobotics/robo-gym-robot-server-side:latest
     - echo "$DOCKER_HUB_TOKEN" | docker login --username $DOCKER_HUB_USER --password-stdin
     - docker push joanneumrobotics/robo-gym-robot-server-side:$CI_COMMIT_SHA
     - docker push joanneumrobotics/robo-gym-robot-server-side:latest
   only:
-    - master
-
-deploy_manual_docker_image:
-  image: docker:18.09
-  services:
-    - docker:18.09-dind
-  tags:
-    - docker-executor
-  stage: manual-deploy
-  script:
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY
-    - docker pull $CI_REGISTRY_IMAGE/rs:dev-$CI_COMMIT_SHA
-    - docker tag $CI_REGISTRY_IMAGE/rs:dev-$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/manual_deploy:$CI_COMMIT_SHA
-    - docker push $CI_REGISTRY_IMAGE/manual_deploy:$CI_COMMIT_SHA
-    - docker tag $CI_REGISTRY_IMAGE/rs:dev-$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/manual_deploy:latest
-    - docker push $CI_REGISTRY_IMAGE/manual_deploy:latest
+    - master 
   when: manual
+  except:
+    - /^docs.*$/
 
-deploy_capsize_master_docker_image:
-  image: docker:18.09
-  services:
-    - docker:18.09-dind
-  tags:
-    - docker-executor
-  stage: deploy
-  script:
-    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY
-    - docker pull $CI_REGISTRY_IMAGE/rs:dev-$CI_COMMIT_SHA
-    - docker tag $CI_REGISTRY_IMAGE/rs:dev-$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/capsize_master:latest
-    - docker push $CI_REGISTRY_IMAGE/capsize_master:latest
-  only:
-    - capsize_master
 
 
 

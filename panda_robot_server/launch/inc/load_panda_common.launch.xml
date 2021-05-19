@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<launch>
+
+    <include file="$(find franka_interface)/launch/interface.launch">
+        <arg name="load_demo_planning_scene" value="false"/>
+    </include>
+
+    <!-- Copied from loar_ur.launch.xml -->
+    <!-- Parameter files -->
+    <arg name="joint_acceleration_limit"    doc="YAML file containing the joint acceleration limit values"/>
+    <arg name="joint_velocity_limit"        doc="YAML file containing the joint acceleration limit values"/>
+    <arg name="joint_position_limit"        doc="YAML file containing the joint position limit values"/>
+    <arg name="joint_effort_limit"          doc="YAML file containing the joint effort limit values"/>
+    <arg name="gripper_config"              doc="YAML file containing the gripper config values"/>
+    <arg name="controllers_config"          doc="YAML file containing the controllers configs"/>
+
+
+    
+    <!-- <arg name="kinematics_params"   doc="YAML file containing the robot's kinematic parameters."/>
+    <arg name="physical_params"     doc="YAML file containing the physical parameters of the robots"/>
+    <arg name="visual_params"       doc="YAML file containing the visual model of the robots"/> --> -->
+
+    <!-- Copied from load_ur.launch.xml -->
+    <!-- Common parameters -->
+    <arg name="transmission_hw_interface"   default="hardware_interface/EffortJointInterface"   doc="the hardware_interface to expose for each joint in the simulated robot (one of [PositionJointInterface, VelocityJointInterface, EffortJointInterface])"/>
+    <arg name="safety_limits"               default="false"                                     doc="If True, enable the safety limits controller"/>
+    <arg name="safety_pos_margin"           default="0.15"                                      doc="The lower/upper limits in the safety controller"/>
+    <arg name="safety_k_position"           default="20"                                        doc="Used to set k position in the safety controller"/>
+
+    <!-- Copied from loar_ur.launch.xml -->
+    <!-- Robot Base position -->
+    <arg name="x"       default="0.0"   doc="base_link coordinate with respect to the world frame"/>
+    <arg name="y"       default="0.0"   doc="base_link coordinate with respect to the world frame"/>
+    <arg name="z"       default="0.1"   doc="base_link coordinate with respect to the world frame"/>
+    <arg name="roll"    default="0.0"   doc="base_link coordinate with respect to the world frame"/>
+    <arg name="pitch"   default="0.0"   doc="base_link coordinate with respect to the world frame"/>
+    <arg name="yaw"     default="0.0"   doc="base_link coordinate with respect to the world frame"/>
+
+    <!-- Camera 1 activate and position -->
+    <arg name="camera1_gazebo"      default="False" doc="use camera1 gazebo simulated sensor"/>
+    <arg name="camera1_link_x"      default="0.0"   doc="camera1_link coordinate with respect to the world frame"/>
+    <arg name="camera1_link_y"      default="0.0"   doc="camera1_link coordinate with respect to the world frame"/>
+    <arg name="camera1_link_z"      default="0.1"   doc="camera1_link coordinate with respect to the world frame"/>
+    <arg name="camera1_link_roll"   default="0.0"   doc="camera1_link coordinate with respect to the world frame"/>
+    <arg name="camera1_link_pitch"  default="0.0"   doc="camera1_link coordinate with respect to the world frame"/>
+    <arg name="camera1_link_yaw"    default="0.0"   doc="camera1_link coordinate with respect to the world frame"/>
+    
+
+    <!-- <param name="robot_description" command="$(find xacro)/xacro '$(find panda_robot_server)/urdf/panda.xacro'"/> -->
+    <!-- <param name="robot_description" command="$(find xacro)/xacro '$(find franka_ros_interface)/franka_interface/launch/interface.launch'"/> -->
+    
+</launch>

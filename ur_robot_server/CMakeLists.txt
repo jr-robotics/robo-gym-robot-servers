@@ -1,4 +1,5 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.5.1)
+cmake_policy(SET CMP0048 NEW)
 project(ur_robot_server)
 
 find_package(catkin REQUIRED COMPONENTS
@@ -19,3 +20,9 @@ install(DIRECTORY models
 install(DIRECTORY worlds
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
+
+catkin_python_setup()
+catkin_install_python(PROGRAMS scripts/joint_trajectory_command_handler.py 
+                               scripts/objects_controller.py
+                               scripts/robot_server.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
