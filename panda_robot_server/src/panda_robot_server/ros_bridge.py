@@ -68,12 +68,21 @@ class PandaRosBridge:
         self.tf2_listener = tf2_ros.TransformListener(self.tf2_buffer)
         self.static_tf2_broadcaster = tf2_ros.StaticTransformBroadcaster()
 
-        if not self.real_robot:
-            # Subscribers to link collision sensors topics
-
-            # TODO add rospy.Subscribers
-            # TODO add keys to collision sensors
-            self.collision_sensors = dict.fromkeys([], False)
+        # Collision detection 
+        # if not self.real_robot:
+        #     rospy.Subscriber("panda_link0_collision", ContactsState, self._on_link0_collision)
+        #     rospy.Subscriber("panda_link1_collision", ContactsState, self._on_link1_collision)
+        #     rospy.Subscriber("panda_link2_collision", ContactsState, self._on_link2_collision)
+        #     rospy.Subscriber("panda_link3_collision", ContactsState, self._on_link3_collision)
+        #     rospy.Subscriber("panda_link4_collision", ContactsState, self._on_link4_collision)
+        #     rospy.Subscriber("panda_link5_collision", ContactsState, self._on_link5_collision)
+        #     rospy.Subscriber("panda_link6_collision", ContactsState, self._on_link6_collision)
+        #     rospy.Subscriber("panda_link7_collision", ContactsState, self._on_link7_collision)
+        #     rospy.Subscriber("panda_leftfinger_collision", ContactsState, self._on_leftfinger_collision)
+        #     rospy.Subscriber("panda_rightfinger_collision", ContactsState, self._on_rightfinger_collision)
+        # Initialization of collision sensor flags
+        self.collision_sensors = dict.fromkeys(['panda_link0', 'panda_link1', 'panda_link2', 'panda_link3', 'panda_link4', \
+                                                'panda_link5','panda_link6','panda_link7','panda_leftfinger','panda_rightfinger',], False)
 
         # TODO currently not used
         self.safe_to_move = True
