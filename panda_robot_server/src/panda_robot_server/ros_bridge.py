@@ -73,10 +73,9 @@ class PandaRosBridge:
         self.min_traj_duration = 0.5 # minimum trajectory duration (s)
         self.joint_velocity_limits = self._get_joint_velocity_limits()
         
-        
+        # Robot frames
         self.reference_frame = rospy.get_param('~reference_frame', 'base')
-        self.ee_frame = 'tool0'  # TODO is the value for self.ee_frame correct?
-        self.target_frame = 'target'
+        self.ee_frame = 'panda_hand'  
 
         if not self.real_robot:
             # Subscribers to link collision sensors topics
