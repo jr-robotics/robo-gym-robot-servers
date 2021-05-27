@@ -141,9 +141,9 @@ class PandaRosBridge:
             state_dict.update(self._get_transform_dict(ee_to_ref_trans, 'ee_to_ref'))
         
             # Collision sensors
-            ur_collision = any(self.collision_sensors.values())
-            state += [ur_collision]
-            state_dict['in_collision'] = float(ur_collision)
+            collision = any(self.collision_sensors.values())
+            state += [collision]
+            state_dict['in_collision'] = float(collision)
 
         else: 
             raise ValueError
