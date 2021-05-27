@@ -1,5 +1,4 @@
 #! /usr/bin/env python
-
 import rospy
 import tf
 #TODO Switch to tf2
@@ -124,10 +123,6 @@ class PandaRosBridge:
         """
         # joint_trajectory_command handler publisher
         self.arm_cmd_pub = rospy.Publisher('env_arm_command', JointTrajectory, queue_size=1)
-        # Target RViz Marker publisher
-        self.target_pub = rospy.Publisher('target_marker', Marker, queue_size=10)
-
-        
         
     def get_state(self):
         self.get_state_event.clear()
@@ -292,33 +287,6 @@ class PandaRosBridge:
             error_message = 'Service call failed: ' + err
             rospy.logerr(error_message)
             print(error_message)
-
-    def publish_target_marker(self, target_pose):
-        t_marker = Marker()
-        t_marker.type = 1  # =>CUBE
-        t_marker.action = 0
-        t_marker.frame_locked = 1
-        t_marker.pose.position.x = target_pose[0]
-        t_marker.pose.position.y = target_pose[1]
-        t_marker.pose.position.z = target_pose[2]
-        rpy_orientation = PyKDL.Rotation.RPY(target_pose[3], target_pose[4], target_pose[5])
-        q_orientation = rpy_orientation.GetQuaternion()
-        t_marker.pose.orientation.x = q_orientation[0]
-        t_marker.pose.orientation.y = q_orientation[1]
-        t_marker.pose.orientation.z = q_orientation[2]
-        t_marker.pose.orientation.w = q_orientation[3]
-        t_marker.scale.x = 0.1
-        t_marker.scale.y = 0.1
-        t_marker.scale.z = 0.1
-        t_marker.id = 0
-        t_marker.header.stamp = rospy.Time.now()
-        t_marker.header.frame_id = self.reference_frame
-        t_marker.color.a = 0.7
-        t_marker.color.r = 1.0  # red
-        t_marker.color.g = 0.0
-        t_marker.color.b = 0.0
-        self.target_pub.publish(t_marker)
-
 
     def _transform_panda_list_to_dict(self, panda_list):
         transformed_dict = {}
