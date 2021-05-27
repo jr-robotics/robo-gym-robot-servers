@@ -35,6 +35,19 @@ class PandaRosBridge:
         self.get_state_event.set()
 
         self.real_robot = real_robot
+
+        # Joint States
+        self.joint_names = ['panda_joint1', 'panda_joint2', 'panda_joint3',
+                                  'panda_joint4', 'panda_joint5', 'panda_joint6', 'panda_joint7']
+        self.finger_names = ['panda_finger_joint1', 'panda_finger_joint2']
+        self.joint_position = dict.fromkeys(self.joint_names, 0.0)
+        self.joint_velocity = dict.fromkeys(self.joint_names, 0.0)
+        self.joint_effort = dict.fromkeys(self.joint_names, 0.0)
+        rospy.Subscriber('/joint_states', JointState, self._on_joint_states)
+
+        self.panda_joint_num = len(self.joint_names)
+        self.panda_state = [0.0] * self.panda_joint_num
+
         # TODO publisher, subscriber, target and state
         self._add_publishers()
 
@@ -42,12 +55,7 @@ class PandaRosBridge:
 
         self.target = [0.0] * 6  # TODO define number of target floats
         # TODO define number of panda states (At least the number of joints)
-        self.panda_joint_names = ['panda_joint1', 'panda_joint2', 'panda_joint3',
-                                  'panda_joint4', 'panda_joint5', 'panda_joint6', 'panda_joint7']
-        self.panda_finger_names = ['panda_finger_joint1', 'panda_finger_joint2']
-
-        self.panda_joint_num = len(self.panda_joint_names)
-        self.panda_state = [0.0] * self.panda_joint_num
+        
 
         # TF Listener
         self.tf_listener = tf.TransformListener()
@@ -75,7 +83,6 @@ class PandaRosBridge:
             # Subscribers to link collision sensors topics
 
             # TODO add rospy.Subscribers
-            rospy.Subscriber('/joint_states', JointState, self.callback_panda)
             # TODO add keys to collision sensors
             self.collision_sensors = dict.fromkeys([], False)
 
@@ -98,7 +105,7 @@ class PandaRosBridge:
         #         self.objects_model_name.append(obj_model_name)
             
             
-    def callback_panda(self, data):
+    def _on_joint_states(self, data):
         """Callback function which sets the panda state
             - `data.name`     -> joint names
             - `data.position` -> current joint positions
@@ -201,7 +208,7 @@ class PandaRosBridge:
         # if self.safe_to_move:
         #     msg = JointTrajectory()
         #     msg.header = Header()
-        #     msg.joint_names = copy.deepcopy(self.panda_joint_names)
+        #     msg.joint_names = copy.deepcopy(self.joint_names)
         #     msg.points = [JointTrajectoryPoint()]
         #     msg.points[0].positions = position_cmd
         #     duration = []
@@ -291,6 +298,6 @@ class PandaRosBridge:
     def _transform_panda_list_to_dict(self, panda_list):
         transformed_dict = {}
         for idx, value in enumerate(panda_list):
-            current_joint_name = self.panda_joint_names[idx]
+            current_joint_name = self.joint_names[idx]
             transformed_dict[current_joint_name] = value
         return transformed_dict
