@@ -210,7 +210,7 @@ class PandaRosBridge:
             type: Description of returned object.
 
         """
-        # if self.safe_to_move:
+
         #     msg = JointTrajectory()
         #     msg.header = Header()
         #     msg.joint_names = copy.deepcopy(self.arm._joint_names)
@@ -230,14 +230,12 @@ class PandaRosBridge:
             # print(msg)
             
             # self.arm_cmd_pub.publish(msg)
-        if self.safe_to_move:
-            transformed_j_pos = self._transform_panda_list_to_dict(position_cmd[0:7])
-            self.arm.set_joint_positions(transformed_j_pos)
-            rospy.sleep(self.control_period)
-            return position_cmd
-        else:
-            rospy.sleep(self.control_period)
-            return [0.0] * self.panda_joint_num
+    
+
+        transformed_j_pos = self._transform_panda_list_to_dict(position_cmd[0:7])
+        self.arm.set_joint_positions(transformed_j_pos)
+        rospy.sleep(self.control_period)
+        return position_cmd
         
     def get_model_state_pose(self, model_name, relative_entity_name=''):
         # method used to retrieve model pose from gazebo simulation
