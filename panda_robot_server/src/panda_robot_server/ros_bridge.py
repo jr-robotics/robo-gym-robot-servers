@@ -313,7 +313,7 @@ class PandaRosBridge:
 
     def _get_joint_velocity_limits(self):
 
-        absolute_joint_velocity_limits = {'panda_joint1': 2.1750, 'panda_joint2': 2.1750, 'panda_joint3': 2.1750, 'panda_joint1': 2.1750, \
+        absolute_joint_velocity_limits = {'panda_joint1': 2.1750, 'panda_joint2': 2.1750, 'panda_joint3': 2.1750, 'panda_joint4': 2.1750, \
                                           'panda_joint5': 2.6100, 'panda_joint6': 2.6100, 'panda_joint7': 2.6100,}
     
 
