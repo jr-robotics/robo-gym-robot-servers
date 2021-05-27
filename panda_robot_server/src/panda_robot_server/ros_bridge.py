@@ -29,20 +29,19 @@ class PandaRosBridge:
         self.get_state_event.set()
 
         self.real_robot = real_robot
+        self.arm = ArmInterface()
 
         # Joint States
-        self.joint_names = ['panda_joint1', 'panda_joint2', 'panda_joint3',
-                                  'panda_joint4', 'panda_joint5', 'panda_joint6', 'panda_joint7']
         self.finger_names = ['panda_finger_joint1', 'panda_finger_joint2']
-        self.joint_position = dict.fromkeys(self.joint_names, 0.0)
-        self.joint_velocity = dict.fromkeys(self.joint_names, 0.0)
-        self.joint_effort = dict.fromkeys(self.joint_names, 0.0)
+        self.joint_position = dict.fromkeys(self.arm._joint_names, 0.0)
+        self.joint_velocity = dict.fromkeys(self.arm._joint_names, 0.0)
+        self.joint_effort = dict.fromkeys(self.arm._joint_names, 0.0)
         rospy.Subscriber('/joint_states', JointState, self._on_joint_states)
 
-        self.panda_joint_num = len(self.joint_names)
+        self.panda_joint_num = len(self.arm._joint_names)
 
         # TODO publisher, subscriber, target and state
-        self.arm = ArmInterface()
+        
 
         self.target = [0.0] * 6  # TODO define number of target floats
         # TODO define number of panda states (At least the number of joints)
@@ -114,7 +113,7 @@ class PandaRosBridge:
         # TODO gripper might also be included in this state
         if self.get_state_event.is_set():
             for idx, name in enumerate(msg.name):
-                if name in self.joint_names:
+                if name in self.arm._joint_names:
                     self.joint_position[name] = msg.position[idx]
                     self.joint_velocity[name] = msg.velocity[idx]
                     self.joint_effort[name] = msg.effort[idx]
@@ -199,7 +198,7 @@ class PandaRosBridge:
         # if self.safe_to_move:
         #     msg = JointTrajectory()
         #     msg.header = Header()
-        #     msg.joint_names = copy.deepcopy(self.joint_names)
+        #     msg.joint_names = copy.deepcopy(self.arm._joint_names)
         #     msg.points = [JointTrajectoryPoint()]
         #     msg.points[0].positions = position_cmd
         #     duration = []
@@ -243,7 +242,7 @@ class PandaRosBridge:
     def _transform_panda_list_to_dict(self, panda_list):
         transformed_dict = {}
         for idx, value in enumerate(panda_list):
-            current_joint_name = self.joint_names[idx]
+            current_joint_name = self.arm._joint_names[idx]
             transformed_dict[current_joint_name] = value
         return transformed_dict
 
@@ -297,7 +296,7 @@ class PandaRosBridge:
 
     def _get_joint_ordered_value_list(self, joint_values):
         
-        return [joint_values[name] for name in self.joint_names]
+        return [joint_values[name] for name in self.arm._joint_names]
 
     def _get_joint_velocity_limits(self):
 
@@ -305,4 +304,4 @@ class PandaRosBridge:
                                           'panda_joint5': 2.6100, 'panda_joint6': 2.6100, 'panda_joint7': 2.6100,}
     
 
-        return {name: self.max_velocity_scale_factor * absolute_joint_velocity_limits[name] for name in self.joint_names}
+        return {name: self.max_velocity_scale_factor * absolute_joint_velocity_limits[name] for name in self.arm._joint_names}
