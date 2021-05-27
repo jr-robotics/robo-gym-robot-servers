@@ -1,10 +1,6 @@
 #! /usr/bin/env python
-
 import rospy
-import tf
-#TODO Switch to tf2
-# import tf2_ros
-# import tf_conversions
+import tf2_ros
 from geometry_msgs.msg import Twist, Pose, Pose2D
 from gazebo_msgs.msg import ModelState, ContactsState
 from gazebo_msgs.srv import GetModelState, SetModelState, GetLinkState
@@ -23,9 +19,6 @@ from threading import Event
 import time
 from robo_gym_server_modules.robot_server.grpc_msgs.python import robot_server_pb2
 
-FIXED_TARGET_MODE = 'fixed'
-
-
 class PandaRosBridge:
 
     def __init__(self, real_robot=False):
@@ -36,155 +29,169 @@ class PandaRosBridge:
         self.get_state_event.set()
 
         self.real_robot = real_robot
-        # TODO publisher, subscriber, target and state
-        self._add_publishers()
+        self.arm = ArmInterface()
 
-        self.panda_arm = ArmInterface()
+        # Joint States
+        self.finger_names = ['panda_finger_joint1', 'panda_finger_joint2']
+        self.joint_position = dict.fromkeys(self.arm._joint_names, 0.0)
+        self.joint_velocity = dict.fromkeys(self.arm._joint_names, 0.0)
+        self.joint_effort = dict.fromkeys(self.arm._joint_names, 0.0)
+        rospy.Subscriber('/joint_states', JointState, self._on_joint_states)
+
+        self.panda_joint_num = len(self.arm._joint_names)
+
+        # TODO publisher, subscriber, target and state
+        
 
         self.target = [0.0] * 6  # TODO define number of target floats
         # TODO define number of panda states (At least the number of joints)
-        self.panda_joint_names = ['panda_joint1', 'panda_joint2', 'panda_joint3',
-                                  'panda_joint4', 'panda_joint5', 'panda_joint6', 'panda_joint7']
-        self.panda_finger_names = ['panda_finger_joint1', 'panda_finger_joint2']
-
-        self.panda_joint_num = len(self.panda_joint_names)
-        self.panda_state = [0.0] * self.panda_joint_num
-
-        # TF Listener
-        self.tf_listener = tf.TransformListener()
         
-        # TF2 Listener
-        # self.tf2_buffer = tf2_ros.Buffer()
-        # self.tf2_listener = tf2_ros.TransformListener(self.tf2_buffer)
-        
-        # Static TF2 Broadcaster
-        # self.static_tf2_broadcaster = tf2_ros.StaticTransformBroadcaster()
-        
-        # Robot control rate
+        # Robot control
+        self.arm_cmd_pub = rospy.Publisher('env_arm_command', JointTrajectory, queue_size=1) # joint_trajectory_command_handler publisher
         self.sleep_time = (1.0 / rospy.get_param('~action_cycle_rate')) - 0.01
         self.control_period = rospy.Duration.from_sec(self.sleep_time)
+        self.max_velocity_scale_factor = float(rospy.get_param("~max_velocity_scale_factor"))
+        self.min_traj_duration = 0.5 # minimum trajectory duration (s)
+        self.joint_velocity_limits = self._get_joint_velocity_limits()
         
+        # Robot frames
         self.reference_frame = rospy.get_param('~reference_frame', 'base')
-        self.ee_frame = 'tool0'  # TODO is the value for self.ee_frame correct?
-        self.target_frame = 'target'
+        self.ee_frame = 'panda_hand'  
 
-        # Minimum Trajectory Point time from start
-        # TODO check if this value is correct for the panda robot
-        self.min_traj_duration = 0.5
+        # TF2
+        self.tf2_buffer = tf2_ros.Buffer()
+        self.tf2_listener = tf2_ros.TransformListener(self.tf2_buffer)
+        self.static_tf2_broadcaster = tf2_ros.StaticTransformBroadcaster()
 
-        if not self.real_robot:
-            # Subscribers to link collision sensors topics
-
-            # TODO add rospy.Subscribers
-            rospy.Subscriber('/joint_states', JointState, self.callback_panda)
-            # TODO add keys to collision sensors
-            self.collision_sensors = dict.fromkeys([], False)
+        # Collision detection 
+        # if not self.real_robot:
+        #     rospy.Subscriber("panda_link0_collision", ContactsState, self._on_link0_collision)
+        #     rospy.Subscriber("panda_link1_collision", ContactsState, self._on_link1_collision)
+        #     rospy.Subscriber("panda_link2_collision", ContactsState, self._on_link2_collision)
+        #     rospy.Subscriber("panda_link3_collision", ContactsState, self._on_link3_collision)
+        #     rospy.Subscriber("panda_link4_collision", ContactsState, self._on_link4_collision)
+        #     rospy.Subscriber("panda_link5_collision", ContactsState, self._on_link5_collision)
+        #     rospy.Subscriber("panda_link6_collision", ContactsState, self._on_link6_collision)
+        #     rospy.Subscriber("panda_link7_collision", ContactsState, self._on_link7_collision)
+        #     rospy.Subscriber("panda_leftfinger_collision", ContactsState, self._on_leftfinger_collision)
+        #     rospy.Subscriber("panda_rightfinger_collision", ContactsState, self._on_rightfinger_collision)
+        # Initialization of collision sensor flags
+        self.collision_sensors = dict.fromkeys(['panda_link0', 'panda_link1', 'panda_link2', 'panda_link3', 'panda_link4', \
+                                                'panda_link5','panda_link6','panda_link7','panda_leftfinger','panda_rightfinger',], False)
 
         # TODO currently not used
         self.safe_to_move = True
 
-        # Target mode
-        self.target_mode = rospy.get_param('~target_mode', FIXED_TARGET_MODE)
-        self.target_mode_name = rospy.get_param('~target_model_name', 'box100')
+        # Robot Server mode
+        self.rs_mode = rospy.get_param('~rs_mode')
 
-        # Object parameters
-        # self.objects_controller = rospy.get_param('objects_controller', False)
-        # self.n_objects = int(rospy.get_param('n_objects', 0))
-
+        # # Objects  Controller 
+        # self.objects_controller = rospy.get_param("objects_controller", False)
+        # self.n_objects = int(rospy.get_param("n_objects"))
         # if self.objects_controller:
+        #     self.move_objects_pub = rospy.Publisher('move_objects', Bool, queue_size=10)
+        #     # Get objects model name
         #     self.objects_model_name = []
         #     for i in range(self.n_objects):
-        #         obj_model_name = rospy.get_param(
-        #             'object_' + repr(i) + '_model_name')
-        #         self.objects_model_name.append(obj_model_name)
-            
-            
-    def callback_panda(self, data):
+        #         self.objects_model_name.append(rospy.get_param("object_" + repr(i) + "_model_name"))
+        #     # Get objects TF Frame
+        #     self.objects_frame = []
+        #     for i in range(self.n_objects):
+        #         self.objects_frame.append(rospy.get_param("object_" + repr(i) + "_frame"))
+                
+    def _on_joint_states(self, msg):
         """Callback function which sets the panda state
-            - `data.name`     -> joint names
-            - `data.position` -> current joint positions
-            - `data.velocity` -> current velocity of joints
-            - `data.effort`   -> current torque (effort) of joints
+            - `msg.name`     -> joint names
+            - `msg.position` -> current joint positions
+            - `msg.velocity` -> current velocity of joints
+            - `msg.effort`   -> current torque (effort) of joints
 
         Args:
-            `data` (JointStates): data containing the current joint states
+            `msg` (JointStates): msg containing the current joint states
                 
         """
         # TODO gripper might also be included in this state
-        # if self.get_state_event.is_set():
-        self.panda_state[0:7]   = data.position[0:7]
-        self.panda_state[7:14]  = data.velocity[0:7]
-        self.panda_state[14:21] = data.effort[0:7]
+        if self.get_state_event.is_set():
+            for idx, name in enumerate(msg.name):
+                if name in self.arm._joint_names:
+                    self.joint_position[name] = msg.position[idx]
+                    self.joint_velocity[name] = msg.velocity[idx]
+                    self.joint_effort[name] = msg.effort[idx]
             
-
-    def _add_publishers(self):
-        """Adds publishers to ROS bridge
-            - joint trajectory command handler
-            - RViz target marker 
-        """
-        # joint_trajectory_command handler publisher
-        self.arm_cmd_pub = rospy.Publisher('env_arm_command', JointTrajectory, queue_size=1)
-        # Target RViz Marker publisher
-        self.target_pub = rospy.Publisher('target_marker', Marker, queue_size=10)
-
-        
-        
     def get_state(self):
         self.get_state_event.clear()
+        # Get environment state
+        state =[]
+        state_dict = {}
 
-        # # currently only working on a fixed target mode
-        if self.target_mode == FIXED_TARGET_MODE:
-            target = copy.deepcopy(self.target)
-        else:
+        if self.rs_mode == 'only_robot':
+            # Joint Positions and Joint Velocities
+            joint_position = copy.deepcopy(self.joint_position)
+            joint_velocity = copy.deepcopy(self.joint_velocity)
+            joint_effort = copy.deepcopy(self.joint_effort)
+            state += self._get_joint_ordered_value_list(joint_position)
+            state += self._get_joint_ordered_value_list(joint_velocity)
+            state += self._get_joint_ordered_value_list(joint_effort)
+            state_dict.update(self._get_joint_states_dict(joint_position, joint_velocity, joint_effort))
+
+            # ee to ref transform
+            ee_to_ref_trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.ee_frame, rospy.Time(0))
+            ee_to_ref_trans_list = self._transform_to_list(ee_to_ref_trans)
+            state += ee_to_ref_trans_list
+            state_dict.update(self._get_transform_dict(ee_to_ref_trans, 'ee_to_ref'))
+        
+            # Collision sensors
+            collision = any(self.collision_sensors.values())
+            state += [collision]
+            state_dict['in_collision'] = float(collision)
+
+        else: 
             raise ValueError
-
-        panda_state = copy.deepcopy(self.panda_state)
-
-        # # TODO is ee_to_base_transform value correctly loaded and set
-        # (position, quaternion) = self.tf_listener.lookupTransform(
-        #     self.reference_frame)
-        # ee_to_base_transform = position + quaternion
-
-        # # TODO currently not needed
-        # # if self.real_robot:
-        # #     panda_collision = False
-        # # else:
-        # #     panda_collision = any(self.collision_sensors.values())
 
         self.get_state_event.set()
         
         # Create and fill State message
-        msg = robot_server_pb2.State()
-        msg.state.extend(target)
-        msg.state.extend(panda_state)
-        # msg.state.extend(ee_to_base_transform)
-        # msg.state.extend([panda_collision])
-        msg.success = True
+        msg = robot_server_pb2.State(state=state, state_dict=state_dict, success= True)
 
         return msg
 
     def set_state(self, state_msg):
         # Set environment state
         state = state_msg.state
-        self.reset.clear()
 
-        # Set target internal value
-        if self.target_mode == FIXED_TARGET_MODE:
-            # TODO found out how many state values are needed for panda
-            self.target = copy.deepcopy(state[0:6])
-            # Publish Target Marker
-            self.publish_target_marker(self.target)
-            # TODO Broadcast target tf2
-        
+        # Clear reset Event
+        self.reset.clear()
         
         # TODO setup objects movement
+        # # Setup Objects movement
         # if self.objects_controller:
+        #     # Stop movement of objects
+        #     msg = Bool()
+        #     msg.data = False
+        #     self.move_objects_pub.publish(msg)
 
-        transformed_j_pos = self._transform_panda_list_to_dict(state[6:13])
+        #     # Loop through all the string_params and float_params and set them as ROS parameters
+        #     for param in state_msg.string_params:
+        #         rospy.set_param(param, state_msg.string_params[param])
+
+        #     for param in state_msg.float_params:
+        #         rospy.set_param(param, state_msg.float_params[param])
+
+        positions = self._get_joint_position_dict_from_rs_dict(state_msg.state_dict)
         reset_steps = int(15.0 / self.sleep_time)
 
         for _ in range(reset_steps):
-            self.panda_arm.set_joint_positions(transformed_j_pos)
+            self.arm.set_joint_positions(positions)
+
+        if not self.real_robot:
+            # Reset collision sensors flags
+            self.collision_sensors.update(dict.fromkeys(['panda_link0', 'panda_link1', 'panda_link2', 'panda_link3', 'panda_link4', \
+                                                'panda_link5','panda_link6','panda_link7','panda_leftfinger','panda_rightfinger',], False))
+        # Start movement of objects
+        # if self.objects_controller:
+        #     msg = Bool()
+        #     msg.data = True
+        #     self.move_objects_pub.publish(msg)
 
         self.reset.set()
         rospy.sleep(self.control_period)
@@ -203,10 +210,10 @@ class PandaRosBridge:
             type: Description of returned object.
 
         """
-        # if self.safe_to_move:
+
         #     msg = JointTrajectory()
         #     msg.header = Header()
-        #     msg.joint_names = copy.deepcopy(self.panda_joint_names)
+        #     msg.joint_names = copy.deepcopy(self.arm._joint_names)
         #     msg.points = [JointTrajectoryPoint()]
         #     msg.points[0].positions = position_cmd
         #     duration = []
@@ -223,14 +230,12 @@ class PandaRosBridge:
             # print(msg)
             
             # self.arm_cmd_pub.publish(msg)
-        if self.safe_to_move:
-            transformed_j_pos = self._transform_panda_list_to_dict(position_cmd[0:7])
-            self.panda_arm.set_joint_positions(transformed_j_pos)
-            rospy.sleep(self.control_period)
-            return position_cmd
-        else:
-            rospy.sleep(self.control_period)
-            return [0.0] * self.panda_joint_num
+    
+
+        transformed_j_pos = self._transform_panda_list_to_dict(position_cmd[0:7])
+        self.arm.set_joint_positions(transformed_j_pos)
+        rospy.sleep(self.control_period)
+        return position_cmd
         
     def get_model_state_pose(self, model_name, relative_entity_name=''):
         # method used to retrieve model pose from gazebo simulation
@@ -247,82 +252,82 @@ class PandaRosBridge:
         except rospy.ServiceException as e:
             print("Service call failed:" + e)
 
-    def get_link_state(self, link_name, reference_frame=''):
-        """Method is used to retrieve link state from gazebo simulation
-
-        Args:
-            link_name (name of the link): [description]
-            reference_frame (str, optional): [description]. Defaults to ''.
-
-        Returns:
-            state of the link corresponding to the given name ->
-                [x_pos, y_pos, z_pos, roll, pitch, yaw, x_vel, y_vel, z_vel, roll_vel, pitch_vel, yaw_vel] 
-        """
-        gazebo_get_link_state_service = '/gazebo/get_link_state'
-        rospy.wait_for_service(gazebo_get_link_state_service)
-        try:
-            link_state_srv = rospy.ServiceProxy(
-                gazebo_get_link_state_service, GetLinkState)
-            link_coordinates = link_state_srv(
-                link_name, reference_frame).link_state
-            link_pose, link_twist = link_coordinates.pose, link_coordinates.twist
-            x_pos = link_pose.position.x
-            y_pos = link_pose.position.y
-            z_pos = link_pose.position.z
-
-            orientation = PyKDL.Rotation.Quaternion(link_pose.orientation.x,
-                                                    link_pose.orientation.y,
-                                                    link_pose.orientation.z,
-                                                    link_pose.orientation.w)
-
-            euler_orientation = orientation.GetRPY()
-            roll = euler_orientation[0]
-            pitch = euler_orientation[1]
-            yaw = euler_orientation[2]
-
-            x_vel = link_twist.linear.x
-            y_vel = link_twist.linear.y
-            z_vel = link_twist.linear.z
-            roll_vel = link_twist.angular.x
-            pitch_vel = link_twist.angular.y
-            yaw_vel = link_twist.angular.z
-
-            return x_pos, y_pos, z_pos, roll, pitch, yaw, x_vel, y_vel, z_vel, roll_vel, pitch_vel, yaw_vel
-        except rospy.ServiceException as err:
-            error_message = 'Service call failed: ' + err
-            rospy.logerr(error_message)
-            print(error_message)
-
-    def publish_target_marker(self, target_pose):
-        t_marker = Marker()
-        t_marker.type = 1  # =>CUBE
-        t_marker.action = 0
-        t_marker.frame_locked = 1
-        t_marker.pose.position.x = target_pose[0]
-        t_marker.pose.position.y = target_pose[1]
-        t_marker.pose.position.z = target_pose[2]
-        rpy_orientation = PyKDL.Rotation.RPY(target_pose[3], target_pose[4], target_pose[5])
-        q_orientation = rpy_orientation.GetQuaternion()
-        t_marker.pose.orientation.x = q_orientation[0]
-        t_marker.pose.orientation.y = q_orientation[1]
-        t_marker.pose.orientation.z = q_orientation[2]
-        t_marker.pose.orientation.w = q_orientation[3]
-        t_marker.scale.x = 0.1
-        t_marker.scale.y = 0.1
-        t_marker.scale.z = 0.1
-        t_marker.id = 0
-        t_marker.header.stamp = rospy.Time.now()
-        t_marker.header.frame_id = self.reference_frame
-        t_marker.color.a = 0.7
-        t_marker.color.r = 1.0  # red
-        t_marker.color.g = 0.0
-        t_marker.color.b = 0.0
-        self.target_pub.publish(t_marker)
-
-
     def _transform_panda_list_to_dict(self, panda_list):
         transformed_dict = {}
         for idx, value in enumerate(panda_list):
-            current_joint_name = self.panda_joint_names[idx]
+            current_joint_name = self.arm._joint_names[idx]
             transformed_dict[current_joint_name] = value
         return transformed_dict
+
+    def _get_joint_states_dict(self, joint_position, joint_velocity, joint_effort):
+
+        d = {}
+        d['joint1_position'] = joint_position['panda_joint1']
+        d['joint2_position'] = joint_position['panda_joint2']
+        d['joint3_position'] = joint_position['panda_joint3']
+        d['joint4_position'] = joint_position['panda_joint4']
+        d['joint5_position'] = joint_position['panda_joint5']
+        d['joint6_position'] = joint_position['panda_joint6']
+        d['joint7_position'] = joint_position['panda_joint7']
+        d['joint1_velocity'] = joint_velocity['panda_joint1']
+        d['joint2_velocity'] = joint_velocity['panda_joint2']
+        d['joint3_velocity'] = joint_velocity['panda_joint3']
+        d['joint4_velocity'] = joint_velocity['panda_joint4']
+        d['joint5_velocity'] = joint_velocity['panda_joint5']
+        d['joint6_velocity'] = joint_velocity['panda_joint6']
+        d['joint7_velocity'] = joint_velocity['panda_joint7']
+        d['joint1_effort'] = joint_effort['panda_joint1']
+        d['joint2_effort'] = joint_effort['panda_joint2']
+        d['joint3_effort'] = joint_effort['panda_joint3']
+        d['joint4_effort'] = joint_effort['panda_joint4']
+        d['joint5_effort'] = joint_effort['panda_joint5']
+        d['joint6_effort'] = joint_effort['panda_joint6']
+        d['joint7_effort'] = joint_effort['panda_joint7']
+        
+        return d 
+
+    def _get_transform_dict(self, transform, transform_name):
+
+        d ={}
+        d[transform_name + '_translation_x'] = transform.transform.translation.x
+        d[transform_name + '_translation_y'] = transform.transform.translation.y
+        d[transform_name + '_translation_z'] = transform.transform.translation.z
+        d[transform_name + '_rotation_x'] = transform.transform.rotation.x
+        d[transform_name + '_rotation_y'] = transform.transform.rotation.y
+        d[transform_name + '_rotation_z'] = transform.transform.rotation.z
+        d[transform_name + '_rotation_w'] = transform.transform.rotation.w
+
+        return d
+
+    def _transform_to_list(self, transform):
+
+        return [transform.transform.translation.x, transform.transform.translation.y, \
+                transform.transform.translation.z, transform.transform.rotation.x, \
+                transform.transform.rotation.y, transform.transform.rotation.z, \
+                transform.transform.rotation.w]
+
+
+    def _get_joint_ordered_value_list(self, joint_values):
+        
+        return [joint_values[name] for name in self.arm._joint_names]
+
+    def _get_joint_velocity_limits(self):
+
+        absolute_joint_velocity_limits = {'panda_joint1': 2.1750, 'panda_joint2': 2.1750, 'panda_joint3': 2.1750, 'panda_joint4': 2.1750, \
+                                          'panda_joint5': 2.6100, 'panda_joint6': 2.6100, 'panda_joint7': 2.6100,}
+    
+
+        return {name: self.max_velocity_scale_factor * absolute_joint_velocity_limits[name] for name in self.arm._joint_names}
+
+    def _get_joint_position_dict_from_rs_dict(self, rs_dict):
+
+        d = {}
+        d['panda_joint1'] = rs_dict['joint1_position']
+        d['panda_joint2'] = rs_dict['joint2_position']
+        d['panda_joint3'] = rs_dict['joint3_position']
+        d['panda_joint4'] = rs_dict['joint4_position']
+        d['panda_joint5'] = rs_dict['joint5_position']
+        d['panda_joint6'] = rs_dict['joint6_position']
+        d['panda_joint7'] = rs_dict['joint7_position']
+    
+        return d

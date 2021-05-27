@@ -1,11 +1,9 @@
 #!/usr/bin/env python
-from sys import exc_info
 import grpc
 import rospy
 from concurrent import futures
-from panda.ros_bridge import PandaRosBridge
+from panda_robot_server.ros_bridge import PandaRosBridge
 from robo_gym_server_modules.robot_server.grpc_msgs.python import robot_server_pb2, robot_server_pb2_grpc
-
 from robo_gym_server_modules.robot_server.grpc_msgs.python import robot_server_pb2
 
 class RobotServerServicer(robot_server_pb2_grpc.RobotServerServicer):
@@ -15,7 +13,6 @@ class RobotServerServicer(robot_server_pb2_grpc.RobotServerServicer):
 
     def GetState(self, request, context):
         try:
-            msg = robot_server_pb2.State()
             return self.rosbridge.get_state()
         except:
             rospy.logerr('Failed to get state', exc_info=True)
@@ -37,7 +34,6 @@ class RobotServerServicer(robot_server_pb2_grpc.RobotServerServicer):
             rospy.logerr('Failed to send action', exc_info=True)
             return robot_server_pb2.Success(success=0)
         
-        
     def SendActionGetState(self, request, context):
         try:
             executed_action = self.rosbridge.publish_env_arm_cmd(request.action)
@@ -55,14 +51,12 @@ def serve():
     robot_server_pb2_grpc.add_RobotServerServicer_to_server(RobotServerServicer(real_robot=real_robot), server)
     server.add_insecure_port('[::]:' + repr(server_port))
     server.start()
-
     if real_robot:
         rospy.loginfo('Panda - Real Robot Server started at ' +
                       repr(server_port))
     else:
         rospy.loginfo('Panda - Sim Robot Server started at ' +
                       repr(server_port))
-
     rospy.spin()
 
 if __name__ == '__main__':
@@ -71,7 +65,6 @@ if __name__ == '__main__':
         rospy.init_node('robot_server')
         rospy.loginfo('Waiting {}s before starting initialization of robot_server'.format(wait_time))
         rospy.sleep(wait_time)
-        rospy.loginfo('Initializing robot_server node')
         serve()
     except(KeyboardInterrupt, SystemExit):
         pass
