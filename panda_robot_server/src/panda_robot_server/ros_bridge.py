@@ -49,8 +49,6 @@ class PandaRosBridge:
         self.panda_state = [0.0] * self.panda_joint_num
 
         # TODO publisher, subscriber, target and state
-        self._add_publishers()
-
         self.panda_arm = ArmInterface()
 
         self.target = [0.0] * 6  # TODO define number of target floats
@@ -67,17 +65,18 @@ class PandaRosBridge:
         # Static TF2 Broadcaster
         # self.static_tf2_broadcaster = tf2_ros.StaticTransformBroadcaster()
         
-        # Robot control rate
+        # Robot control
+        self.arm_cmd_pub = rospy.Publisher('env_arm_command', JointTrajectory, queue_size=1) # joint_trajectory_command_handler publisher
         self.sleep_time = (1.0 / rospy.get_param('~action_cycle_rate')) - 0.01
         self.control_period = rospy.Duration.from_sec(self.sleep_time)
+        self.max_velocity_scale_factor = float(rospy.get_param("~max_velocity_scale_factor"))
+        self.min_traj_duration = 0.5 # minimum trajectory duration (s)
+        self.joint_velocity_limits = self._get_joint_velocity_limits()
+        
         
         self.reference_frame = rospy.get_param('~reference_frame', 'base')
         self.ee_frame = 'tool0'  # TODO is the value for self.ee_frame correct?
         self.target_frame = 'target'
-
-        # Minimum Trajectory Point time from start
-        # TODO check if this value is correct for the panda robot
-        self.min_traj_duration = 0.5
 
         if not self.real_robot:
             # Subscribers to link collision sensors topics
@@ -122,15 +121,6 @@ class PandaRosBridge:
         self.panda_state[7:14]  = data.velocity[0:7]
         self.panda_state[14:21] = data.effort[0:7]
             
-
-    def _add_publishers(self):
-        """Adds publishers to ROS bridge
-            - joint trajectory command handler
-            - RViz target marker 
-        """
-        # joint_trajectory_command handler publisher
-        self.arm_cmd_pub = rospy.Publisher('env_arm_command', JointTrajectory, queue_size=1)
-        
     def get_state(self):
         self.get_state_event.clear()
 
@@ -301,3 +291,11 @@ class PandaRosBridge:
             current_joint_name = self.joint_names[idx]
             transformed_dict[current_joint_name] = value
         return transformed_dict
+
+    def _get_joint_velocity_limits(self):
+
+        absolute_joint_velocity_limits = {'panda_joint1': 2.1750, 'panda_joint2': 2.1750, 'panda_joint3': 2.1750, 'panda_joint1': 2.1750, \
+                                          'panda_joint5': 2.6100, 'panda_joint6': 2.6100, 'panda_joint7': 2.6100,}
+    
+
+        return {name: self.max_velocity_scale_factor * absolute_joint_velocity_limits[name] for name in self.joint_names}
