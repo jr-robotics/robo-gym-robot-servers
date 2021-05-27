@@ -158,25 +158,40 @@ class PandaRosBridge:
     def set_state(self, state_msg):
         # Set environment state
         state = state_msg.state
-        self.reset.clear()
 
-        # Set target internal value
-        if self.target_mode == FIXED_TARGET_MODE:
-            # TODO found out how many state values are needed for panda
-            self.target = copy.deepcopy(state[0:6])
-            # Publish Target Marker
-            self.publish_target_marker(self.target)
-            # TODO Broadcast target tf2
-        
+        # Clear reset Event
+        self.reset.clear()
         
         # TODO setup objects movement
+        # # Setup Objects movement
         # if self.objects_controller:
+        #     # Stop movement of objects
+        #     msg = Bool()
+        #     msg.data = False
+        #     self.move_objects_pub.publish(msg)
 
-        transformed_j_pos = self._transform_panda_list_to_dict(state[6:13])
+        #     # Loop through all the string_params and float_params and set them as ROS parameters
+        #     for param in state_msg.string_params:
+        #         rospy.set_param(param, state_msg.string_params[param])
+
+        #     for param in state_msg.float_params:
+        #         rospy.set_param(param, state_msg.float_params[param])
+
+        positions = self._get_joint_position_dict_from_rs_dict(state_msg.state_dict)
         reset_steps = int(15.0 / self.sleep_time)
 
         for _ in range(reset_steps):
-            self.arm.set_joint_positions(transformed_j_pos)
+            self.arm.set_joint_positions(positions)
+
+        if not self.real_robot:
+            # Reset collision sensors flags
+            self.collision_sensors.update(dict.fromkeys(['panda_link0', 'panda_link1', 'panda_link2', 'panda_link3', 'panda_link4', \
+                                                'panda_link5','panda_link6','panda_link7','panda_leftfinger','panda_rightfinger',], False))
+        # Start movement of objects
+        # if self.objects_controller:
+        #     msg = Bool()
+        #     msg.data = True
+        #     self.move_objects_pub.publish(msg)
 
         self.reset.set()
         rospy.sleep(self.control_period)
@@ -305,3 +320,16 @@ class PandaRosBridge:
     
 
         return {name: self.max_velocity_scale_factor * absolute_joint_velocity_limits[name] for name in self.arm._joint_names}
+
+    def _get_joint_position_dict_from_rs_dict(self, rs_dict):
+
+        d = {}
+        d['panda_joint1'] = rs_dict['joint1_position']
+        d['panda_joint2'] = rs_dict['joint2_position']
+        d['panda_joint3'] = rs_dict['joint3_position']
+        d['panda_joint4'] = rs_dict['joint4_position']
+        d['panda_joint5'] = rs_dict['joint5_position']
+        d['panda_joint6'] = rs_dict['joint6_position']
+        d['panda_joint7'] = rs_dict['joint7_position']
+    
+        return d
