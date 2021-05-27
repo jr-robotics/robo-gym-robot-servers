@@ -240,52 +240,6 @@ class PandaRosBridge:
         except rospy.ServiceException as e:
             print("Service call failed:" + e)
 
-    def get_link_state(self, link_name, reference_frame=''):
-        """Method is used to retrieve link state from gazebo simulation
-
-        Args:
-            link_name (name of the link): [description]
-            reference_frame (str, optional): [description]. Defaults to ''.
-
-        Returns:
-            state of the link corresponding to the given name ->
-                [x_pos, y_pos, z_pos, roll, pitch, yaw, x_vel, y_vel, z_vel, roll_vel, pitch_vel, yaw_vel] 
-        """
-        gazebo_get_link_state_service = '/gazebo/get_link_state'
-        rospy.wait_for_service(gazebo_get_link_state_service)
-        try:
-            link_state_srv = rospy.ServiceProxy(
-                gazebo_get_link_state_service, GetLinkState)
-            link_coordinates = link_state_srv(
-                link_name, reference_frame).link_state
-            link_pose, link_twist = link_coordinates.pose, link_coordinates.twist
-            x_pos = link_pose.position.x
-            y_pos = link_pose.position.y
-            z_pos = link_pose.position.z
-
-            orientation = PyKDL.Rotation.Quaternion(link_pose.orientation.x,
-                                                    link_pose.orientation.y,
-                                                    link_pose.orientation.z,
-                                                    link_pose.orientation.w)
-
-            euler_orientation = orientation.GetRPY()
-            roll = euler_orientation[0]
-            pitch = euler_orientation[1]
-            yaw = euler_orientation[2]
-
-            x_vel = link_twist.linear.x
-            y_vel = link_twist.linear.y
-            z_vel = link_twist.linear.z
-            roll_vel = link_twist.angular.x
-            pitch_vel = link_twist.angular.y
-            yaw_vel = link_twist.angular.z
-
-            return x_pos, y_pos, z_pos, roll, pitch, yaw, x_vel, y_vel, z_vel, roll_vel, pitch_vel, yaw_vel
-        except rospy.ServiceException as err:
-            error_message = 'Service call failed: ' + err
-            rospy.logerr(error_message)
-            print(error_message)
-
     def _transform_panda_list_to_dict(self, panda_list):
         transformed_dict = {}
         for idx, value in enumerate(panda_list):
