@@ -1,9 +1,6 @@
 #! /usr/bin/env python
 import rospy
-import tf
-#TODO Switch to tf2
-# import tf2_ros
-# import tf_conversions
+import tf2_ros
 from geometry_msgs.msg import Twist, Pose, Pose2D
 from gazebo_msgs.msg import ModelState, ContactsState
 from gazebo_msgs.srv import GetModelState, SetModelState, GetLinkState
@@ -54,17 +51,6 @@ class PandaRosBridge:
         self.target = [0.0] * 6  # TODO define number of target floats
         # TODO define number of panda states (At least the number of joints)
         
-
-        # TF Listener
-        self.tf_listener = tf.TransformListener()
-        
-        # TF2 Listener
-        # self.tf2_buffer = tf2_ros.Buffer()
-        # self.tf2_listener = tf2_ros.TransformListener(self.tf2_buffer)
-        
-        # Static TF2 Broadcaster
-        # self.static_tf2_broadcaster = tf2_ros.StaticTransformBroadcaster()
-        
         # Robot control
         self.arm_cmd_pub = rospy.Publisher('env_arm_command', JointTrajectory, queue_size=1) # joint_trajectory_command_handler publisher
         self.sleep_time = (1.0 / rospy.get_param('~action_cycle_rate')) - 0.01
@@ -76,6 +62,11 @@ class PandaRosBridge:
         # Robot frames
         self.reference_frame = rospy.get_param('~reference_frame', 'base')
         self.ee_frame = 'panda_hand'  
+
+        # TF2
+        self.tf2_buffer = tf2_ros.Buffer()
+        self.tf2_listener = tf2_ros.TransformListener(self.tf2_buffer)
+        self.static_tf2_broadcaster = tf2_ros.StaticTransformBroadcaster()
 
         if not self.real_robot:
             # Subscribers to link collision sensors topics
