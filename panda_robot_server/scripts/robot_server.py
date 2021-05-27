@@ -3,7 +3,7 @@ from sys import exc_info
 import grpc
 import rospy
 from concurrent import futures
-from panda.ros_bridge import PandaRosBridge
+from panda_robot_server.ros_bridge import PandaRosBridge
 from robo_gym_server_modules.robot_server.grpc_msgs.python import robot_server_pb2, robot_server_pb2_grpc
 
 from robo_gym_server_modules.robot_server.grpc_msgs.python import robot_server_pb2
