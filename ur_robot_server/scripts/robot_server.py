@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import grpc
 import rospy
 from concurrent import futures
@@ -59,10 +58,10 @@ def serve():
 
 if __name__ == '__main__':
     try:
+        wait_time = 5
         rospy.init_node('robot_server')
-        rospy.loginfo('Waiting 10s before starting initialization Robot Server')
-        rospy.loginfo('Waiting 10s before starting initialization Robot Serverzz')
-        rospy.sleep(10)
+        rospy.loginfo('Waiting {}s before starting initialization of Robot Server'.format(wait_time))
+        rospy.sleep(wait_time)
         serve()
     except (KeyboardInterrupt, SystemExit):
         pass
