@@ -42,7 +42,7 @@ class PandaRosBridge:
         self.panda_joint_num = len(self.joint_names)
 
         # TODO publisher, subscriber, target and state
-        self.panda_arm = ArmInterface()
+        self.arm = ArmInterface()
 
         self.target = [0.0] * 6  # TODO define number of target floats
         # TODO define number of panda states (At least the number of joints)
@@ -177,7 +177,7 @@ class PandaRosBridge:
         reset_steps = int(15.0 / self.sleep_time)
 
         for _ in range(reset_steps):
-            self.panda_arm.set_joint_positions(transformed_j_pos)
+            self.arm.set_joint_positions(transformed_j_pos)
 
         self.reset.set()
         rospy.sleep(self.control_period)
@@ -218,7 +218,7 @@ class PandaRosBridge:
             # self.arm_cmd_pub.publish(msg)
         if self.safe_to_move:
             transformed_j_pos = self._transform_panda_list_to_dict(position_cmd[0:7])
-            self.panda_arm.set_joint_positions(transformed_j_pos)
+            self.arm.set_joint_positions(transformed_j_pos)
             rospy.sleep(self.control_period)
             return position_cmd
         else:
