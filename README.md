@@ -58,7 +58,7 @@ sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main
 ```sh
 source /opt/ros/$ROS_DISTRO/setup.bash &&\
 git clone -b $ROS_DISTRO https://github.com/jr-robotics/mir_robot.git &&\
-#git clone -b $ROS_DISTRO https://github.com/jr-robotics/universal_robot.git &&\ 
+git clone -b $ROS_DISTRO https://github.com/jr-robotics/universal_robot.git &&\ 
 cd $ROBOGYM_WS &&\
 sudo apt-get update &&\
 sudo rosdep init && rosdep update &&\
