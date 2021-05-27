@@ -91,16 +91,19 @@ class PandaRosBridge:
         self.target_mode = rospy.get_param('~target_mode', FIXED_TARGET_MODE)
         self.target_mode_name = rospy.get_param('~target_model_name', 'box100')
 
-        # Object parameters
-        # self.objects_controller = rospy.get_param('objects_controller', False)
-        # self.n_objects = int(rospy.get_param('n_objects', 0))
-
+        # # Objects  Controller 
+        # self.objects_controller = rospy.get_param("objects_controller", False)
+        # self.n_objects = int(rospy.get_param("n_objects"))
         # if self.objects_controller:
+        #     self.move_objects_pub = rospy.Publisher('move_objects', Bool, queue_size=10)
+        #     # Get objects model name
         #     self.objects_model_name = []
         #     for i in range(self.n_objects):
-        #         obj_model_name = rospy.get_param(
-        #             'object_' + repr(i) + '_model_name')
-        #         self.objects_model_name.append(obj_model_name)
+        #         self.objects_model_name.append(rospy.get_param("object_" + repr(i) + "_model_name"))
+        #     # Get objects TF Frame
+        #     self.objects_frame = []
+        #     for i in range(self.n_objects):
+        #         self.objects_frame.append(rospy.get_param("object_" + repr(i) + "_frame"))
             
             
     def _on_joint_states(self, data):
