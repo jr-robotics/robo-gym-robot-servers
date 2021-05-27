@@ -43,7 +43,6 @@ class PandaRosBridge:
         rospy.Subscriber('/joint_states', JointState, self._on_joint_states)
 
         self.panda_joint_num = len(self.joint_names)
-        self.panda_state = [0.0] * self.panda_joint_num
 
         # TODO publisher, subscriber, target and state
         self.panda_arm = ArmInterface()
@@ -104,24 +103,25 @@ class PandaRosBridge:
         #     self.objects_frame = []
         #     for i in range(self.n_objects):
         #         self.objects_frame.append(rospy.get_param("object_" + repr(i) + "_frame"))
-            
-            
-    def _on_joint_states(self, data):
+                
+    def _on_joint_states(self, msg):
         """Callback function which sets the panda state
-            - `data.name`     -> joint names
-            - `data.position` -> current joint positions
-            - `data.velocity` -> current velocity of joints
-            - `data.effort`   -> current torque (effort) of joints
+            - `msg.name`     -> joint names
+            - `msg.position` -> current joint positions
+            - `msg.velocity` -> current velocity of joints
+            - `msg.effort`   -> current torque (effort) of joints
 
         Args:
-            `data` (JointStates): data containing the current joint states
+            `msg` (JointStates): msg containing the current joint states
                 
         """
         # TODO gripper might also be included in this state
-        # if self.get_state_event.is_set():
-        self.panda_state[0:7]   = data.position[0:7]
-        self.panda_state[7:14]  = data.velocity[0:7]
-        self.panda_state[14:21] = data.effort[0:7]
+        if self.get_state_event.is_set():
+            for idx, name in enumerate(msg.name):
+                if name in self.joint_names:
+                    self.joint_position[name] = msg.position[idx]
+                    self.joint_velocity[name] = msg.velocity[idx]
+                    self.joint_effort[name] = msg.effort[idx]
             
     def get_state(self):
         self.get_state_event.clear()
