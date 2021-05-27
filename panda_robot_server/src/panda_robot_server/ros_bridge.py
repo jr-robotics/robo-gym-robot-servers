@@ -19,9 +19,6 @@ from threading import Event
 import time
 from robo_gym_server_modules.robot_server.grpc_msgs.python import robot_server_pb2
 
-FIXED_TARGET_MODE = 'fixed'
-
-
 class PandaRosBridge:
 
     def __init__(self, real_robot=False):
@@ -86,9 +83,8 @@ class PandaRosBridge:
         # TODO currently not used
         self.safe_to_move = True
 
-        # Target mode
-        self.target_mode = rospy.get_param('~target_mode', FIXED_TARGET_MODE)
-        self.target_mode_name = rospy.get_param('~target_model_name', 'box100')
+        # Robot Server mode
+        self.rs_mode = rospy.get_param('~rs_mode')
 
         # # Objects  Controller 
         # self.objects_controller = rospy.get_param("objects_controller", False)
@@ -125,35 +121,38 @@ class PandaRosBridge:
             
     def get_state(self):
         self.get_state_event.clear()
+        # Get environment state
+        state =[]
+        state_dict = {}
 
-        # # currently only working on a fixed target mode
-        if self.target_mode == FIXED_TARGET_MODE:
-            target = copy.deepcopy(self.target)
-        else:
+        if self.rs_mode == 'only_robot':
+            # Joint Positions and Joint Velocities
+            joint_position = copy.deepcopy(self.joint_position)
+            joint_velocity = copy.deepcopy(self.joint_velocity)
+            joint_effort = copy.deepcopy(self.joint_effort)
+            state += self._get_joint_ordered_value_list(joint_position)
+            state += self._get_joint_ordered_value_list(joint_velocity)
+            state += self._get_joint_ordered_value_list(joint_effort)
+            state_dict.update(self._get_joint_states_dict(joint_position, joint_velocity, joint_effort))
+
+            # ee to ref transform
+            ee_to_ref_trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.ee_frame, rospy.Time(0))
+            ee_to_ref_trans_list = self._transform_to_list(ee_to_ref_trans)
+            state += ee_to_ref_trans_list
+            state_dict.update(self._get_transform_dict(ee_to_ref_trans, 'ee_to_ref'))
+        
+            # Collision sensors
+            ur_collision = any(self.collision_sensors.values())
+            state += [ur_collision]
+            state_dict['in_collision'] = float(ur_collision)
+
+        else: 
             raise ValueError
-
-        panda_state = copy.deepcopy(self.panda_state)
-
-        # # TODO is ee_to_base_transform value correctly loaded and set
-        # (position, quaternion) = self.tf_listener.lookupTransform(
-        #     self.reference_frame)
-        # ee_to_base_transform = position + quaternion
-
-        # # TODO currently not needed
-        # # if self.real_robot:
-        # #     panda_collision = False
-        # # else:
-        # #     panda_collision = any(self.collision_sensors.values())
 
         self.get_state_event.set()
         
         # Create and fill State message
-        msg = robot_server_pb2.State()
-        msg.state.extend(target)
-        msg.state.extend(panda_state)
-        # msg.state.extend(ee_to_base_transform)
-        # msg.state.extend([panda_collision])
-        msg.success = True
+        msg = robot_server_pb2.State(state=state, state_dict=state_dict, success= True)
 
         return msg
 
@@ -293,6 +292,58 @@ class PandaRosBridge:
             current_joint_name = self.joint_names[idx]
             transformed_dict[current_joint_name] = value
         return transformed_dict
+
+    def _get_joint_states_dict(self, joint_position, joint_velocity, joint_effort):
+
+        d = {}
+        d['joint1_position'] = joint_position['panda_joint1']
+        d['joint2_position'] = joint_position['panda_joint2']
+        d['joint3_position'] = joint_position['panda_joint3']
+        d['joint4_position'] = joint_position['panda_joint4']
+        d['joint5_position'] = joint_position['panda_joint5']
+        d['joint6_position'] = joint_position['panda_joint6']
+        d['joint7_position'] = joint_position['panda_joint7']
+        d['joint1_velocity'] = joint_velocity['panda_joint1']
+        d['joint2_velocity'] = joint_velocity['panda_joint2']
+        d['joint3_velocity'] = joint_velocity['panda_joint3']
+        d['joint4_velocity'] = joint_velocity['panda_joint4']
+        d['joint5_velocity'] = joint_velocity['panda_joint5']
+        d['joint6_velocity'] = joint_velocity['panda_joint6']
+        d['joint7_velocity'] = joint_velocity['panda_joint7']
+        d['joint1_effort'] = joint_effort['panda_joint1']
+        d['joint2_effort'] = joint_effort['panda_joint2']
+        d['joint3_effort'] = joint_effort['panda_joint3']
+        d['joint4_effort'] = joint_effort['panda_joint4']
+        d['joint5_effort'] = joint_effort['panda_joint5']
+        d['joint6_effort'] = joint_effort['panda_joint6']
+        d['joint7_effort'] = joint_effort['panda_joint7']
+        
+        return d 
+
+    def _get_transform_dict(self, transform, transform_name):
+
+        d ={}
+        d[transform_name + '_translation_x'] = transform.transform.translation.x
+        d[transform_name + '_translation_y'] = transform.transform.translation.y
+        d[transform_name + '_translation_z'] = transform.transform.translation.z
+        d[transform_name + '_rotation_x'] = transform.transform.rotation.x
+        d[transform_name + '_rotation_y'] = transform.transform.rotation.y
+        d[transform_name + '_rotation_z'] = transform.transform.rotation.z
+        d[transform_name + '_rotation_w'] = transform.transform.rotation.w
+
+        return d
+
+    def _transform_to_list(self, transform):
+
+        return [transform.transform.translation.x, transform.transform.translation.y, \
+                transform.transform.translation.z, transform.transform.rotation.x, \
+                transform.transform.rotation.y, transform.transform.rotation.z, \
+                transform.transform.rotation.w]
+
+
+    def _get_joint_ordered_value_list(self, joint_values):
+        
+        return [joint_values[name] for name in self.joint_names]
 
     def _get_joint_velocity_limits(self):
 
