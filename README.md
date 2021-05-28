@@ -58,7 +58,12 @@ sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main
 ```sh
 source /opt/ros/$ROS_DISTRO/setup.bash &&\
 git clone -b $ROS_DISTRO https://github.com/jr-robotics/mir_robot.git &&\
-#git clone -b $ROS_DISTRO https://github.com/jr-robotics/universal_robot.git &&\ 
+git clone -b $ROS_DISTRO https://github.com/jr-robotics/universal_robot.git &&\ 
+git clone -b v0.7.1-dev https://github.com/jr-robotics/franka_ros_interface &&\
+git clone https://github.com/jr-robotics/franka_panda_description &&\ 
+git clone -b ${ROS_DISTRO}-devel https://github.com/jr-robotics/panda_simulator &&\
+git clone https://github.com/orocos/orocos_kinematics_dynamics &&\
+cd orocos_kinematics_dynamics && git checkout b35c424e77ebc5b7e6f1c5e5c34f8a4666fbf5bc &&\
 cd $ROBOGYM_WS &&\
 sudo apt-get update &&\
 sudo rosdep init && rosdep update &&\
@@ -108,6 +113,11 @@ sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main
 source /opt/ros/$ROS_DISTRO/setup.bash &&\
 git clone -b $ROS_DISTRO https://github.com/jr-robotics/mir_robot.git &&\
 git clone -b $ROS_DISTRO https://github.com/jr-robotics/universal_robot.git &&\ 
+git clone -b v0.7.1-dev https://github.com/jr-robotics/franka_ros_interface &&\
+git clone https://github.com/jr-robotics/franka_panda_description &&\ 
+git clone -b ${ROS_DISTRO}-devel https://github.com/jr-robotics/panda_simulator &&\
+git clone https://github.com/orocos/orocos_kinematics_dynamics &&\
+cd orocos_kinematics_dynamics && git checkout b35c424e77ebc5b7e6f1c5e5c34f8a4666fbf5bc &&\
 cd $ROBOGYM_WS &&\
 sudo apt-get update &&\
 sudo rosdep init && rosdep update &&\
