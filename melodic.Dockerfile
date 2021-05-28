@@ -16,13 +16,6 @@ RUN apt-get update && apt-get install -y \
   python-catkin-tools python-rosdep python-pip \
   python-rospkg python-future
 
-# Panda 
-# TODO check if these can be removed
-RUN apt-get update && apt-get install -q -y \
-    ros-${ROS_DISTRO}-rospy-message-converter \
-    ros-${ROS_DISTRO}-moveit ros-${ROS_DISTRO}-moveit-commander \
-    ros-${ROS_DISTRO}-moveit-visual-tools
-
 RUN source /opt/ros/$ROS_DISTRO/setup.bash &&\
     mkdir -p $ROBOGYM_WS/src &&\
     cd $ROBOGYM_WS/src &&\

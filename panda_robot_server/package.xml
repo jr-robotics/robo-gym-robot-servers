@@ -45,6 +45,8 @@
   <exec_depend>franka_visualization</exec_depend>
   <exec_depend>panda_moveit_config</exec_depend>
   <exec_depend>libfranka</exec_depend>
+  <exec_depend>moveit</exec_depend>
+  <exec_depend>moveit_commander</exec_depend>
 
   <export>
     <gazebo_ros gazebo_model_path="${prefix}/models"/>
