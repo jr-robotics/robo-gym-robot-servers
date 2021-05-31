@@ -39,12 +39,6 @@ class PandaRosBridge:
         rospy.Subscriber('/joint_states', JointState, self._on_joint_states)
 
         self.panda_joint_num = len(self.arm._joint_names)
-
-        # TODO publisher, subscriber, target and state
-        
-
-        self.target = [0.0] * 6  # TODO define number of target floats
-        # TODO define number of panda states (At least the number of joints)
         
         # Robot control
         self.arm_cmd_pub = rospy.Publisher('env_arm_command', JointTrajectory, queue_size=1) # joint_trajectory_command_handler publisher
