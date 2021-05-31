@@ -2,7 +2,8 @@
 <launch>
   <!-- these are the arguments you can pass this launch file, for example paused:=true -->
   <arg name="load_gripper" default="true"/> 
-
+  <arg name="use_custom_action_servers" default="true"/>
+  <arg name="start_moveit" default="false"/>
   <arg name="paused" default="false"/>
   <arg name="use_sim_time" default="true"/>
   <arg name="gui" default="true"/>
@@ -66,5 +67,21 @@
       <arg name="ns" value="$(arg ns)" />
       <arg name="load_gripper" value="$(arg load_gripper)" />
   </include>
+
+  <group if="$(eval arg('use_custom_action_servers') == true)">
+    <node pkg="panda_sim_custom_action_server" type="start_joint_trajectory_server.py" name="joint_trajectory_server_emulator"/>
+
+      <group if="$(eval arg('load_gripper') == true)">
+        <node pkg="panda_sim_custom_action_server" type="start_gripper_action_server.py" name="gripper_action_server_emulator"/>
+      </group>
+
+    <group if="$(eval arg('start_moveit') == true)">
+      <include file="$(find panda_sim_moveit)/launch/sim_move_group.launch">
+        <arg name="load_gripper" value="$(arg load_gripper)" />
+        <arg name="info" value="true" />
+      </include>
+    </group>
+
+  </group>
 
 </launch>

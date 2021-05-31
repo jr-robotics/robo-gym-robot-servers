@@ -180,8 +180,9 @@ class PandaRosBridge:
         positions = self._get_joint_position_dict_from_rs_dict(state_msg.state_dict)
         reset_steps = int(15.0 / self.sleep_time)
 
-        for _ in range(reset_steps):
-            self.arm.set_joint_positions(positions)
+        # for _ in range(reset_steps):
+        #     self.arm.set_joint_positions(positions)
+        self.arm.move_to_joint_positions(positions, use_moveit=False)
 
         if not self.real_robot:
             # Reset collision sensors flags
