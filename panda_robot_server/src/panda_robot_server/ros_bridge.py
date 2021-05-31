@@ -3,20 +3,12 @@ import rospy
 import tf2_ros
 from geometry_msgs.msg import Twist, Pose, Pose2D
 from gazebo_msgs.msg import ModelState, ContactsState
-from gazebo_msgs.srv import GetModelState, SetModelState, GetLinkState
-from gazebo_msgs.srv import SetModelConfiguration, SetModelConfigurationRequest
 from sensor_msgs.msg import JointState
 from trajectory_msgs.msg import JointTrajectoryPoint, JointTrajectory
-from std_msgs.msg import Header, Bool
-from std_srvs.srv import Empty
 from franka_interface import ArmInterface
-
-from visualization_msgs.msg import Marker
-import PyKDL
 import copy
 # See https://docs.python.org/3/library/threading.html#event-objects
 from threading import Event
-import time
 from robo_gym_server_modules.robot_server.grpc_msgs.python import robot_server_pb2
 
 class PandaRosBridge:
@@ -231,21 +223,6 @@ class PandaRosBridge:
         self.arm.set_joint_positions(transformed_j_pos)
         rospy.sleep(self.control_period)
         return position_cmd
-        
-    def get_model_state_pose(self, model_name, relative_entity_name=''):
-        # method used to retrieve model pose from gazebo simulation
-
-        rospy.wait_for_service('/gazebo/get_model_state')
-        try:
-            model_state = rospy.ServiceProxy('/gazebo/get_model_state', GetModelState)
-            s = model_state(model_name, relative_entity_name)
-
-            pose = [s.pose.position.x, s.pose.position.y, s.pose.position.z, \
-                    s.pose.orientation.x, s.pose.orientation.y, s.pose.orientation.z, s.pose.orientation.w]
-
-            return pose
-        except rospy.ServiceException as e:
-            print("Service call failed:" + e)
 
     def _transform_panda_list_to_dict(self, panda_list):
         transformed_dict = {}
