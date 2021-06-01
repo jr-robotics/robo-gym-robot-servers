@@ -50,19 +50,18 @@ class PandaRosBridge:
         self.static_tf2_broadcaster = tf2_ros.StaticTransformBroadcaster()
 
         # Collision detection 
-        # if not self.real_robot:
-        #     rospy.Subscriber("panda_link0_collision", ContactsState, self._on_link0_collision)
-        #     rospy.Subscriber("panda_link1_collision", ContactsState, self._on_link1_collision)
-        #     rospy.Subscriber("panda_link2_collision", ContactsState, self._on_link2_collision)
-        #     rospy.Subscriber("panda_link3_collision", ContactsState, self._on_link3_collision)
-        #     rospy.Subscriber("panda_link4_collision", ContactsState, self._on_link4_collision)
-        #     rospy.Subscriber("panda_link5_collision", ContactsState, self._on_link5_collision)
-        #     rospy.Subscriber("panda_link6_collision", ContactsState, self._on_link6_collision)
-        #     rospy.Subscriber("panda_link7_collision", ContactsState, self._on_link7_collision)
-        #     rospy.Subscriber("panda_leftfinger_collision", ContactsState, self._on_leftfinger_collision)
-        #     rospy.Subscriber("panda_rightfinger_collision", ContactsState, self._on_rightfinger_collision)
+        if not self.real_robot:
+            rospy.Subscriber("panda_link1_collision", ContactsState, self._on_link1_collision)
+            rospy.Subscriber("panda_link2_collision", ContactsState, self._on_link2_collision)
+            rospy.Subscriber("panda_link3_collision", ContactsState, self._on_link3_collision)
+            rospy.Subscriber("panda_link4_collision", ContactsState, self._on_link4_collision)
+            rospy.Subscriber("panda_link5_collision", ContactsState, self._on_link5_collision)
+            rospy.Subscriber("panda_link6_collision", ContactsState, self._on_link6_collision)
+            rospy.Subscriber("panda_link7_collision", ContactsState, self._on_link7_collision)
+            rospy.Subscriber("panda_leftfinger_collision", ContactsState, self._on_leftfinger_collision)
+            rospy.Subscriber("panda_rightfinger_collision", ContactsState, self._on_rightfinger_collision)
         # Initialization of collision sensor flags
-        self.collision_sensors = dict.fromkeys(['panda_link0', 'panda_link1', 'panda_link2', 'panda_link3', 'panda_link4', \
+        self.collision_sensors = dict.fromkeys(['panda_link1', 'panda_link2', 'panda_link3', 'panda_link4', \
                                                 'panda_link5','panda_link6','panda_link7','panda_leftfinger','panda_rightfinger',], False)
 
         # TODO currently not used
@@ -172,7 +171,7 @@ class PandaRosBridge:
 
         if not self.real_robot:
             # Reset collision sensors flags
-            self.collision_sensors.update(dict.fromkeys(['panda_link0', 'panda_link1', 'panda_link2', 'panda_link3', 'panda_link4', \
+            self.collision_sensors.update(dict.fromkeys(['panda_link1', 'panda_link2', 'panda_link3', 'panda_link4', \
                                                 'panda_link5','panda_link6','panda_link7','panda_leftfinger','panda_rightfinger',], False))
         # Start movement of objects
         # if self.objects_controller:
@@ -303,3 +302,58 @@ class PandaRosBridge:
         d['panda_joint7'] = rs_dict['joint7_position']
     
         return d
+    
+    def _on_link1_collision(self, data):
+        if data.states == []:
+            pass
+        else:
+            self.collision_sensors['panda_link1'] = True
+    
+    def _on_link2_collision(self, data):
+        if data.states == []:
+            pass
+        else:
+            self.collision_sensors['panda_link2'] = True
+
+    def _on_link3_collision(self, data):
+        if data.states == []:
+            pass
+        else:
+            self.collision_sensors['panda_link3'] = True
+
+    def _on_link4_collision(self, data):
+        if data.states == []:
+            pass
+        else:
+            self.collision_sensors['panda_link4'] = True
+
+    def _on_link5_collision(self, data):
+        if data.states == []:
+            pass
+        else:
+            self.collision_sensors['panda_link5'] = True
+
+    def _on_link6_collision(self, data):
+        if data.states == []:
+            pass
+        else:
+            self.collision_sensors['panda_link6'] = True
+
+    def _on_link7_collision(self, data):
+        if data.states == []:
+            pass
+        else:
+            self.collision_sensors['panda_link7'] = True
+    
+    def _on_leftfinger_collision(self, data):
+        if data.states == []:
+            pass
+        else:
+            self.collision_sensors['panda_leftfinger'] = True
+
+    def _on_rightfinger_collision(self, data):
+        if data.states == []:
+            pass
+        else:
+            self.collision_sensors['panda_rightfinger'] = True
+            
