@@ -64,9 +64,6 @@ class PandaRosBridge:
         self.collision_sensors = dict.fromkeys(['panda_link1', 'panda_link2', 'panda_link3', 'panda_link4', \
                                                 'panda_link5','panda_link6','panda_link7','panda_leftfinger','panda_rightfinger',], False)
 
-        # TODO currently not used
-        self.safe_to_move = True
-
         # Robot Server mode
         self.rs_mode = rospy.get_param('~rs_mode')
 
