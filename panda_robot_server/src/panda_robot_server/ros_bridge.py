@@ -3,20 +3,12 @@ import rospy
 import tf2_ros
 from geometry_msgs.msg import Twist, Pose, Pose2D
 from gazebo_msgs.msg import ModelState, ContactsState
-from gazebo_msgs.srv import GetModelState, SetModelState, GetLinkState
-from gazebo_msgs.srv import SetModelConfiguration, SetModelConfigurationRequest
 from sensor_msgs.msg import JointState
 from trajectory_msgs.msg import JointTrajectoryPoint, JointTrajectory
-from std_msgs.msg import Header, Bool
-from std_srvs.srv import Empty
 from franka_interface import ArmInterface
-
-from visualization_msgs.msg import Marker
-import PyKDL
 import copy
 # See https://docs.python.org/3/library/threading.html#event-objects
 from threading import Event
-import time
 from robo_gym_server_modules.robot_server.grpc_msgs.python import robot_server_pb2
 
 class PandaRosBridge:
@@ -39,12 +31,6 @@ class PandaRosBridge:
         rospy.Subscriber('/joint_states', JointState, self._on_joint_states)
 
         self.panda_joint_num = len(self.arm._joint_names)
-
-        # TODO publisher, subscriber, target and state
-        
-
-        self.target = [0.0] * 6  # TODO define number of target floats
-        # TODO define number of panda states (At least the number of joints)
         
         # Robot control
         self.arm_cmd_pub = rospy.Publisher('env_arm_command', JointTrajectory, queue_size=1) # joint_trajectory_command_handler publisher
@@ -64,23 +50,19 @@ class PandaRosBridge:
         self.static_tf2_broadcaster = tf2_ros.StaticTransformBroadcaster()
 
         # Collision detection 
-        # if not self.real_robot:
-        #     rospy.Subscriber("panda_link0_collision", ContactsState, self._on_link0_collision)
-        #     rospy.Subscriber("panda_link1_collision", ContactsState, self._on_link1_collision)
-        #     rospy.Subscriber("panda_link2_collision", ContactsState, self._on_link2_collision)
-        #     rospy.Subscriber("panda_link3_collision", ContactsState, self._on_link3_collision)
-        #     rospy.Subscriber("panda_link4_collision", ContactsState, self._on_link4_collision)
-        #     rospy.Subscriber("panda_link5_collision", ContactsState, self._on_link5_collision)
-        #     rospy.Subscriber("panda_link6_collision", ContactsState, self._on_link6_collision)
-        #     rospy.Subscriber("panda_link7_collision", ContactsState, self._on_link7_collision)
-        #     rospy.Subscriber("panda_leftfinger_collision", ContactsState, self._on_leftfinger_collision)
-        #     rospy.Subscriber("panda_rightfinger_collision", ContactsState, self._on_rightfinger_collision)
+        if not self.real_robot:
+            rospy.Subscriber("panda_link1_collision", ContactsState, self._on_link1_collision)
+            rospy.Subscriber("panda_link2_collision", ContactsState, self._on_link2_collision)
+            rospy.Subscriber("panda_link3_collision", ContactsState, self._on_link3_collision)
+            rospy.Subscriber("panda_link4_collision", ContactsState, self._on_link4_collision)
+            rospy.Subscriber("panda_link5_collision", ContactsState, self._on_link5_collision)
+            rospy.Subscriber("panda_link6_collision", ContactsState, self._on_link6_collision)
+            rospy.Subscriber("panda_link7_collision", ContactsState, self._on_link7_collision)
+            rospy.Subscriber("panda_leftfinger_collision", ContactsState, self._on_leftfinger_collision)
+            rospy.Subscriber("panda_rightfinger_collision", ContactsState, self._on_rightfinger_collision)
         # Initialization of collision sensor flags
-        self.collision_sensors = dict.fromkeys(['panda_link0', 'panda_link1', 'panda_link2', 'panda_link3', 'panda_link4', \
+        self.collision_sensors = dict.fromkeys(['panda_link1', 'panda_link2', 'panda_link3', 'panda_link4', \
                                                 'panda_link5','panda_link6','panda_link7','panda_leftfinger','panda_rightfinger',], False)
-
-        # TODO currently not used
-        self.safe_to_move = True
 
         # Robot Server mode
         self.rs_mode = rospy.get_param('~rs_mode')
@@ -186,7 +168,7 @@ class PandaRosBridge:
 
         if not self.real_robot:
             # Reset collision sensors flags
-            self.collision_sensors.update(dict.fromkeys(['panda_link0', 'panda_link1', 'panda_link2', 'panda_link3', 'panda_link4', \
+            self.collision_sensors.update(dict.fromkeys(['panda_link1', 'panda_link2', 'panda_link3', 'panda_link4', \
                                                 'panda_link5','panda_link6','panda_link7','panda_leftfinger','panda_rightfinger',], False))
         # Start movement of objects
         # if self.objects_controller:
@@ -237,21 +219,6 @@ class PandaRosBridge:
         self.arm.set_joint_positions(transformed_j_pos)
         rospy.sleep(self.control_period)
         return position_cmd
-        
-    def get_model_state_pose(self, model_name, relative_entity_name=''):
-        # method used to retrieve model pose from gazebo simulation
-
-        rospy.wait_for_service('/gazebo/get_model_state')
-        try:
-            model_state = rospy.ServiceProxy('/gazebo/get_model_state', GetModelState)
-            s = model_state(model_name, relative_entity_name)
-
-            pose = [s.pose.position.x, s.pose.position.y, s.pose.position.z, \
-                    s.pose.orientation.x, s.pose.orientation.y, s.pose.orientation.z, s.pose.orientation.w]
-
-            return pose
-        except rospy.ServiceException as e:
-            print("Service call failed:" + e)
 
     def _transform_panda_list_to_dict(self, panda_list):
         transformed_dict = {}
@@ -332,3 +299,58 @@ class PandaRosBridge:
         d['panda_joint7'] = rs_dict['joint7_position']
     
         return d
+    
+    def _on_link1_collision(self, data):
+        if data.states == []:
+            pass
+        else:
+            self.collision_sensors['panda_link1'] = True
+    
+    def _on_link2_collision(self, data):
+        if data.states == []:
+            pass
+        else:
+            self.collision_sensors['panda_link2'] = True
+
+    def _on_link3_collision(self, data):
+        if data.states == []:
+            pass
+        else:
+            self.collision_sensors['panda_link3'] = True
+
+    def _on_link4_collision(self, data):
+        if data.states == []:
+            pass
+        else:
+            self.collision_sensors['panda_link4'] = True
+
+    def _on_link5_collision(self, data):
+        if data.states == []:
+            pass
+        else:
+            self.collision_sensors['panda_link5'] = True
+
+    def _on_link6_collision(self, data):
+        if data.states == []:
+            pass
+        else:
+            self.collision_sensors['panda_link6'] = True
+
+    def _on_link7_collision(self, data):
+        if data.states == []:
+            pass
+        else:
+            self.collision_sensors['panda_link7'] = True
+    
+    def _on_leftfinger_collision(self, data):
+        if data.states == []:
+            pass
+        else:
+            self.collision_sensors['panda_leftfinger'] = True
+
+    def _on_rightfinger_collision(self, data):
+        if data.states == []:
+            pass
+        else:
+            self.collision_sensors['panda_rightfinger'] = True
+            
