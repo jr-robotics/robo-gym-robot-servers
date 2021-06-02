@@ -1,10 +1,11 @@
 #! /usr/bin/env python
+
 import rospy
 import tf2_ros
-from geometry_msgs.msg import Twist, Pose, Pose2D
-from gazebo_msgs.msg import ModelState, ContactsState
+from gazebo_msgs.msg import ContactsState
 from sensor_msgs.msg import JointState
 from trajectory_msgs.msg import JointTrajectoryPoint, JointTrajectory
+from std_msgs.msg import Bool
 from franka_interface import ArmInterface
 import copy
 # See https://docs.python.org/3/library/threading.html#event-objects
@@ -67,19 +68,19 @@ class PandaRosBridge:
         # Robot Server mode
         self.rs_mode = rospy.get_param('~rs_mode')
 
-        # # Objects  Controller 
-        # self.objects_controller = rospy.get_param("objects_controller", False)
-        # self.n_objects = int(rospy.get_param("n_objects"))
-        # if self.objects_controller:
-        #     self.move_objects_pub = rospy.Publisher('move_objects', Bool, queue_size=10)
-        #     # Get objects model name
-        #     self.objects_model_name = []
-        #     for i in range(self.n_objects):
-        #         self.objects_model_name.append(rospy.get_param("object_" + repr(i) + "_model_name"))
-        #     # Get objects TF Frame
-        #     self.objects_frame = []
-        #     for i in range(self.n_objects):
-        #         self.objects_frame.append(rospy.get_param("object_" + repr(i) + "_frame"))
+        # Objects  Controller 
+        self.objects_controller = rospy.get_param("objects_controller", False)
+        self.n_objects = int(rospy.get_param("n_objects"))
+        if self.objects_controller:
+            self.move_objects_pub = rospy.Publisher('move_objects', Bool, queue_size=10)
+            # Get objects model name
+            self.objects_model_name = []
+            for i in range(self.n_objects):
+                self.objects_model_name.append(rospy.get_param("object_" + repr(i) + "_model_name"))
+            # Get objects TF Frame
+            self.objects_frame = []
+            for i in range(self.n_objects):
+                self.objects_frame.append(rospy.get_param("object_" + repr(i) + "_frame"))
                 
     def _on_joint_states(self, msg):
         """Callback function which sets the panda state
@@ -126,6 +127,33 @@ class PandaRosBridge:
             collision = any(self.collision_sensors.values())
             state += [collision]
             state_dict['in_collision'] = float(collision)
+        
+        elif self.rs_mode == '1object':
+            # Object 0 Pose 
+            object_0_trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.objects_frame[0], rospy.Time(0))
+            object_0_trans_list = self._transform_to_list(object_0_trans)
+            state += object_0_trans_list
+            state_dict.update(self._get_transform_dict(object_0_trans, 'object_0_to_ref'))
+
+            # Joint Positions and Joint Velocities
+            joint_position = copy.deepcopy(self.joint_position)
+            joint_velocity = copy.deepcopy(self.joint_velocity)
+            joint_effort = copy.deepcopy(self.joint_effort)
+            state += self._get_joint_ordered_value_list(joint_position)
+            state += self._get_joint_ordered_value_list(joint_velocity)
+            state += self._get_joint_ordered_value_list(joint_effort)
+            state_dict.update(self._get_joint_states_dict(joint_position, joint_velocity, joint_effort))
+
+            # ee to ref transform
+            ee_to_ref_trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.ee_frame, rospy.Time(0))
+            ee_to_ref_trans_list = self._transform_to_list(ee_to_ref_trans)
+            state += ee_to_ref_trans_list
+            state_dict.update(self._get_transform_dict(ee_to_ref_trans, 'ee_to_ref'))
+        
+            # Collision sensors
+            collision = any(self.collision_sensors.values())
+            state += [collision]
+            state_dict['in_collision'] = float(collision)
 
         else: 
             raise ValueError
@@ -144,20 +172,19 @@ class PandaRosBridge:
         # Clear reset Event
         self.reset.clear()
         
-        # TODO setup objects movement
-        # # Setup Objects movement
-        # if self.objects_controller:
-        #     # Stop movement of objects
-        #     msg = Bool()
-        #     msg.data = False
-        #     self.move_objects_pub.publish(msg)
+        # Setup Objects movement
+        if self.objects_controller:
+            # Stop movement of objects
+            msg = Bool()
+            msg.data = False
+            self.move_objects_pub.publish(msg)
 
-        #     # Loop through all the string_params and float_params and set them as ROS parameters
-        #     for param in state_msg.string_params:
-        #         rospy.set_param(param, state_msg.string_params[param])
+            # Loop through all the string_params and float_params and set them as ROS parameters
+            for param in state_msg.string_params:
+                rospy.set_param(param, state_msg.string_params[param])
 
-        #     for param in state_msg.float_params:
-        #         rospy.set_param(param, state_msg.float_params[param])
+            for param in state_msg.float_params:
+                rospy.set_param(param, state_msg.float_params[param])
 
         positions = self._get_joint_position_dict_from_rs_dict(state_msg.state_dict)
         reset_steps = int(15.0 / self.sleep_time)
@@ -171,10 +198,10 @@ class PandaRosBridge:
             self.collision_sensors.update(dict.fromkeys(['panda_link1', 'panda_link2', 'panda_link3', 'panda_link4', \
                                                 'panda_link5','panda_link6','panda_link7','panda_leftfinger','panda_rightfinger',], False))
         # Start movement of objects
-        # if self.objects_controller:
-        #     msg = Bool()
-        #     msg.data = True
-        #     self.move_objects_pub.publish(msg)
+        if self.objects_controller:
+            msg = Bool()
+            msg.data = True
+            self.move_objects_pub.publish(msg)
 
         self.reset.set()
         rospy.sleep(self.control_period)

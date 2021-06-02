@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <launch>
-
+    <arg name="real_robot" default="false" doc="true: Real Robot, false: Simulated Robot"/>
     <arg name="gui" default="false"/>
     <arg name="rviz_gui" default="true"/>
     <arg name="gazebo_gui" default="false"/>
@@ -12,6 +12,13 @@
     <arg name="rs_mode"  default="only_robot" doc="Defines the working mode of the Robot Server, this influences the RS state content"/>
 
     <!-- Scene Objects -->
+    <arg name="objects_controller" default="false"  doc="Start objects controller node"/>
+    <arg name="n_objects" default="0.0"  doc="Number of objects in the scene"/>
+    <arg name="object_trajectory_file_name" default="no_file" doc="Object trajectory file name"/>
+    <arg name="object_0_model_name" default="" doc="Gazebo model name of the target object"/>
+    <arg name="object_0_frame" default="" doc="TF Frame name of target"/>
+    <arg name="object_1_model_name" default="" doc="Gazebo model name of object 1"/>
+    <arg name="object_1_frame" default="" doc="TF Frame name of object 1"/>
 
     <!-- RViz Configuration -->
     <arg name="rviz_config_path" default="$(find panda_robot_server)/rviz"/>
@@ -59,6 +66,19 @@
     <!-- <node if="$(eval arg('gui') and arg('rviz_gui'))" name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false" args="-d $(arg rviz_config)" output="screen">
     </node> -->
 
+    <!-- Global Parameters -->
+    <param name="real_robot" value="$(arg real_robot)"></param>
+    <param name="reference_frame" value="$(arg reference_frame)"></param>
+
+    <!-- Scene Objects Parameters -->
+    <param name="objects_controller" value="$(arg objects_controller)"></param>
+    <param name="n_objects" value="$(arg n_objects)"></param>
+    <param name="object_trajectory_file_name" value="$(arg object_trajectory_file_name)"></param>
+    <param name="object_0_model_name" value="$(arg object_0_model_name)"></param>
+    <param name="object_0_frame" value="$(arg object_0_frame)"></param>
+    <param name="object_1_model_name" value="$(arg object_1_model_name)"></param>
+    <param name="object_1_frame" value="$(arg object_1_frame)"></param>
+
     <!--Launch gRPC server -->
     <node name="robot_server" pkg="panda_robot_server" type="robot_server.py" respawn="false" output="screen">
         <param name="server_port" value="$(arg server_port)"></param>
@@ -69,9 +89,8 @@
         <param name="rs_mode" value="$(arg rs_mode)"></param>
     </node>
 
-    <!-- Launch objects controller -->
-
-    <!-- Scene Objects Parameters -->
+    <!--Launch objects controller -->
+    <node if="$(arg objects_controller)" name="objects_controller" pkg="simulation_objects" type="objects_controller.py" respawn="false" output="screen" ></node>
 
 
 </launch>
