@@ -112,7 +112,7 @@ test_environments_with_robo-gym-master:
     - docker pull $ROBOT_SERVERS_IMAGE
     - docker tag $ROBOT_SERVERS_IMAGE robot-servers
     - docker-compose -f docker-compose.yml up -d
-    - docker exec robo-gym pytest -m "not nightly"
+    - docker exec robo-gym pytest -x
     - docker-compose -f docker-compose.yml down
   except:
     - /^docs.*$/

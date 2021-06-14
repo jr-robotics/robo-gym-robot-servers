@@ -13,14 +13,6 @@ install(DIRECTORY launch
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 
-install(DIRECTORY models
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-)
-
-install(DIRECTORY worlds
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-)
-
 catkin_python_setup()
 catkin_install_python(PROGRAMS scripts/joint_trajectory_command_handler.py 
                                scripts/robot_server.py

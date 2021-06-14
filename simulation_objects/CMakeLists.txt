@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5.1)
 cmake_policy(SET CMP0048 NEW)
-project(ur_robot_server)
+project(simulation_objects)
 
 find_package(catkin REQUIRED COMPONENTS
   rospy
@@ -13,7 +13,13 @@ install(DIRECTORY launch
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 
-catkin_python_setup()
-catkin_install_python(PROGRAMS scripts/joint_trajectory_command_handler.py 
-                               scripts/robot_server.py
+install(DIRECTORY models
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
+
+install(DIRECTORY worlds
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
+
+catkin_install_python(PROGRAMS scripts/objects_controller.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
