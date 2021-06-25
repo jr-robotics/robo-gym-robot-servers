@@ -13,7 +13,7 @@
     <!-- Robot Simulation -->
     <include file="$(find mir_gazebo)/launch/mir_empty_world.launch">
       <arg name="gui"         value="$(arg gui)"/>
-      <arg name="world_name"  value="$(arg world)"/>
+      <arg name="world_name"  value="$(arg world_name)"/>
       <arg name="teleop"      value="false"/>
     </include>
 
