@@ -1,0 +1,41 @@
+<?xml version="1.0" ?>
+<launch>
+  <arg name="real_robot" default="false" doc="true: Real Robot, false: Simulated Robot"/>
+  <arg name="gui"         default="false"/>
+  <arg name="world_name" default="empty.world"/>
+  <arg name="server_port" default="50051"/>
+
+
+  <!-- START Robot Simulation Launch  -->
+
+    <!-- Here goes the launch file necessary to start the robot simulation -->
+
+    <!-- Robot Simulation -->
+    <include file="$(find mir_gazebo)/launch/mir_empty_world.launch">
+      <arg name="gui"         value="$(arg gui)"/>
+      <arg name="world_name"  value="$(arg world_name)"/>
+      <arg name="teleop"      value="false"/>
+    </include>
+
+    <!-- Launch fake localization node -->
+    <include file="$(find mir_gazebo)/launch/fake_localization.launch"></include>
+
+    <!-- Launch robot_pose publisher -->
+    <node name="robot_pose_publisher" pkg="example_robot_server" type="robot_pose_publisher.py" respawn="false" output="screen">
+    </node>
+
+  <!-- END Robot Simulation Launch  -->
+
+  <!-- Launch Command Handler -->
+  <!-- This is optional, depending on how you wish to control your robot -->
+  <node name="cmd_vel_command_handler" pkg="example_robot_server" type="cmd_vel_command_handler.py" respawn="false" output="screen">
+    <param name="action_cycle_rate" value="10"></param>
+  </node>
+
+  <!--Launch gRPC server -->
+  <node name="robot_server" pkg="example_robot_server" type="robot_server.py" respawn="false" output="screen">
+    <param name="server_port" value="$(arg server_port)"></param>
+    <param name="real_robot" value="$(arg real_robot)"></param>
+  </node>
+
+</launch>

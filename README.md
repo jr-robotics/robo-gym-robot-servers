@@ -8,6 +8,7 @@ The `robo-gym-robot-servers` provide an interface to the Gazebo simulations and 
 - [Installation](#installation)
 - [How to use](#how-to-use)
 - [Troubleshooting](#troubleshooting)
+- [Examples](#examples)
 
 # Supported Systems 
 
@@ -233,3 +234,7 @@ roslaunch ur_robot_server ur_robot_server.launch ur_model:=ur10 real_robot:=true
 # Troubleshooting
 
 The Robot Server uses the standard ROS logging system, you can find the latest log of the Robot Server at: `.ros/log/latest/robot_server-*.log`
+
+# Examples
+
+See [example_robot_server](example_robot_server) for a basic implementation of a Robot Server reduced to its minimum form. The example implements a Robot Server for the robot MiR100 with basic functionality and it is meant as a good place to start from to implement a Robot Server for your own robot. 
