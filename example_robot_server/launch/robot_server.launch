@@ -3,7 +3,6 @@
   <arg name="real_robot" default="false" doc="true: Real Robot, false: Simulated Robot"/>
   <arg name="gui"         default="false"/>
   <arg name="world_name" default="empty.world"/>
-  <arg name="world" value="$(arg world_path)/$(arg world_name)"/>
   <arg name="server_port" default="50051"/>
 
 
