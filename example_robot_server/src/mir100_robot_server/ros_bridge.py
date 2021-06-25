@@ -1,19 +1,13 @@
 #!/usr/bin/env python
 
 import rospy
-from geometry_msgs.msg import Twist, Pose, Pose2D, PoseStamped
+from geometry_msgs.msg import Twist, Pose
 from nav_msgs.msg import Odometry
-from gazebo_msgs.msg import ModelState, ContactsState
-from gazebo_msgs.srv import GetModelState, SetModelState
-from visualization_msgs.msg import Marker
-from sensor_msgs.msg import LaserScan
-from nav_msgs.msg import Path
+from gazebo_msgs.msg import ModelState
+from gazebo_msgs.srv import SetModelState
 import PyKDL
-import tf2_ros
 import copy
-from tf_conversions import posemath
 from threading import Event
-import numpy as np
 from robo_gym_server_modules.robot_server.grpc_msgs.python import robot_server_pb2
 
 class RosBridge:
@@ -67,39 +61,20 @@ class RosBridge:
         return msg
 
     def set_state(self, state_msg):
-        # TODO continue from here
 
         # Set environment state
         state = state_msg.state
         # Clear reset Event
         self.reset.clear()
-        # Re-initialize Path
-        self.mir_path = Path()
-        self.mir_path.header.stamp = rospy.Time.now()
-        self.mir_path.header.frame_id = self.path_frame
-
-        # Set target internal value
-        self.target = copy.deepcopy(state[0:3])
-        # Publish Target Marker
-        self.publish_target_marker(self.target)
 
         if not self.real_robot :
             # Set Gazebo Robot Model state
-            self.set_model_state('mir', copy.deepcopy(state[3:6]))
-            # Set Gazebo Target Model state
-            self.set_model_state('target', copy.deepcopy(state[0:3]))
-            # Set obstacles poses
-            if (len(state) > 1021):
-                self.set_model_state('obstacle_0', copy.deepcopy(state[1021:1024]))
-                self.set_model_state('obstacle_1', copy.deepcopy(state[1024:1027]))
-                self.set_model_state('obstacle_2', copy.deepcopy(state[1027:1030]))
+            self.set_model_state('mir', copy.deepcopy(state[0:3]))
+            # Sleep time set manually to allow gazebo to reposition model
+            rospy.sleep(0.2)
 
         # Set reset Event
         self.reset.set()
-
-        if not self.real_robot:
-            # Sleep time set manually to allow gazebo to reposition model
-            rospy.sleep(0.2)
 
         return 1
 
