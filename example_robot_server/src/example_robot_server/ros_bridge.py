@@ -52,6 +52,10 @@ class RosBridge:
         mir_twist = copy.deepcopy(self.mir_twist)
         state += mir_position
         state += mir_twist
+        state_dict['pos_x'] = mir_position[0]
+        state_dict['pos_y'] = mir_position[1]
+        state_dict['lin_vel'] = mir_twist[0]
+        state_dict['ang_vel'] = mir_twist[1]
 
         self.get_state_event.set()
 
@@ -62,19 +66,20 @@ class RosBridge:
 
     def set_state(self, state_msg):
 
-        # Set environment state
-        state = state_msg.state
         # Clear reset Event
         self.reset.clear()
+        pos_x = state_msg.state_dict['pos_x']
+        pos_y = state_msg.state_dict['pos_y']
 
         if not self.real_robot :
             # Set Gazebo Robot Model state
-            self.set_model_state('mir', copy.deepcopy(state[0:3]))
-            # Sleep time set manually to allow gazebo to reposition model
-            rospy.sleep(0.2)
+            self.set_model_state('mir', [pos_x, pos_y, 0])
 
         # Set reset Event
         self.reset.set()
+
+        # Sleep time set manually to allow gazebo to reposition model
+        rospy.sleep(0.2)
 
         return 1
 
