@@ -230,7 +230,6 @@ class ObjectsController:
         # Initialization of Objects tf frames names
         self.objects_tf_frame = [rospy.get_param("object_" + repr(i) +"_frame") for i in range(self.n_objects)]
         
-        self.move_objects_up()
 
     def move_objects_up(self):
         # Move objects up in the air 
@@ -329,7 +328,7 @@ class ObjectsController:
                 self.move_objects_up()
                 rospy.Rate(self.update_rate).sleep()
             else:
-                pass 
+                self.move_objects_up() 
 
 if __name__ == '__main__':
     try:
