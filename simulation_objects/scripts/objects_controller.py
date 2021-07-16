@@ -275,7 +275,7 @@ class ObjectsController:
                         z_min = rospy.get_param("object_" + repr(i) + "_z_min")
                         z_max = rospy.get_param("object_" + repr(i) + "_z_max")
                         n_points = rospy.get_param("object_" + repr(i) + "_n_points")
-                        n_sampling_points = rospy.get_param("n_sampling_points")
+                        n_sampling_points = rospy.get_param("object_" + repr(i) +"_n_sampling_points")
                         x_trajectory, y_trajectory, z_trajectory = self.get_3d_spline(x_min, x_max, y_min, y_max, z_min, z_max, n_points, n_sampling_points)
                     elif function == "3d_spline_ur5_workspace":
                         x_min = rospy.get_param("object_" + repr(i) + "_x_min")
@@ -285,7 +285,7 @@ class ObjectsController:
                         z_min = rospy.get_param("object_" + repr(i) + "_z_min")
                         z_max = rospy.get_param("object_" + repr(i) + "_z_max")
                         n_points = rospy.get_param("object_" + repr(i) + "_n_points")
-                        n_sampling_points = rospy.get_param("n_sampling_points")
+                        n_sampling_points = rospy.get_param("object_" + repr(i) +"_n_sampling_points")
                         x_trajectory, y_trajectory, z_trajectory = self.get_3d_spline_ur5_workspace(x_min, x_max, y_min, y_max, z_min, z_max, n_points, n_sampling_points)
                     elif function == "fixed_trajectory":
                         trajectory_id = rospy.get_param("object_" + repr(i) + "_trajectory_id")
