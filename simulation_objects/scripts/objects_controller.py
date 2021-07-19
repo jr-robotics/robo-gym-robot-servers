@@ -316,7 +316,6 @@ class ObjectsController:
                         t.transform.rotation.z = 0.0
                         t.transform.rotation.w = 1.0
                         self.static_tf2_broadcaster.sendTransform(t)                        
-                        rospy.Rate(self.update_rate).sleep()
                     rospy.Rate(self.update_rate).sleep()
                     s = s + 1
                 # Move objects up in the air 
