@@ -167,6 +167,43 @@ class UrRosBridge:
             forearm_to_ref_trans_list = self._transform_to_list(forearm_to_ref_trans)
             state += forearm_to_ref_trans_list
             state_dict.update(self._get_transform_dict(forearm_to_ref_trans, 'forearm_to_ref'))
+        
+        elif self.rs_mode == '2objects2points':
+            # Object 0 Pose 
+            object_0_trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.objects_frame[0], rospy.Time(0))
+            object_0_trans_list = self._transform_to_list(object_0_trans)
+            state += object_0_trans_list
+            state_dict.update(self._get_transform_dict(object_0_trans, 'object_0_to_ref'))
+
+            # Object 1 Pose 
+            object_1_trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.objects_frame[1], rospy.Time(0))
+            object_1_trans_list = self._transform_to_list(object_1_trans)
+            state += object_1_trans_list
+            state_dict.update(self._get_transform_dict(object_1_trans, 'object_1_to_ref'))
+            
+            # Joint Positions and Joint Velocities
+            joint_position = copy.deepcopy(self.joint_position)
+            joint_velocity = copy.deepcopy(self.joint_velocity)
+            state += self._get_joint_ordered_value_list(joint_position)
+            state += self._get_joint_ordered_value_list(joint_velocity)
+            state_dict.update(self._get_joint_states_dict(joint_position, joint_velocity))
+
+            # ee to ref transform
+            ee_to_ref_trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.ee_frame, rospy.Time(0))
+            ee_to_ref_trans_list = self._transform_to_list(ee_to_ref_trans)
+            state += ee_to_ref_trans_list
+            state_dict.update(self._get_transform_dict(ee_to_ref_trans, 'ee_to_ref'))
+        
+            # Collision sensors
+            ur_collision = any(self.collision_sensors.values())
+            state += [ur_collision]
+            state_dict['in_collision'] = float(ur_collision)
+
+            # forearm to ref transform
+            forearm_to_ref_trans = self.tf2_buffer.lookup_transform(self.reference_frame, 'forearm_link', rospy.Time(0))
+            forearm_to_ref_trans_list = self._transform_to_list(forearm_to_ref_trans)
+            state += forearm_to_ref_trans_list
+            state_dict.update(self._get_transform_dict(forearm_to_ref_trans, 'forearm_to_ref'))
 
         else: 
             raise ValueError
