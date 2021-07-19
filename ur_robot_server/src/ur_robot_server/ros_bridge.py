@@ -259,7 +259,9 @@ class UrRosBridge:
             self.move_objects_pub.publish(msg)
 
         self.reset.set()
-        rospy.sleep(self.control_period)
+
+        for _ in range(20):
+            rospy.sleep(self.control_period)
 
         return 1
 
