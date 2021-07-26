@@ -66,6 +66,9 @@ class UrRosBridge:
         else:
             self.rs_mode = rospy.get_param("~target_mode", '1object')
 
+        # Action Mode
+        self.action_mode = rospy.get_param('~action_mode')
+
         # Objects  Controller 
         self.objects_controller = rospy.get_param("objects_controller", False)
         self.n_objects = int(rospy.get_param("n_objects"))
@@ -265,6 +268,16 @@ class UrRosBridge:
 
         return 1
 
+    def send_action(self, action):
+
+        if self.action_mode == 'abs_pos':
+            executed_action = self.publish_env_arm_cmd(action)
+        
+        elif self.action_mode == 'delta_pos':
+            executed_action = self.publish_env_arm_delta_cmd(action)
+
+        return executed_action
+
     def set_joint_position(self, goal_joint_position):
         """Set robot joint positions to a desired value
         """        
@@ -292,6 +305,29 @@ class UrRosBridge:
             cmd = position_cmd[idx]
             max_vel = self.joint_velocity_limits[name]
             dur.append(max(abs(cmd-pos)/max_vel, self.min_traj_duration))
+        msg.points[0].time_from_start = rospy.Duration.from_sec(max(dur))
+        self.arm_cmd_pub.publish(msg)
+        rospy.sleep(self.control_period)
+        return position_cmd
+
+    def publish_env_arm_delta_cmd(self, delta_cmd):
+        """Publish environment JointTrajectory msg.
+        """
+
+        msg = JointTrajectory()
+        msg.header = Header()
+        msg.joint_names = self.joint_names
+        msg.points=[JointTrajectoryPoint()]
+        # msg.points[0].positions = position_cmd
+        position_cmd = []
+        dur = []
+        for idx, name in enumerate(msg.joint_names):
+            pos = self.joint_position[name]
+            cmd = delta_cmd[idx]
+            max_vel = self.joint_velocity_limits[name]
+            dur.append(max(abs(cmd)/max_vel, self.min_traj_duration))
+            position_cmd.append(pos + cmd)
+        msg.points[0].positions = position_cmd
         msg.points[0].time_from_start = rospy.Duration.from_sec(max(dur))
         self.arm_cmd_pub.publish(msg)
         rospy.sleep(self.control_period)
