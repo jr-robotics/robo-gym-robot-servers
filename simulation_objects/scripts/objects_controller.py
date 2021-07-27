@@ -211,6 +211,38 @@ class ObjectsController:
 
         return x_function, y_function, z_function 
 
+    def get_fixed_position_a_b(self, x_a, y_a, z_a, x_b, y_b, z_b, hold_a, hold_b):
+        """Generate trajectory for object in a fixed position a for hold_a time and 
+            in a fixed position b for hold_b time.
+
+        Args:
+            x_a (float): x coordinate position a (m).
+            y_a (float): y coordinate position a (m).
+            z_a (float): z coordinate position a (m).
+            x_b (float): x coordinate position b (m).
+            y_b (float): y coordinate position b (m).
+            z_b (float): z coordinate position b (m).
+            hold_a (float): time in position a (s).
+            hold_b (float): time in position b (s).
+
+        Returns:
+            list: x coordinate function
+            list: y coordinate function
+            list: z coordinate function
+        """        
+        x_a_function = np.full(int(self.update_rate * hold_a), x_a)
+        y_a_function = np.full(int(self.update_rate * hold_a), y_a)
+        z_a_function = np.full(int(self.update_rate * hold_a), z_a)
+        x_b_function = np.full(int(self.update_rate * hold_b), x_b)
+        y_b_function = np.full(int(self.update_rate * hold_b), y_b)
+        z_b_function = np.full(int(self.update_rate * hold_b), z_b)
+        
+        x_function = np.concatenate((x_a_function, x_b_function))
+        y_function = np.concatenate((y_a_function, y_b_function))
+        z_function = np.concatenate((z_a_function, z_b_function))
+        
+        return x_function, y_function, z_function
+
     def objects_initialization(self):
         self.n_objects = int(rospy.get_param("n_objects", 1))
         # Initialization of ModelState() messages
@@ -290,6 +322,18 @@ class ObjectsController:
                     elif function == "fixed_trajectory":
                         trajectory_id = rospy.get_param("object_" + repr(i) + "_trajectory_id")
                         x_trajectory, y_trajectory, z_trajectory = self.get_fixed_trajectory(trajectory_id)
+                    elif function  == "fixed_position_ab":
+                        x_a = rospy.get_param("object_" + repr(i) + "_x_a")
+                        y_a = rospy.get_param("object_" + repr(i) + "_y_a")
+                        z_a = rospy.get_param("object_" + repr(i) + "_z_a")
+                        x_b = rospy.get_param("object_" + repr(i) + "_x_b")
+                        y_b = rospy.get_param("object_" + repr(i) + "_y_b")
+                        z_b = rospy.get_param("object_" + repr(i) + "_z_b")
+                        hold_a = rospy.get_param("object_" + repr(i) + "_hold_a")
+                        hold_b = rospy.get_param("object_" + repr(i) + "_hold_b")
+                        x_trajectory, y_trajectory, z_trajectory = self.get_fixed_position_a_b(x_a, y_a, z_a, x_b, y_b, z_b, hold_a, hold_b)
+                    else:
+                        rospy.logerr('Object trajectory function "' +function+ '" not recognized')
                     objects_trajectories.append([x_trajectory, y_trajectory, z_trajectory])
                     trajectories_lens.append(len(x_trajectory))
 
