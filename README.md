@@ -32,12 +32,17 @@ The compatibility of the Universal Robots environments with ROS Kinetic has been
 
 ## Ubuntu 20.04 - ROS Noetic - Python [>3.7]
 
-1. Install the required packages
+1.  Setup your computer to accept software from packages.ros.org
+```sh
+sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list' && sudo apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
+```
+
+2. Install the required packages
 ```sh
 sudo apt-get update && sudo apt-get install apt-utils build-essential psmisc vim-gtk git swig sudo libcppunit-dev python3-catkin-tools python3-rosdep python3-pip python3-rospkg python3-future python3-osrf-pycommon
 ```
 
-2. Open a new terminal and set the environment variables. Use the same terminal for all the installation steps. 
+3. Open a new terminal and set the environment variables. Use the same terminal for all the installation steps. 
 ```sh
 # Set robo-gym ROS workspace folder
 export ROBOGYM_WS=~/robogym_ws 
@@ -45,33 +50,31 @@ export ROBOGYM_WS=~/robogym_ws
 export ROS_DISTRO=noetic
 ```
 
-3. Create a workspace folder in the home folder of your PC and clone this repository
+4. Create a workspace folder in the home folder of your PC and clone this repository
 ```sh
 mkdir -p $ROBOGYM_WS/src && cd $ROBOGYM_WS/src && git clone https://github.com/jr-robotics/robo-gym-robot-servers.git
 ```
 
-4.  Setup your computer to accept software from packages.ros.org
-```sh
-sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list' && sudo apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
-```
+
 
 5. Clone required packages, build the workspace and install required python modules
 ```sh
-source /opt/ros/$ROS_DISTRO/setup.bash &&\
-git clone -b $ROS_DISTRO https://github.com/jr-robotics/mir_robot.git &&\
-git clone -b $ROS_DISTRO https://github.com/jr-robotics/universal_robot.git &&\ 
-git clone -b v0.7.1-dev https://github.com/jr-robotics/franka_ros_interface &&\
-git clone https://github.com/jr-robotics/franka_panda_description &&\ 
-git clone -b ${ROS_DISTRO}-devel https://github.com/jr-robotics/panda_simulator &&\
-git clone https://github.com/orocos/orocos_kinematics_dynamics &&\
-cd orocos_kinematics_dynamics && git checkout b35c424e77ebc5b7e6f1c5e5c34f8a4666fbf5bc &&\
-cd $ROBOGYM_WS &&\
-sudo apt-get update &&\
-sudo rosdep init && rosdep update &&\
-rosdep install --from-paths src -i -y --rosdistro $ROS_DISTRO &&\
-catkin init &&\
-catkin build &&\
-pip3 install robo-gym-server-modules scipy numpy &&\
+git clone -b $ROS_DISTRO https://github.com/jr-robotics/mir_robot.git
+git clone -b $ROS_DISTRO https://github.com/jr-robotics/universal_robot.git
+git clone -b v0.7.1-dev https://github.com/jr-robotics/franka_ros_interface
+git clone https://github.com/jr-robotics/franka_panda_description
+git clone -b ${ROS_DISTRO}-devel https://github.com/jr-robotics/panda_simulator
+git clone https://github.com/orocos/orocos_kinematics_dynamics
+cd orocos_kinematics_dynamics && git checkout b35c424e77ebc5b7e6f1c5e5c34f8a4666fbf5bc
+cd $ROBOGYM_WS
+sudo apt-get update
+sudo rosdep init
+rosdep update
+rosdep install --from-paths src -i -y --rosdistro $ROS_DISTRO
+catkin init
+source /opt/ros/$ROS_DISTRO/setup.bash
+catkin build
+pip3 install robo-gym-server-modules scipy numpy
 pip3 install --upgrade protobuf
 ```
 
@@ -86,12 +89,17 @@ printf "source /opt/ros/$ROS_DISTRO/setup.bash\nsource $ROBOGYM_WS/devel/setup.b
 <summary>Click to expand</summary>
 <p>
 
-1. Install the required packages
+1.  Setup your computer to accept software from packages.ros.org
+```sh
+sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list' && sudo apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
+```
+
+2. Install the required packages
 ```sh
 sudo apt-get update && sudo apt-get install apt-utils build-essential psmisc vim-gtk git swig sudo libcppunit-dev python-catkin-tools python-rosdep python-pip python-rospkg python-future
 ```
 
-2. Open a new terminal and set the environment variables. Use the same terminal for all the installation steps. 
+3. Open a new terminal and set the environment variables. Use the same terminal for all the installation steps. 
 ```sh
 # Set robo-gym ROS workspace folder
 export ROBOGYM_WS=~/robogym_ws 
@@ -99,33 +107,30 @@ export ROBOGYM_WS=~/robogym_ws
 export ROS_DISTRO=melodic
 ```
 
-3. Create a workspace folder in the home folder of your PC and clone this repository
+4. Create a workspace folder in the home folder of your PC and clone this repository
 ```sh
 mkdir -p $ROBOGYM_WS/src && cd $ROBOGYM_WS/src && git clone https://github.com/jr-robotics/robo-gym-robot-servers.git
 ```
 
-4.  Setup your computer to accept software from packages.ros.org
-```sh
-sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list' && sudo apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
-```
-
 5. Clone required packages, build the workspace and install required python modules
 ```sh
-source /opt/ros/$ROS_DISTRO/setup.bash &&\
-git clone -b $ROS_DISTRO https://github.com/jr-robotics/mir_robot.git &&\
-git clone -b $ROS_DISTRO https://github.com/jr-robotics/universal_robot.git &&\ 
-git clone -b v0.7.1-dev https://github.com/jr-robotics/franka_ros_interface &&\
-git clone https://github.com/jr-robotics/franka_panda_description &&\ 
-git clone -b ${ROS_DISTRO}-devel https://github.com/jr-robotics/panda_simulator &&\
-git clone https://github.com/orocos/orocos_kinematics_dynamics &&\
-cd orocos_kinematics_dynamics && git checkout b35c424e77ebc5b7e6f1c5e5c34f8a4666fbf5bc &&\
-cd $ROBOGYM_WS &&\
-sudo apt-get update &&\
-sudo rosdep init && rosdep update &&\
-rosdep install --from-paths src -i -y --rosdistro $ROS_DISTRO &&\
-catkin init &&\
-catkin build &&\
-pip install --upgrade pip &&\
+
+git clone -b $ROS_DISTRO https://github.com/jr-robotics/mir_robot.git
+git clone -b $ROS_DISTRO https://github.com/jr-robotics/universal_robot.git
+git clone -b v0.7.1-dev https://github.com/jr-robotics/franka_ros_interface
+git clone https://github.com/jr-robotics/franka_panda_description
+git clone -b ${ROS_DISTRO}-devel https://github.com/jr-robotics/panda_simulator
+git clone https://github.com/orocos/orocos_kinematics_dynamics
+cd orocos_kinematics_dynamics && git checkout b35c424e77ebc5b7e6f1c5e5c34f8a4666fbf5bc
+cd $ROBOGYM_WS
+sudo apt-get update
+sudo rosdep init
+rosdep update
+rosdep install --from-paths src -i -y --rosdistro $ROS_DISTRO
+catkin init
+source /opt/ros/$ROS_DISTRO/setup.bash
+catkin build
+pip install --upgrade pip
 pip install robo-gym-server-modules scipy numpy
 ```
 
