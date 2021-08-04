@@ -71,17 +71,17 @@ class UrRosBridge:
 
         # Objects  Controller 
         self.objects_controller = rospy.get_param("objects_controller", False)
-        self.n_objects = int(rospy.get_param("n_objects"))
+        self.n_objects = int(rospy.get_param("n_objects"), 0)
         if self.objects_controller:
             self.move_objects_pub = rospy.Publisher('move_objects', Bool, queue_size=10)
             # Get objects model name
             self.objects_model_name = []
             for i in range(self.n_objects):
                 self.objects_model_name.append(rospy.get_param("object_" + repr(i) + "_model_name"))
-            # Get objects TF Frame
-            self.objects_frame = []
-            for i in range(self.n_objects):
-                self.objects_frame.append(rospy.get_param("object_" + repr(i) + "_frame"))
+        # Get objects TF Frame
+        self.objects_frame = []
+        for i in range(self.n_objects):
+            self.objects_frame.append(rospy.get_param("object_" + repr(i) + "_frame"))
 
         # Voxel Occupancy
         self.use_voxel_occupancy = rospy.get_param("~use_voxel_occupancy", False)
