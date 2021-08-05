@@ -71,7 +71,7 @@ class UrRosBridge:
 
         # Objects  Controller 
         self.objects_controller = rospy.get_param("objects_controller", False)
-        self.n_objects = int(rospy.get_param("n_objects"), 0)
+        self.n_objects = int(rospy.get_param("n_objects", 0))
         if self.objects_controller:
             self.move_objects_pub = rospy.Publisher('move_objects', Bool, queue_size=10)
             # Get objects model name
