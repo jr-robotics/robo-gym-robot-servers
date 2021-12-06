@@ -66,19 +66,22 @@ class UrRosBridge:
         else:
             self.rs_mode = rospy.get_param("~target_mode", '1object')
 
+        # Action Mode
+        self.action_mode = rospy.get_param('~action_mode')
+
         # Objects  Controller 
         self.objects_controller = rospy.get_param("objects_controller", False)
-        self.n_objects = int(rospy.get_param("n_objects"))
+        self.n_objects = int(rospy.get_param("n_objects", 0))
         if self.objects_controller:
             self.move_objects_pub = rospy.Publisher('move_objects', Bool, queue_size=10)
             # Get objects model name
             self.objects_model_name = []
             for i in range(self.n_objects):
                 self.objects_model_name.append(rospy.get_param("object_" + repr(i) + "_model_name"))
-            # Get objects TF Frame
-            self.objects_frame = []
-            for i in range(self.n_objects):
-                self.objects_frame.append(rospy.get_param("object_" + repr(i) + "_frame"))
+        # Get objects TF Frame
+        self.objects_frame = []
+        for i in range(self.n_objects):
+            self.objects_frame.append(rospy.get_param("object_" + repr(i) + "_frame"))
 
         # Voxel Occupancy
         self.use_voxel_occupancy = rospy.get_param("~use_voxel_occupancy", False)
@@ -167,6 +170,43 @@ class UrRosBridge:
             forearm_to_ref_trans_list = self._transform_to_list(forearm_to_ref_trans)
             state += forearm_to_ref_trans_list
             state_dict.update(self._get_transform_dict(forearm_to_ref_trans, 'forearm_to_ref'))
+        
+        elif self.rs_mode == '2objects2points':
+            # Object 0 Pose 
+            object_0_trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.objects_frame[0], rospy.Time(0))
+            object_0_trans_list = self._transform_to_list(object_0_trans)
+            state += object_0_trans_list
+            state_dict.update(self._get_transform_dict(object_0_trans, 'object_0_to_ref'))
+
+            # Object 1 Pose 
+            object_1_trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.objects_frame[1], rospy.Time(0))
+            object_1_trans_list = self._transform_to_list(object_1_trans)
+            state += object_1_trans_list
+            state_dict.update(self._get_transform_dict(object_1_trans, 'object_1_to_ref'))
+            
+            # Joint Positions and Joint Velocities
+            joint_position = copy.deepcopy(self.joint_position)
+            joint_velocity = copy.deepcopy(self.joint_velocity)
+            state += self._get_joint_ordered_value_list(joint_position)
+            state += self._get_joint_ordered_value_list(joint_velocity)
+            state_dict.update(self._get_joint_states_dict(joint_position, joint_velocity))
+
+            # ee to ref transform
+            ee_to_ref_trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.ee_frame, rospy.Time(0))
+            ee_to_ref_trans_list = self._transform_to_list(ee_to_ref_trans)
+            state += ee_to_ref_trans_list
+            state_dict.update(self._get_transform_dict(ee_to_ref_trans, 'ee_to_ref'))
+        
+            # Collision sensors
+            ur_collision = any(self.collision_sensors.values())
+            state += [ur_collision]
+            state_dict['in_collision'] = float(ur_collision)
+
+            # forearm to ref transform
+            forearm_to_ref_trans = self.tf2_buffer.lookup_transform(self.reference_frame, 'forearm_link', rospy.Time(0))
+            forearm_to_ref_trans_list = self._transform_to_list(forearm_to_ref_trans)
+            state += forearm_to_ref_trans_list
+            state_dict.update(self._get_transform_dict(forearm_to_ref_trans, 'forearm_to_ref'))
 
         else: 
             raise ValueError
@@ -222,9 +262,21 @@ class UrRosBridge:
             self.move_objects_pub.publish(msg)
 
         self.reset.set()
-        rospy.sleep(self.control_period)
+
+        for _ in range(20):
+            rospy.sleep(self.control_period)
 
         return 1
+
+    def send_action(self, action):
+
+        if self.action_mode == 'abs_pos':
+            executed_action = self.publish_env_arm_cmd(action)
+        
+        elif self.action_mode == 'delta_pos':
+            executed_action = self.publish_env_arm_delta_cmd(action)
+
+        return executed_action
 
     def set_joint_position(self, goal_joint_position):
         """Set robot joint positions to a desired value
@@ -253,6 +305,29 @@ class UrRosBridge:
             cmd = position_cmd[idx]
             max_vel = self.joint_velocity_limits[name]
             dur.append(max(abs(cmd-pos)/max_vel, self.min_traj_duration))
+        msg.points[0].time_from_start = rospy.Duration.from_sec(max(dur))
+        self.arm_cmd_pub.publish(msg)
+        rospy.sleep(self.control_period)
+        return position_cmd
+
+    def publish_env_arm_delta_cmd(self, delta_cmd):
+        """Publish environment JointTrajectory msg.
+        """
+
+        msg = JointTrajectory()
+        msg.header = Header()
+        msg.joint_names = self.joint_names
+        msg.points=[JointTrajectoryPoint()]
+        # msg.points[0].positions = position_cmd
+        position_cmd = []
+        dur = []
+        for idx, name in enumerate(msg.joint_names):
+            pos = self.joint_position[name]
+            cmd = delta_cmd[idx]
+            max_vel = self.joint_velocity_limits[name]
+            dur.append(max(abs(cmd)/max_vel, self.min_traj_duration))
+            position_cmd.append(pos + cmd)
+        msg.points[0].positions = position_cmd
         msg.points[0].time_from_start = rospy.Duration.from_sec(max(dur))
         self.arm_cmd_pub.publish(msg)
         rospy.sleep(self.control_period)
