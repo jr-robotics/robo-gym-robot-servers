@@ -45,7 +45,7 @@
   <param unless="$(arg load_gripper)" name="/arm/gravity_tip_name" value="panda_link8" /> 
 
   <!-- We resume the logic in empty_world.launch, changing the name of the world to be launched -->
-  <include if="$(arg load_gazebo)" file="$(find gazebo_ros)/launch/empty_world.launch">
+  <include if="$(arg load_gazebo)" file="$(find gazebo_ros)/launch/empty_world.launch">    
     <arg name="world_name" value="$(arg gazebo_world)"/>
     <arg name="debug" value="$(arg debug)" />
     <arg name="gui" value="$(arg gui)" />
@@ -53,7 +53,7 @@
     <arg name="use_sim_time" value="$(arg use_sim_time)"/>
     <arg name="headless" value="$(arg headless)"/>
   </include>
-
+  <!-- <arg name="world_name" value="$(find panda_gazebo)/worlds/panda.world"/> -->
   <!-- Spawn urdf of the robot -->
   <node name="robot_description" pkg="gazebo_ros" type="spawn_model" args="-param robot_description -urdf -model panda $(arg initial_joint_states)"/>
 

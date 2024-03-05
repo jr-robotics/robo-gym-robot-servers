@@ -243,11 +243,83 @@ class ObjectsController:
         
         return x_function, y_function, z_function
 
+    def get_wait_and_3D_spline(self, x_min, x_max, y_min, y_max, z_min, z_max, hold_a, n_points = 10, n_sampling_points = 4000):
+
+        
+        """Generate samples of the cartesian coordinates of a 3d spline that do not cross a vertical 
+            cylinder of radius r_min centered in 0,0.
+
+        Args:
+            x_min (float): min x coordinate of random points used to interpolate spline (m).
+            x_max (float): max x coordinate of random points used to interpolate spline (m).
+            y_min (float): min y coordinate of random points used to interpolate spline (m).
+            y_max (float): max y coordinate of random points used to interpolate spline (m).
+            z_min (float): min z coordinate of random points used to interpolate spline (m).
+            z_max (float): max z coordinate of random points used to interpolate spline (m).
+            n_points (int): number of random points used to interpolate the 3d spline.
+            n_sampling_points (int): number of the samples to take over the whole length of the spline.
+
+        Returns:
+            np.array: Samples of the x coordinate of the function over time.
+            np.array: Samples of the y coordinate of the function over time.
+            np.array: Samples of the z coordinate of the function over time.
+
+        """
+
+        r_min_cylinder = 0.2 
+        r_min_sphere_base = 0.35 
+
+        # Convert number of points to int
+        n_points = int(n_points)
+        # Convert number of  sampling points to int
+        # By increasing the number of sampling points the speed of the object decreases
+        n_sampling_points = int(n_sampling_points)
+        # Create array with time samples over 1 full function period
+
+        search = True
+        while search:
+            x = np.random.uniform(x_min,x_max,n_points)
+            y = np.random.uniform(y_min,y_max,n_points)
+            z = np.random.uniform(z_min,z_max,n_points)
+
+            # set first point oustide of square of size 0.5m centered in 0,0
+            #x[0] = random.choice([np.random.uniform(-1.0,-0.5),np.random.uniform(0.5,1.0)])
+            #y[0] = random.choice([np.random.uniform(-1.0,-0.5),np.random.uniform(0.5,1.0)])
+
+            # set last point equal to first to have a closed trajectory
+            x[n_points-1] = x[0]
+            y[n_points-1] = y[0]
+            z[n_points-1] = z[0]
+
+            x_a_function = np.full(int(self.update_rate * hold_a), x[0])
+            y_a_function = np.full(int(self.update_rate * hold_a), y[0])
+            z_a_function = np.full(int(self.update_rate * hold_a), z[0]) 
+            
+
+            smoothness = 0
+            tck, u = interpolate.splprep([x,y,z], s=smoothness)
+            u_fine = np.linspace(0,1,n_sampling_points)
+            x_function, y_function, z_function = interpolate.splev(u_fine, tck)
+
+            x_function = np.concatenate((x_a_function, x_function))
+            y_function = np.concatenate((y_a_function, y_function))
+            z_function = np.concatenate((z_a_function, z_function))
+
+                          
+            search = False
+            for i in range(len(x_function)):
+                if (x_function[i]**2+y_function[i]**2)**(1/2) <= r_min_cylinder or \
+                    (x_function[i]**2+y_function[i]**2+z_function[i]**2)**(1/2) <= r_min_sphere_base :
+                    search = True
+            
+
+        return x_function, y_function, z_function
+
     def get_interpolated_a_b_c(self, x_a, y_a, z_a, x_b, y_b, z_b, x_c, y_c, z_c, hold_a, hold_b, hold_c, n_sampling_points_ab, n_sampling_points_bc):
         """Generate trajectory for object: 
             - a for hold_a time 
             - move from a to b
-            - b for hold_c time 
+            - b for hold_b time 
             - move from b to c
             - c for hold_c time 
 
@@ -277,7 +349,7 @@ class ObjectsController:
         z_a_function = np.full(int(self.update_rate * hold_a), z_a)
 
         tck_ab, _ = interpolate.splprep([[x_a,x_b],[y_a,y_b],[z_a,z_b]], s=0, k=1)
-        u_fine_ab = np.linspace(0, 1, n_sampling_points_ab)
+        u_fine_ab = np.linspace(0, 1, int(n_sampling_points_ab))
         x_ab_function, y_ab_function, z_ab_function = interpolate.splev(u_fine_ab, tck_ab)
 
         x_b_function = np.full(int(self.update_rate * hold_b), x_b)
@@ -285,7 +357,7 @@ class ObjectsController:
         z_b_function = np.full(int(self.update_rate * hold_b), z_b)
 
         tck_bc, _ = interpolate.splprep([[x_b,x_c],[y_b,y_c],[z_b,z_c]], s=0, k=1)
-        u_fine_bc = np.linspace(0, 1, n_sampling_points_bc)
+        u_fine_bc = np.linspace(0, 1, int(n_sampling_points_bc))
         x_bc_function, y_bc_function, z_bc_function = interpolate.splev(u_fine_bc, tck_bc)
 
         x_c_function = np.full(int(self.update_rate * hold_c), x_c)
@@ -295,6 +367,32 @@ class ObjectsController:
         x_function = np.concatenate((x_a_function, x_ab_function, x_b_function, x_bc_function, x_c_function))
         y_function = np.concatenate((y_a_function, y_ab_function, y_b_function, y_bc_function, y_c_function))
         z_function = np.concatenate((z_a_function, z_ab_function, z_b_function, z_bc_function, z_c_function))
+        
+        return x_function, y_function, z_function
+
+    def get_interpolated_a_b_a(self, x_a, y_a, z_a, x_b, y_b, z_b, hold_a, hold_b, n_sampling_points):
+    
+    	# Added by FARHANG for defining target path in  reach tasks
+        x_a_function = np.full(int(self.update_rate * hold_a), x_a)
+        y_a_function = np.full(int(self.update_rate * hold_a), y_a)
+        z_a_function = np.full(int(self.update_rate * hold_a), z_a)
+
+        tck_ab, _ = interpolate.splprep([[x_a,x_b],[y_a,y_b],[z_a,z_b]], s=0, k=1)
+        u_fine_ab = np.linspace(0, 1, int(n_sampling_points))
+        x_ab_function, y_ab_function, z_ab_function = interpolate.splev(u_fine_ab, tck_ab)
+
+        x_b_function = np.full(int(self.update_rate * hold_b), x_b)
+        y_b_function = np.full(int(self.update_rate * hold_b), y_b)
+        z_b_function = np.full(int(self.update_rate * hold_b), z_b)
+    
+        tck_ba, _ = interpolate.splprep([[x_b,x_a],[y_b,y_a],[z_b,z_a]], s=0, k=1)
+        u_fine_ba = np.linspace(0, 1, int(n_sampling_points))
+        x_ba_function, y_ba_function, z_ba_function = interpolate.splev(u_fine_ba, tck_ba)
+
+        
+        x_function = np.concatenate((x_a_function, x_ab_function, x_b_function, x_ba_function, x_a_function))
+        y_function = np.concatenate((y_a_function, y_ab_function, y_b_function, y_ba_function, y_a_function))
+        z_function = np.concatenate((z_a_function, z_ab_function, z_b_function, z_ba_function, z_a_function))
         
         return x_function, y_function, z_function
 
@@ -374,6 +472,17 @@ class ObjectsController:
                         n_points = rospy.get_param("object_" + repr(i) + "_n_points")
                         n_sampling_points = rospy.get_param("object_" + repr(i) +"_n_sampling_points")
                         x_trajectory, y_trajectory, z_trajectory = self.get_3d_spline_ur5_workspace(x_min, x_max, y_min, y_max, z_min, z_max, n_points, n_sampling_points)
+                    elif function == "wait_and_3D_spline":
+                        x_min = rospy.get_param("object_" + repr(i) + "_x_min")
+                        x_max = rospy.get_param("object_" + repr(i) + "_x_max")
+                        y_min = rospy.get_param("object_" + repr(i) + "_y_min")
+                        y_max = rospy.get_param("object_" + repr(i) + "_y_max")
+                        z_min = rospy.get_param("object_" + repr(i) + "_z_min")
+                        z_max = rospy.get_param("object_" + repr(i) + "_z_max")
+                        hold_a = rospy.get_param("object_" + repr(i) + "_hold_a")
+                        n_points = rospy.get_param("object_" + repr(i) + "_n_points")
+                        n_sampling_points = rospy.get_param("object_" + repr(i) +"_n_sampling_points")
+                        x_trajectory, y_trajectory, z_trajectory = self.get_wait_and_3D_spline(x_min, x_max, y_min, y_max, z_min, z_max, hold_a, n_points, n_sampling_points)    
                     elif function == "fixed_trajectory":
                         trajectory_id = rospy.get_param("object_" + repr(i) + "_trajectory_id")
                         x_trajectory, y_trajectory, z_trajectory = self.get_fixed_trajectory(trajectory_id)
@@ -403,6 +512,19 @@ class ObjectsController:
                         n_sampling_points_ab = rospy.get_param("object_" + repr(i) + "_n_sampling_points_ab")
                         n_sampling_points_bc = rospy.get_param("object_" + repr(i) + "_n_sampling_points_bc")
                         x_trajectory, y_trajectory, z_trajectory = self.get_interpolated_a_b_c(x_a, y_a, z_a, x_b, y_b, z_b, x_c, y_c, z_c, hold_a, hold_b, hold_c, n_sampling_points_ab, n_sampling_points_bc)
+                    elif function  == "interpolated_aba":  # Added by FARHANG for defining target path in  reach tasks
+                        x_a = rospy.get_param("object_" + repr(i) + "_x_a")
+                        y_a = rospy.get_param("object_" + repr(i) + "_y_a")
+                        z_a = rospy.get_param("object_" + repr(i) + "_z_a")
+                        x_b = rospy.get_param("object_" + repr(i) + "_x_b")
+                        y_b = rospy.get_param("object_" + repr(i) + "_y_b")
+                        z_b = rospy.get_param("object_" + repr(i) + "_z_b")
+                        hold_a = rospy.get_param("object_" + repr(i) + "_hold_a")
+                        hold_b = rospy.get_param("object_" + repr(i) + "_hold_b")
+                        n_sampling_points = rospy.get_param("object_" + repr(i) + "_n_sampling_points")
+
+                        x_trajectory, y_trajectory, z_trajectory = self.get_interpolated_a_b_a(x_a, y_a, z_a, x_b, y_b, z_b, hold_a, hold_b, n_sampling_points)
+                    
                     else:
                         rospy.logerr('Object trajectory function "' +function+ '" not recognized')
                     objects_trajectories.append([x_trajectory, y_trajectory, z_trajectory])
