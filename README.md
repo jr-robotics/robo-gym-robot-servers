@@ -20,6 +20,7 @@ We will try to maintain compatibility with ROS Melodic for as long as possible, 
 ## Robots currently implemented
 - MiR100
 - Universal Robots: UR3, UR3e, UR5, UR5e, UR10, UR10e, UR16
+- Franka Emika Panda Robot
 
 <br>
 
