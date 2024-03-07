@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-from attr import s
 import rospy
 import tf2_ros
 from gazebo_msgs.msg import ContactsState
@@ -42,7 +41,6 @@ class UrRosBridge:
 
         # Robot frames
         self.reference_frame = rospy.get_param("~reference_frame", "base")
-        #print(self.reference_frame)
         self.ee_frame = 'tool0'
 
         # TF2
@@ -246,14 +244,11 @@ class UrRosBridge:
                 rospy.set_param(param, state_msg.float_params[param])
 
         # UR Joints Positions
-        print(state_msg)
         if state_dict:
             goal_joint_position = [state_msg.state_dict['elbow_joint_position'], state_msg.state_dict['shoulder_joint_position'], \
                                             state_msg.state_dict['base_joint_position'], state_msg.state_dict['wrist_1_joint_position'], \
                                             state_msg.state_dict['wrist_2_joint_position'], state_msg.state_dict['wrist_3_joint_position']]
-            print(goal_joint_position)
         else:
-            print(state_msg.state)
             goal_joint_position = state_msg.state[6:12]
         self.set_joint_position(goal_joint_position)
         
@@ -305,15 +300,12 @@ class UrRosBridge:
         msg.points=[JointTrajectoryPoint()]
         msg.points[0].positions = position_cmd
         dur = []
-        # print('joint position :', self.joint_position) # dictionary {'joint1' : 0.1112343, ...}
         for idx, name in enumerate(msg.joint_names):
             pos = self.joint_position[name]
             cmd = position_cmd[idx]
             max_vel = self.joint_velocity_limits[name]
             dur.append(max(abs(cmd-pos)/max_vel, self.min_traj_duration))
-        #print('durtation for joints is:/n', dur)
         msg.points[0].time_from_start = rospy.Duration.from_sec(max(dur))
-        print('msg is:',position_cmd)
         self.arm_cmd_pub.publish(msg)
         rospy.sleep(self.control_period)
         return position_cmd

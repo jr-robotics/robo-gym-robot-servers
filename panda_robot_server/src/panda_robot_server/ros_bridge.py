@@ -47,14 +47,13 @@ class PandaRosBridge:
         self.max_velocity_scale_factor = float(rospy.get_param("~max_velocity_scale_factor"))
         self.min_traj_duration = 0.5 # minimum trajectory duration (s)
         self.joint_velocity_limits = self._get_joint_velocity_limits()
-        self.velocity_limits = [2.175, 2.175, 2.175, 2.175, 2.61, 2.61, 2.61] # Farhang
-        self.zero_vel= [0., 0., 0., 0., 0., 0., 0.]  # Farhang
-        self.zero_vel_cmd = self._transform_panda_list_to_dict(self.zero_vel[0:7])  # Farhang
-        self.velocity_limits = [x * self.max_velocity_scale_factor for x in self.velocity_limits] # Farhang
-        self.robot_moving = False # Farhang
+        self.velocity_limits = [2.175, 2.175, 2.175, 2.175, 2.61, 2.61, 2.61] 
+        self.zero_vel= [0., 0., 0., 0., 0., 0., 0.]  
+        self.zero_vel_cmd = self._transform_panda_list_to_dict(self.zero_vel[0:7])  
+        self.velocity_limits = [x * self.max_velocity_scale_factor for x in self.velocity_limits] 
+        self.robot_moving = False 
         # Robot frames
         self.reference_frame = rospy.get_param('~reference_frame', 'base')
-        #print(self.reference_frame)
         self.ee_frame = 'panda_hand'  
 
         # TF2
@@ -182,14 +181,14 @@ class PandaRosBridge:
 
     def set_state(self, state_msg):
         # Set environment state
-        if self.real_robot:  # Farhang: when using real robot. the velocity message should not suddenly stop publishing.
+        if self.real_robot:  # When using real robot. the velocity message should not suddenly stop publishing.
             for i in range(100):
                 self.arm.set_joint_velocities(self.zero_vel_cmd)
                 print(self.zero_vel_cmd)      
                 rospy.sleep(self.control_period)
             
             
-        rospy.sleep(3.0)  # Farhang: only use in velocity mode. when using high publish rate (400Hz)
+        rospy.sleep(3.0)  # Only use in velocity mode. when using high publish rate (400Hz)
         state = state_msg.state
 
         # Clear reset Event
@@ -211,7 +210,6 @@ class PandaRosBridge:
 
         positions = self._get_joint_position_dict_from_rs_dict(state_msg.state_dict)
         #reset_steps = int(15.0 / self.sleep_time)
-        #print('positions are: ',positions)
 
         # for _ in range(reset_steps):
         #     self.arm.set_joint_positions(positions)
@@ -233,7 +231,7 @@ class PandaRosBridge:
 
         return True
 
-    def send_action(self, action): # Modified by Farhang for adding action modes
+    def send_action(self, action): # adding action modes
 
         if self.action_mode == 'abs_pos':
             executed_action = self.publish_env_arm_cmd(action)
@@ -249,7 +247,7 @@ class PandaRosBridge:
 
     #TODO For fixining the acceleration issue you should change the following function (for debugging: step1: tmux -L ServerManager //// step2: Crtl+B then '(' )
     
-    def publish_env_arm_cmd(self, position_cmd): # modified by Farhang. Was not working in initial version
+    def publish_env_arm_cmd(self, position_cmd):
 
         transformed_j_pos = self._transform_panda_list_to_dict(position_cmd[0:7])
 
@@ -267,16 +265,13 @@ class PandaRosBridge:
         Returns:
             type: Description of returned object.
     """
-    def publish_env_arm_delta_cmd(self, delta_cmd): # added by Farhang for Joint Position Controller difference mode
+    def publish_env_arm_delta_cmd(self, delta_cmd): # Joint Position Controller difference mode
 
         position_cmd = []
         for idx, name in enumerate(self.arm._joint_names):
             pos = self.joint_position[name]
-            #print(pos)
             cmd = delta_cmd[idx]
-            #print(cmd)
             position_cmd.append(pos + cmd)
-        #print('position_cmd:', position_cmd)
         transformed_delta_vel = self._transform_panda_list_to_dict(position_cmd[0:7])
 
 
@@ -285,7 +280,7 @@ class PandaRosBridge:
 
         rospy.sleep(self.control_period)
     
-    def publish_env_arm_delta_vel_cmd(self, delta_cmd):  # Added by Farhang for velocity controller in difference mode.
+    def publish_env_arm_delta_vel_cmd(self, delta_cmd):  # Velocity controller in difference mode.
         velocity_cmd = []
         for idx, name in enumerate(self.arm._joint_names):
             vel = self.joint_velocity[name]
@@ -302,12 +297,11 @@ class PandaRosBridge:
 
         #rospy.sleep(self.control_period)
 
-    def publish_vel_cmd_linear_to_zero(self):  # NOT USED: Added by Farhang to solve the issue for robot velocity message suddenly stopping in real robot
+    def publish_vel_cmd_linear_to_zero(self):  # NOT USED: To solve the issue for robot velocity message suddenly stopping in real robot
         delta_cmd = 0.002
         velocity_cmd = []
         while True:
             
-            #print('j_vels', self.joint_velocity)
             for name in self.arm._joint_names:
                 vel = self.joint_velocity[name]
                 if vel > 0.003:
@@ -319,13 +313,11 @@ class PandaRosBridge:
                 velocity_cmd.append(vel_cmd_i)
 
             
-            #print(velocity_cmd)
-            #print(vel_norm)
+
             transformed_delta_vel = self._transform_panda_list_to_dict(velocity_cmd[0:7])
             self.arm.set_joint_velocities(transformed_delta_vel)
 
             vel_list = self._get_velocity_list()
-            #print(vel_list)
             if all(v<=0.003 for v in vel_list):
                 rospy.sleep(self.control_period)
                 Break
