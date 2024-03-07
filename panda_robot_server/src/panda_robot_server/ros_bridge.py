@@ -17,7 +17,6 @@ from threading import Event
 from robo_gym_server_modules.robot_server.grpc_msgs.python import robot_server_pb2
 import numpy as np
 
-
 class PandaRosBridge:
 
     def __init__(self, real_robot=False):
@@ -32,7 +31,6 @@ class PandaRosBridge:
 
         # Joint States
         self.finger_names = ['panda_finger_joint1', 'panda_finger_joint2']
-        
         self.joint_position = dict.fromkeys(self.arm._joint_names, 0.0)
         self.joint_velocity = dict.fromkeys(self.arm._joint_names, 0.0)
         self.joint_effort = dict.fromkeys(self.arm._joint_names, 0.0)
@@ -411,10 +409,6 @@ class PandaRosBridge:
             vel = self.joint_velocity[name]
             vels.append(vel)
         return vels      
-            
-
-
-
 
     def _on_link1_collision(self, data):
         if data.states == []:
