@@ -1,15 +1,18 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>mir100_robot_server</name>
-  <version>1.0.0</version>
+  <version>2.0.0</version>
   <description>Robot Server for MiR 100</description>
 
-  <maintainer email="matteo.lucchi@joanneum.at">Matteo Lucchi</maintainer>
-  <maintainer email="friedemann.zindler@joanneum.at">Friedemann Zindler</maintainer>
+  <maintainer email="bernhard.reiterer@joanneum.at">Bernhard Reiterer</maintainer>
+  <maintainer email="benjamin.breiling@joanneum.at">Benjamin Breiling</maintainer>
 
   <license>MIT</license>
 
-  <author email="matteo.lucchi@joanneum.at">Matteo Lucchi</author>
+  <author email="bernhard.reiterer@joanneum.at">Bernhard Reiterer</author>
+  <author email="benjamin.breiling@joanneum.at">Benjamin Breiling</author>
+  <author email="nobody@example.com">Matteo Lucchi</author>
+  <author email="nobody@example.com">Friedemann Zindler</author>
 
   <buildtool_depend>catkin</buildtool_depend>
 
