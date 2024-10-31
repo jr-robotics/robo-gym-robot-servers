@@ -5,12 +5,13 @@ import tf2_ros
 from gazebo_msgs.msg import ContactsState
 from sensor_msgs.msg import JointState
 from trajectory_msgs.msg import JointTrajectoryPoint, JointTrajectory
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, Header
 from franka_interface import ArmInterface
 import copy
 # See https://docs.python.org/3/library/threading.html#event-objects
 from threading import Event
 from robo_gym_server_modules.robot_server.grpc_msgs.python import robot_server_pb2
+import numpy as np
 
 class PandaRosBridge:
 
@@ -35,12 +36,18 @@ class PandaRosBridge:
         
         # Robot control
         self.arm_cmd_pub = rospy.Publisher('env_arm_command', JointTrajectory, queue_size=1) # joint_trajectory_command_handler publisher
-        self.sleep_time = (1.0 / rospy.get_param('~action_cycle_rate')) - 0.01
-        self.control_period = rospy.Duration.from_sec(self.sleep_time)
+    
+        self.action_cycle_rate = rospy.get_param("~action_cycle_rate", 1000.0) # default value corresponds to control rate of a Panda
+        # control_rate_float = rospy.get_param("~action_cycle_rate", 1000.0) # default value corresponds to control rate of a Panda
+        self.control_rate = rospy.Rate(self.action_cycle_rate)
+
         self.max_velocity_scale_factor = float(rospy.get_param("~max_velocity_scale_factor"))
         self.min_traj_duration = 0.5 # minimum trajectory duration (s)
-        self.joint_velocity_limits = self._get_joint_velocity_limits()
-        
+        self.velocity_limits = [2.175, 2.175, 2.175, 2.175, 2.61, 2.61, 2.61] 
+        self.zero_vel= [0., 0., 0., 0., 0., 0., 0.]  
+        self.zero_vel_cmd = self._transform_panda_list_to_dict(self.zero_vel[0:7])  
+        self.velocity_limits = [x * self.max_velocity_scale_factor for x in self.velocity_limits] 
+        self.robot_moving = False 
         # Robot frames
         self.reference_frame = rospy.get_param('~reference_frame', 'base')
         self.ee_frame = 'panda_hand'  
@@ -68,9 +75,12 @@ class PandaRosBridge:
         # Robot Server mode
         self.rs_mode = rospy.get_param('~rs_mode')
 
+        # Action Mode
+        self.action_mode = rospy.get_param('~action_mode')
+
         # Objects  Controller 
         self.objects_controller = rospy.get_param("objects_controller", False)
-        self.n_objects = int(rospy.get_param("n_objects"))
+        self.n_objects = int(rospy.get_param("n_objects", 0))
         if self.objects_controller:
             self.move_objects_pub = rospy.Publisher('move_objects', Bool, queue_size=10)
             # Get objects model name
@@ -81,7 +91,7 @@ class PandaRosBridge:
             self.objects_frame = []
             for i in range(self.n_objects):
                 self.objects_frame.append(rospy.get_param("object_" + repr(i) + "_frame"))
-                
+         
     def _on_joint_states(self, msg):
         """Callback function which sets the panda state
             - `msg.name`     -> joint names
@@ -100,7 +110,22 @@ class PandaRosBridge:
                     self.joint_position[name] = msg.position[idx]
                     self.joint_velocity[name] = msg.velocity[idx]
                     self.joint_effort[name] = msg.effort[idx]
-            
+    
+
+    def get_arguments(self):
+        # All this arguments are populated by default in the ros launch files
+        action_cycle_rate = self.action_cycle_rate
+        rs_mode = self.rs_mode
+        action_mode = self.action_mode
+        
+        # Create and fill Arguments
+        args = robot_server_pb2.Arguments(action_cycle_rate=action_cycle_rate, 
+                                     rs_mode = rs_mode,
+                                     action_mode = action_mode,
+                                     success= True)
+        
+        return args
+
     def get_state(self):
         self.get_state_event.clear()
         # Get environment state
@@ -164,9 +189,18 @@ class PandaRosBridge:
         msg = robot_server_pb2.State(state=state, state_dict=state_dict, success= True)
 
         return msg
-
+    
+        
     def set_state(self, state_msg):
         # Set environment state
+        # TODO replace the hardcoded numbers here
+        if self.real_robot:  # When using real robot. the velocity message should not suddenly stop publishing.
+            for i in range(100):
+                self.arm.set_joint_velocities(self.zero_vel_cmd)
+                # print(self.zero_vel_cmd)      
+                self.control_rate.sleep()
+            
+        rospy.sleep(3.0)  # Only use in velocity mode. when using high publish rate (400Hz)
         state = state_msg.state
 
         # Clear reset Event
@@ -187,10 +221,10 @@ class PandaRosBridge:
                 rospy.set_param(param, state_msg.float_params[param])
 
         positions = self._get_joint_position_dict_from_rs_dict(state_msg.state_dict)
-        reset_steps = int(15.0 / self.sleep_time)
 
         # for _ in range(reset_steps):
         #     self.arm.set_joint_positions(positions)
+        #self.arm.set_joint_positions_velocities(positions[0:7], [0.0]*7) 
         self.arm.move_to_joint_positions(positions, use_moveit=False)
 
         if not self.real_robot:
@@ -204,55 +238,80 @@ class PandaRosBridge:
             self.move_objects_pub.publish(msg)
 
         self.reset.set()
-        rospy.sleep(self.control_period)
+        self.control_rate.sleep()
 
         return True
 
-    def publish_env_arm_cmd(self, position_cmd):
-        """Publish environment JointTrajectory msg.
+    def send_action(self, action): # adding action modes
 
-        Publish JointTrajectory message to the env_command topic.
+        if self.action_mode == 'abs_pos':
+            executed_action = self.publish_env_arm_cmd_abs_pos(action)
+        
+        elif self.action_mode == 'delta_pos':
+            executed_action = self.publish_env_arm_cmd_delta_pos(action)
 
-        Args:
-            position_cmd (type): Description of parameter `positions`.
+        elif self.action_mode == 'abs_vel':
+            executed_action = self.publish_env_arm_cmd_abs_vel(action)
 
-        Returns:
-            type: Description of returned object.
+        elif self.action_mode == 'delta_vel':
+            executed_action = self.publish_env_arm_cmd_delta_vel(action)
 
-        """
+        self.control_rate.sleep()
+        return executed_action
 
-        #     msg = JointTrajectory()
-        #     msg.header = Header()
-        #     msg.joint_names = copy.deepcopy(self.arm._joint_names)
-        #     msg.points = [JointTrajectoryPoint()]
-        #     msg.points[0].positions = position_cmd
-        #     duration = []
-            # for i in range(len(msg.joint_names)):
-                # TODO check if the index is in bounds
-                # !!! Be careful with panda_state index here
-                # pos = self.panda_state[i]
-                # cmd = position_cmd[i]
-                # max_vel = self.panda_joint_vel_limits[i]
-                # temp_duration = max(abs(cmd - pos) / max_vel, self.min_traj_duration)
-                # duration.append(temp_duration)
 
-            # msg.points[0].time_from_start = rospy.Duration.from_sec(max(duration))
-            # print(msg)
-            
-            # self.arm_cmd_pub.publish(msg)
+    def publish_env_arm_cmd_abs_pos(self, abs_pos_cmd):
+        abs_pos_cmd_dict = self._transform_panda_list_to_dict(abs_pos_cmd[0:7])
+        self.arm.set_joint_positions(abs_pos_cmd_dict)
+        return abs_pos_cmd
+
+
+    def publish_env_arm_cmd_delta_pos(self, delta_pos_cmd): # Joint Position Controller difference mode
+        position_cmd = []
+        for idx, name in enumerate(self.arm._joint_names):
+            pos = self.joint_position[name]
+            cmd = delta_pos_cmd[idx]
+            position_cmd.append(pos + cmd)
+        abs_pos_cmd_dict = self._transform_panda_list_to_dict(position_cmd[0:7])
+        self.arm.set_joint_positions(abs_pos_cmd_dict)
+        return delta_pos_cmd
     
 
-        transformed_j_pos = self._transform_panda_list_to_dict(position_cmd[0:7])
-        self.arm.set_joint_positions(transformed_j_pos)
-        rospy.sleep(self.control_period)
-        return position_cmd
+    def publish_env_arm_cmd_abs_vel(self, abs_vel_cmd):
+        velocity_cmd = []
+        for idx, name in enumerate(self.arm._joint_names):
+            vel_cmd_i = abs_vel_cmd[idx]
+            if abs(vel_cmd_i) > self.velocity_limits[idx]:
+                vel_cmd_sign = np.sign(vel_cmd_i)
+                vel_cmd_i = vel_cmd_sign * self.velocity_limits[idx]
+            velocity_cmd.append(vel_cmd_i)      
+        abs_vel_cmd_dict = self._transform_panda_list_to_dict(velocity_cmd[0:7])
+        self.arm.set_joint_velocities(abs_vel_cmd_dict)      
+        return abs_vel_cmd
 
+
+    def publish_env_arm_cmd_delta_vel(self, delta_vel_cmd):  # Velocity controller in difference mode.
+        velocity_cmd = []
+        for idx, name in enumerate(self.arm._joint_names):
+            vel = self.joint_velocity[name] # if idx == 0 else 0
+            cmd = delta_vel_cmd[idx]
+            vel_cmd_i = vel + cmd
+            if abs(vel_cmd_i) > self.velocity_limits[idx]:
+                vel_cmd_sign = np.sign(vel_cmd_i)
+                vel_cmd_i = vel_cmd_sign * self.velocity_limits[idx]
+            velocity_cmd.append(vel_cmd_i)      
+        abs_vel_cmd_dict = self._transform_panda_list_to_dict(velocity_cmd[0:7])
+        self.arm.set_joint_velocities(abs_vel_cmd_dict)
+        return delta_vel_cmd
+       
+        
     def _transform_panda_list_to_dict(self, panda_list):
         transformed_dict = {}
         for idx, value in enumerate(panda_list):
             current_joint_name = self.arm._joint_names[idx]
             transformed_dict[current_joint_name] = value
         return transformed_dict
+
 
     def _get_joint_states_dict(self, joint_position, joint_velocity, joint_effort):
 
@@ -306,14 +365,6 @@ class PandaRosBridge:
         
         return [joint_values[name] for name in self.arm._joint_names]
 
-    def _get_joint_velocity_limits(self):
-
-        absolute_joint_velocity_limits = {'panda_joint1': 2.1750, 'panda_joint2': 2.1750, 'panda_joint3': 2.1750, 'panda_joint4': 2.1750, \
-                                          'panda_joint5': 2.6100, 'panda_joint6': 2.6100, 'panda_joint7': 2.6100,}
-    
-
-        return {name: self.max_velocity_scale_factor * absolute_joint_velocity_limits[name] for name in self.arm._joint_names}
-
     def _get_joint_position_dict_from_rs_dict(self, rs_dict):
 
         d = {}
@@ -326,7 +377,14 @@ class PandaRosBridge:
         d['panda_joint7'] = rs_dict['joint7_position']
     
         return d
-    
+
+    def _get_velocity_list(self):
+        vels=[]
+        for name in self.arm._joint_names:
+            vel = self.joint_velocity[name]
+            vels.append(vel)
+        return vels      
+
     def _on_link1_collision(self, data):
         if data.states == []:
             pass

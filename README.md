@@ -14,19 +14,13 @@ The `robo-gym-robot-servers` provide an interface to the Gazebo simulations and 
 
 Recommended System Setup: Ubuntu 20.04 - ROS Noetic - Python [>3.7]
 
-The packages have been tested for ROS Noetic and Melodic.
-We will try to maintain compatibility with ROS Melodic for as long as possible, nevertheless our main efforts will be based on ROS Noetic. 
+The packages are being developed for ROS Noetic.
 
 ## Robots currently implemented
 - MiR100
 - Universal Robots: UR3, UR3e, UR5, UR5e, UR10, UR10e, UR16
 
 <br>
-
-#### *WARNING for ROS Kinetic users*
-
-The compatibility of the Universal Robots environments with ROS Kinetic has been maintained until version [v0.1.8](https://github.com/jr-robotics/robo-gym-robot-servers/tree/v0.1.8) included. After this version we integrated a refactored version of the [universal_robot repository](https://github.com/jr-robotics/universal_robot) which is not compatible with ROS Kinetic. To use the UR environments on ROS kinetic you need to use v0.1.8 of the robo-gym package and v.0.1.8 of the robo-gym-robot-servers. See [#16](https://github.com/jr-robotics/robo-gym/issues/16) for more details. 
-
 
 # Installation
 
@@ -82,65 +76,6 @@ pip3 install --upgrade protobuf
 ```sh
 printf "source /opt/ros/$ROS_DISTRO/setup.bash\nsource $ROBOGYM_WS/devel/setup.bash" >> ~/.bashrc
 ```
-
-## Ubuntu 18.04 - ROS Melodic - Python 2
-
-<details>
-<summary>Click to expand</summary>
-<p>
-
-1.  Setup your computer to accept software from packages.ros.org
-```sh
-sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list' && sudo apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
-```
-
-2. Install the required packages
-```sh
-sudo apt-get update && sudo apt-get install apt-utils build-essential psmisc vim-gtk git swig sudo libcppunit-dev python-catkin-tools python-rosdep python-pip python-rospkg python-future
-```
-
-3. Open a new terminal and set the environment variables. Use the same terminal for all the installation steps. 
-```sh
-# Set robo-gym ROS workspace folder
-export ROBOGYM_WS=~/robogym_ws 
-# Set ROS distribution
-export ROS_DISTRO=melodic
-```
-
-4. Create a workspace folder in the home folder of your PC and clone this repository
-```sh
-mkdir -p $ROBOGYM_WS/src && cd $ROBOGYM_WS/src && git clone https://github.com/jr-robotics/robo-gym-robot-servers.git
-```
-
-5. Clone required packages, build the workspace and install required python modules
-```sh
-
-git clone -b $ROS_DISTRO https://github.com/jr-robotics/mir_robot.git
-git clone -b $ROS_DISTRO https://github.com/jr-robotics/universal_robot.git
-git clone -b v0.7.1-dev https://github.com/jr-robotics/franka_ros_interface
-git clone https://github.com/jr-robotics/franka_panda_description
-git clone -b ${ROS_DISTRO}-devel https://github.com/jr-robotics/panda_simulator
-git clone https://github.com/orocos/orocos_kinematics_dynamics
-cd orocos_kinematics_dynamics && git checkout b35c424e77ebc5b7e6f1c5e5c34f8a4666fbf5bc
-cd $ROBOGYM_WS
-sudo apt-get update
-sudo rosdep init
-rosdep update
-rosdep install --from-paths src -i -y --rosdistro $ROS_DISTRO
-catkin init
-source /opt/ros/$ROS_DISTRO/setup.bash
-catkin build
-pip install --upgrade pip
-pip install robo-gym-server-modules scipy numpy
-```
-
-6. Add the sourcing of ROS and the ROS workspace to your `.bashrc` file:
-```sh
-printf "source /opt/ros/$ROS_DISTRO/setup.bash\nsource $ROBOGYM_WS/devel/setup.bash" >> ~/.bashrc
-```
-
-</p>
-</details>  
 
 # How to use
 

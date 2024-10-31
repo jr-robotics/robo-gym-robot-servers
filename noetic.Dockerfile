@@ -10,6 +10,7 @@ ENV ROBOGYM_WS=/robogym_ws
 
 RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 
+RUN apt-get install -y curl
 RUN curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | sudo apt-key add - && \
   apt-get update && apt-get install -y \
   apt-utils build-essential psmisc vim-gtk \
