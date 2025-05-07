@@ -41,7 +41,8 @@ class UrRosBridge:
 
         # Robot frames
         self.reference_frame = rospy.get_param("~reference_frame", "base")
-        self.ee_frame = 'tool0'
+        self.ee_frame = rospy.get_param("~ee_frame", "tool0")
+        rospy.loginfo("ee frame: " + self.ee_frame)
 
         # TF2
         self.tf2_buffer = tf2_ros.Buffer()
