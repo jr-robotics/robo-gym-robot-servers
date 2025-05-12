@@ -81,7 +81,7 @@ class RosBridge:
         self.safe_to_move_back = True
         # Flag indicating if it is safe to move forward
         self.safe_to_move_front = True
-        self.rate = rospy.Rate(10)  # 30Hz
+        self.rate = rospy.Rate(10)  # 10Hz
         self.reset.set()
 
     def get_state(self):
@@ -141,22 +141,22 @@ class RosBridge:
         self.reset.set()
 
         if not self.real_robot:
-            # Sleep time set manually to allow gazebo to reposition model
-            rospy.sleep(0.2)
+            # allow gazebo to reposition model
+            for _ in range(2):
+                self.control_rate.sleep()
 
         return 1
 
     def publish_env_cmd_vel(self, lin_vel, ang_vel):
         if (not self.safe_to_move_back) or (not self.safe_to_move_front):
             # If it is not safe to move overwrite velocities and stop robot
-            rospy.sleep(0.07)
+            self.rate.sleep()
             return 0.0, 0.0
         msg = Twist()
         msg.linear.x = lin_vel
         msg.angular.z = ang_vel
         self.env_cmd_vel_pub.publish(msg)
-        # Sleep time set manually to achieve approximately 10Hz rate
-        rospy.sleep(0.07)
+        self.rate.sleep()
         return lin_vel, ang_vel
 
     def odometry_callback(self, data):

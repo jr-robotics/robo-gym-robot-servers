@@ -37,7 +37,7 @@ class RosBridge:
 
         rospy.Subscriber('robot_pose', Pose, self.callbackState, queue_size=1)
 
-        self.rate = rospy.Rate(10)  # 30Hz
+        self.rate = rospy.Rate(10)  # 10Hz
         self.reset.set()
 
     def get_state(self):
@@ -78,8 +78,8 @@ class RosBridge:
         # Set reset Event
         self.reset.set()
 
-        # Sleep time set manually to allow gazebo to reposition model
-        rospy.sleep(0.2)
+        for _ in range(2):
+            self.control_rate.sleep()
 
         return 1
 
@@ -89,8 +89,7 @@ class RosBridge:
         msg.linear.x = lin_vel
         msg.angular.z = ang_vel
         self.env_cmd_vel_pub.publish(msg)
-        # Sleep time set manually to achieve approximately 10Hz rate
-        rospy.sleep(0.07)
+        self.rate.sleep()
         return lin_vel, ang_vel
 
     def get_robot_state(self):
