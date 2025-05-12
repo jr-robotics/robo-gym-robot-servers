@@ -94,5 +94,7 @@
     <!--Launch objects controller -->
     <node if="$(arg objects_controller)" name="objects_controller" pkg="simulation_objects" type="objects_controller.py" respawn="false" output="screen" ></node>
 
+    <!-- transform for end effector equivalent to IsaacLab -->
+    <node pkg="tf" type="static_transform_publisher" name="isaac_tool_publisher" args="0 0 0 3.1415 -1.5707 0 panda_hand tool1 100"> </node>
 
 </launch>

@@ -50,7 +50,7 @@ class PandaRosBridge:
         self.robot_moving = False 
         # Robot frames
         self.reference_frame = rospy.get_param('~reference_frame', 'base')
-        self.ee_frame = 'panda_hand'  
+        self.ee_frame = rospy.get_param("~ee_frame", "panda_hand")
 
         # TF2
         self.tf2_buffer = tf2_ros.Buffer()
