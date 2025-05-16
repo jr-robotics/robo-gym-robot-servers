@@ -9,6 +9,7 @@
     <arg name="server_port" default="50051"/>
     <arg name="action_cycle_rate" default="25" doc="Rate at which new commands are published to the robot controller"/>
     <arg name="reference_frame" default="base" doc="Reference frame with respect to which target and ee pose are given"/>
+    <arg name="ee_frame" default="panda_hand" doc="frame to use as the end effector" />
     <arg name="rs_mode"  default="only_robot" doc="Defines the working mode of the Robot Server, this influences the RS state content"/>
     <arg name="action_mode"  default="delta_pos" doc="Defines the action mode of the Robot Server, this influences the command sent to the robot"/>
 
