@@ -12,6 +12,10 @@
     <arg name="ee_frame" default="panda_hand" doc="frame to use as the end effector" />
     <arg name="rs_mode"  default="only_robot" doc="Defines the working mode of the Robot Server, this influences the RS state content"/>
     <arg name="action_mode"  default="delta_pos" doc="Defines the action mode of the Robot Server, this influences the command sent to the robot"/>
+    <arg name="subsampling_factor" default="1" doc="split position commands into that many sub commands"/>
+    <arg name="custom_joint_states_handler" default="False" doc="whether to keep track of joint states ourselves rather than delegating to arm interface" />
+    <arg name="new_vel_weight" default="1" doc="weight of new velocity value in custom joint state handler" />
+    <arg name="new_eff_weight" default="1" doc="weight of new effort value in custom joint state handler" />
 
     <!-- Scene Objects -->
     <arg name="objects_controller" default="false"  doc="Start objects controller node"/>
@@ -28,10 +32,10 @@
     <arg name="rviz_config" value="$(arg rviz_config_path)/$(arg rviz_config_file)"/>
 
     <!-- Robot Base position -->
-    <!-- NOTE: Assuming the UR5 positions ATM -->
+    <!-- FIXME: these are not used, and we are fixed to a 0 pose -->
     <arg name="x"       default="0.0"   doc="base_link coordinate with respect to the world frame"/>
     <arg name="y"       default="0.0"   doc="base_link coordinate with respect to the world frame"/>
-    <arg name="z"       default="0.1"   doc="base_link coordinate with respect to the world frame"/>
+    <arg name="z"       default="0.0"   doc="base_link coordinate with respect to the world frame"/>
     <arg name="roll"    default="0.0"   doc="base_link coordinate with respect to the world frame"/>
     <arg name="pitch"   default="0.0"   doc="base_link coordinate with respect to the world frame"/>
     <arg name="yaw"     default="0.0"   doc="base_link coordinate with respect to the world frame"/>
@@ -82,7 +86,7 @@
     <param name="object_1_frame" value="$(arg object_1_frame)"></param>
 
     <!--Launch gRPC server -->
-    <node name="robot_server" pkg="panda_robot_server" type="robot_server.py" respawn="false" output="screen">
+    <node name="robot_server" pkg="panda_robot_server" type="robot_server.py" respawn="false" output="screen" required="true">
         <param name="server_port" value="$(arg server_port)"></param>
         <param name="real_robot" value="true"></param>
         <param name="max_velocity_scale_factor" value="$(arg max_velocity_scale_factor)"></param>
@@ -90,6 +94,11 @@
         <param name="reference_frame" value="$(arg reference_frame)"></param>
         <param name="rs_mode" value="$(arg rs_mode)"></param>
         <param name="action_mode" value="$(arg action_mode)"></param>
+        <param name="subsampling_factor" value="$(arg subsampling_factor)"></param>
+        <param name="subsampling_factor" value="$(arg subsampling_factor)"></param>
+        <param name="custom_joint_states_handler" value="$(arg custom_joint_states_handler)"></param>
+        <param name="new_vel_weight" value="$(arg new_vel_weight)"></param>
+        <param name="new_eff_weight" value="$(arg new_eff_weight)"></param>        
     </node>
 
     <!--Launch objects controller -->
