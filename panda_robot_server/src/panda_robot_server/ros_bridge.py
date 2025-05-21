@@ -28,13 +28,17 @@ class PandaRosBridge:
         # Joint States
         self.finger_names = ['panda_finger_joint1', 'panda_finger_joint2']
 
-        self.custom_joint_states_handler = rospy.get_param('custom_joint_states_handler', False)
+        self.custom_joint_states_handler = rospy.get_param('~custom_joint_states_handler', False)
         if self.custom_joint_states_handler:
+            rospy.loginfo("Initializing custom joint states handler.")
             self.joint_position = dict.fromkeys(self.arm._joint_names, 0.0)
             self.joint_velocity = dict.fromkeys(self.arm._joint_names, 0.0)
             self.joint_effort = dict.fromkeys(self.arm._joint_names, 0.0)
 
             rospy.Subscriber('/joint_states', JointState, self._on_joint_states)
+
+            self.new_vel_weight = float(rospy.get_param("~new_vel_weight", 1))
+            self.new_eff_weight = float(rospy.get_param("~new_eff_weight", 1))
 
         self.panda_joint_num = len(self.arm._joint_names)
         
@@ -47,8 +51,6 @@ class PandaRosBridge:
       
         self.subsampling_factor = max(int(rospy.get_param("~subsampling_factor", 1)), 1)
         self.subsample_control_rate = rospy.Rate(self.action_cycle_rate * self.subsampling_factor)
-        self.new_vel_weight = float(rospy.get_param("~new_vel_weight", 1))
-        self.new_eff_weight = float(rospy.get_param("~new_eff_weight", 1))
 
         self.max_velocity_scale_factor = float(rospy.get_param("~max_velocity_scale_factor"))
         self.min_traj_duration = 0.5 # minimum trajectory duration (s)
