@@ -40,6 +40,10 @@ class PandaRosBridge:
             self.new_vel_weight = float(rospy.get_param("~new_vel_weight", 1))
             self.new_eff_weight = float(rospy.get_param("~new_eff_weight", 1))
 
+            self.joint_vel_history = []
+            self.joint_eff_history = []
+            self.keep_history = False
+
         self.panda_joint_num = len(self.arm._joint_names)
         
         # Robot control
@@ -50,6 +54,7 @@ class PandaRosBridge:
         self.control_rate = rospy.Rate(self.action_cycle_rate)
       
         self.subsampling_factor = max(int(rospy.get_param("~subsampling_factor", 1)), 1)
+        self.static_subsamples = int(rospy.get_param("~static_subsamples", 1))
         self.subsample_control_rate = rospy.Rate(self.action_cycle_rate * self.subsampling_factor)
 
         self.max_velocity_scale_factor = float(rospy.get_param("~max_velocity_scale_factor"))
@@ -121,6 +126,11 @@ class PandaRosBridge:
                     self.joint_position[name] = msg.position[idx]
                     self.joint_velocity[name] = msg.velocity[idx] * self.new_vel_weight + self.joint_velocity[name] * (1 - self.new_vel_weight)
                     self.joint_effort[name] = msg.effort[idx] * self.new_eff_weight + self.joint_effort[name] * (1 - self.new_eff_weight)
+            if self.keep_history:
+                self.joint_vel_history.append(self.joint_velocity)
+                self.joint_eff_history.append(self.joint_effort)
+        else:
+            rospy.logwarn("self.get_state_event.is_set() was False")
     
 
     def get_arguments(self):
@@ -152,15 +162,37 @@ class PandaRosBridge:
             return self.joint_effort
         return self.arm.joint_efforts()
     
+    def summarize_joint_vel_history(self):
+        result = copy.deepcopy(self.joint_velocity)
+        num_entries = len(self.joint_vel_history)
+        rospy.logwarn("summarizing velocity from {} entries".format(num_entries))
+        if num_entries:
+            for joint_name in self.joint_velocity:
+                result[joint_name] = sum([entry[joint_name] for entry in self.joint_vel_history]) / num_entries
+        self.joint_vel_history = []
+        return result
+
+    def summarize_joint_eff_history(self):
+        result = copy.deepcopy(self.joint_effort)
+        num_entries = len(self.joint_eff_history)
+        if num_entries:
+            for joint_name in self.joint_effort:
+                result[joint_name] = sum([entry[joint_name] for entry in self.joint_eff_history]) / num_entries
+        self.joint_eff_history = []
+        return result
+
     def get_state(self):
         self.get_state_event.clear()
+
         # Get environment state
         state =[]
         state_dict = {}
 
         joint_position = copy.deepcopy(self.get_joint_position())
-        joint_velocity = copy.deepcopy(self.get_joint_velocity())
-        joint_effort = copy.deepcopy(self.get_joint_effort())
+        #joint_velocity = copy.deepcopy(self.get_joint_velocity())
+        #joint_effort = copy.deepcopy(self.get_joint_effort())
+        joint_velocity = self.summarize_joint_vel_history()
+        joint_effort = self.summarize_joint_eff_history()
 
         ee_to_ref_trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.ee_frame, rospy.Time(0))
         ee_to_ref_trans_list = self._transform_to_list(ee_to_ref_trans)
@@ -202,6 +234,11 @@ class PandaRosBridge:
     
         
     def set_state(self, state_msg):
+        if self.custom_joint_states_handler:
+            self.keep_history = False
+            self.joint_vel_history = []
+            self.joint_eff_history = []
+
         # Set environment state
         # TODO replace the hardcoded numbers here
         if self.real_robot:  # When using real robot. the velocity message should not suddenly stop publishing.
@@ -209,7 +246,7 @@ class PandaRosBridge:
                 self.arm.set_joint_velocities(self.zero_vel_cmd)
                 # print(self.zero_vel_cmd)      
                 self.control_rate.sleep()
-            
+
         rospy.sleep(3.0)  # Only use in velocity mode. when using high publish rate (400Hz)
         state = state_msg.state
 
@@ -250,6 +287,7 @@ class PandaRosBridge:
         self.reset.set()
         self.control_rate.sleep()
 
+        self.keep_history = True
         return True
 
     def send_action(self, action): # adding action modes
@@ -288,25 +326,37 @@ class PandaRosBridge:
     
 
     def execute_abs_pos_cmd(self, abs_pos_cmd_dict):
+        # set_position but in smaller steps; sleeping is included
         self.set_position_subsampled(abs_pos_cmd_dict)
-        # self.arm.move_to_joint_positions(abs_pos_cmd_dict, timeout=self.control_rate.remaining().to_sec(), use_moveit=False)
         
-        #abs_pos_cmd_list = [abs_pos_cmd_dict[name] for name in self.arm._joint_names]
-        #self.arm.set_joint_positions_velocities(abs_pos_cmd_list, self.zero_vel)
+        #timeout = self.control_rate.remaining().to_sec()
+        #rospy.logwarn("move command timeout: " + str(timeout))
+        #if timeout > 0:
+            # this approach cannot handle the short timeouts resulting from a usual control rate:
+            # self.arm.move_to_joint_positions(abs_pos_cmd_dict, timeout=timeout, use_moveit=False)
 
+            # this approach gives a very similar bad result as the set_position approach
+        #    abs_pos_cmd_list = [abs_pos_cmd_dict[name] for name in self.arm._joint_names]
+        #    self.arm.set_joint_positions_velocities(abs_pos_cmd_list, self.zero_vel)
+        #
         #self.control_rate.sleep()
 
 
     def set_position_subsampled(self, abs_pos_cmd: dict):
-        cmd = abs_pos_cmd.copy()
+        cmd = copy.deepcopy(abs_pos_cmd)
 
         start_pos = copy.deepcopy(self.get_joint_position())
         dest_pos = abs_pos_cmd
 
+        # we interpolate between start pos and commanded pos during the nonstatic subsamples, then follow with repetitions of the commanded pos in the static subsamples
+        nonstatic_subsamples = max(self.subsampling_factor - self.static_subsamples, 1)
+
         for i in range(self.subsampling_factor):
             for joint_name in self.arm._joint_names:
-                start_weight = float(i) / self.subsampling_factor
-                dest_weight = 1.0 - start_weight
+                # dest_weight goes up with i but remains at 1 when reaching nonstatic_subsamples
+                dest_weight = min(float(i) / nonstatic_subsamples, 1)
+                # start_weight goes down
+                start_weight = 1.0 - dest_weight
                 cmd[joint_name] = start_pos[joint_name] * start_weight + dest_pos[joint_name] * dest_weight
             self.arm.set_joint_positions(cmd)
             self.subsample_control_rate.sleep()
