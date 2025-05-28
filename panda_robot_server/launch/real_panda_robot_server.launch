@@ -12,12 +12,14 @@
     <arg name="ee_frame" default="panda_hand" doc="frame to use as the end effector" />
     <arg name="rs_mode"  default="only_robot" doc="Defines the working mode of the Robot Server, this influences the RS state content"/>
     <arg name="action_mode"  default="delta_pos" doc="Defines the action mode of the Robot Server, this influences the command sent to the robot"/>
+    <arg name="pos_action_impl" default="set_pos" doc="Defines the implementation of position-based action modes, options: set_pos (default), set_pos_vel, set_pos_subsampling, move_to_joint_pos"/>
     <arg name="subsampling_factor" default="1" doc="split position commands into that many sub commands"/>
     <arg name="static_subsamples" default="1" doc="how many of the sub commands at the end should be equal to the command pose (effective maximum: subsampling factor - 1)"/>
     <arg name="custom_joint_states_handler" default="False" doc="whether to keep track of joint states ourselves rather than delegating to arm interface" />
     <arg name="new_vel_weight" default="1" doc="weight of new velocity value in custom joint state handler" />
     <arg name="new_eff_weight" default="1" doc="weight of new effort value in custom joint state handler" />
-
+    <arg name="history_limit" default="0" doc="max. number of joint velocity and effort entries to average per step or state retrieval" />
+    
     <!-- Scene Objects -->
     <arg name="objects_controller" default="false"  doc="Start objects controller node"/>
     <arg name="n_objects" default="0.0"  doc="Number of objects in the scene"/>
@@ -95,11 +97,13 @@
         <param name="reference_frame" value="$(arg reference_frame)"></param>
         <param name="rs_mode" value="$(arg rs_mode)"></param>
         <param name="action_mode" value="$(arg action_mode)"></param>
+        <param name="pos_action_impl" value="$(arg pos_action_impl)"></param>
         <param name="subsampling_factor" value="$(arg subsampling_factor)"></param>
         <param name="static_subsamples" value="$(arg static_subsamples)"></param>
         <param name="custom_joint_states_handler" value="$(arg custom_joint_states_handler)"></param>
         <param name="new_vel_weight" value="$(arg new_vel_weight)"></param>
-        <param name="new_eff_weight" value="$(arg new_eff_weight)"></param>        
+        <param name="new_eff_weight" value="$(arg new_eff_weight)"></param>
+        <param name="history_limit" value="$(arg history_limit)"></param>     
     </node>
 
     <!--Launch objects controller -->
