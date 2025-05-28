@@ -139,9 +139,7 @@ class PandaRosBridge:
                 self.joint_eff_history.append(self.joint_effort)
                 while len(self.joint_eff_history) > self.history_limit:
                     self.joint_eff_history.popleft()
-        else:
-            rospy.logwarn("self.get_state_event.is_set() was False")
-    
+
 
     def get_arguments(self):
         # All this arguments are populated by default in the ros launch files
@@ -281,9 +279,6 @@ class PandaRosBridge:
 
         positions = self._get_joint_position_dict_from_rs_dict(state_msg.state_dict)
 
-        # for _ in range(reset_steps):
-        #     self.arm.set_joint_positions(positions)
-        #self.arm.set_joint_positions_velocities(positions[0:7], [0.0]*7) 
         self.arm.move_to_joint_positions(positions, use_moveit=False)
 
         if not self.real_robot:
@@ -338,40 +333,23 @@ class PandaRosBridge:
     
 
     def execute_abs_pos_cmd(self, abs_pos_cmd_dict):
-        #value = self.get_joint_position()
-        #rospy.logwarn("Current-Pre:\t" + ", ".join([(key + ": " + str(value[key])) for key in sorted(value)]))
 
-        value = abs_pos_cmd_dict
-        rospy.logwarn("Command:\t" + ", ".join([(key + ": " + str(value[key])) for key in sorted(value)]))
-
-        if self.pos_action_impl == 'set_pos_vel':   
-            
-            # rospy.logwarn("pos action impl set_pos_vel")
-        
+        if self.pos_action_impl == 'set_pos_vel':                      
             # this approach seems to be equivalent to the default set_position approach due to the lack of meaningful velocity values
             abs_pos_cmd_list = [abs_pos_cmd_dict[name] for name in self.arm._joint_names]
             self.arm.set_joint_positions_velocities(abs_pos_cmd_list, self.zero_vel)
             self.control_rate.sleep()
 
         elif self.pos_action_impl == 'set_pos_subsampling':
-
-            # rospy.logwarn("pos action impl set_pos_subsampling")
-
             # set_position but in smaller steps; sleeping is included
             self.set_position_subsampled(abs_pos_cmd_dict)
 
         else:
             # elif self.pos_action_impl == 'set_pos':  
-             
-            rospy.logwarn("pos action impl set_pos")      
 
             # default impl - too high accelerations!
             self.arm.set_joint_positions(abs_pos_cmd_dict)
             self.control_rate.sleep()
-
-        #value = self.get_joint_position()
-        #rospy.logwarn("Current-Post:\t" + ", ".join([(key + ": " + str(value[key])) for key in sorted(value)]))
-
 
 
     def set_position_subsampled(self, abs_pos_cmd: dict):
@@ -390,8 +368,6 @@ class PandaRosBridge:
                 # start_weight goes down
                 start_weight = 1.0 - dest_weight
                 cmd[joint_name] = start_pos[joint_name] * start_weight + dest_pos[joint_name] * dest_weight
-            value = cmd
-            rospy.logwarn("subsampling cmd:\t" + ", ".join([(key + ": " + str(value[key])) for key in sorted(value)]))
             self.arm.set_joint_positions(cmd)
             self.subsample_control_rate.sleep()
 
