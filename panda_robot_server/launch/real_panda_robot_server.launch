@@ -13,14 +13,13 @@
     <arg name="rs_mode"  default="only_robot" doc="Defines the working mode of the Robot Server, this influences the RS state content"/>
     <arg name="action_mode"  default="delta_pos" doc="Defines the action mode of the Robot Server, this influences the command sent to the robot"/>
     <arg name="pos_action_impl" default="set_pos" doc="Defines the implementation of position-based action modes, options: set_pos (default), set_pos_vel, set_pos_subsampling"/>
-    <arg name="subsampling_factor" default="1" doc="if pos_action_impl is set_pos_subsampling: split position commands into that many sub commands"/>
-    <arg name="static_subsamples" default="1" doc="if pos_action_impl is set_pos_subsampling: how many of the sub commands at the end should be equal to the command pose (maximum: subsampling factor - 1)"/>
-    <arg name="custom_joint_states_handler" default="False" doc="whether to keep track of joint states ourselves rather than delegating to arm interface; enables use of weights and history averaging" />
+    <arg name="subsampling_factor" default="1" doc="split position commands into that many sub commands"/>
+    <arg name="static_subsamples" default="1" doc="how many of the sub commands at the end should be equal to the command pose (effective maximum: subsampling factor - 1)"/>
+    <arg name="custom_joint_states_handler" default="False" doc="whether to keep track of joint states ourselves rather than delegating to arm interface" />
     <arg name="new_vel_weight" default="1" doc="weight of new velocity value in custom joint state handler" />
     <arg name="new_eff_weight" default="1" doc="weight of new effort value in custom joint state handler" />
     <arg name="history_limit" default="0" doc="max. number of joint velocity and effort entries to average per step or state retrieval" />
-
-
+    
     <!-- Scene Objects -->
     <arg name="objects_controller" default="false"  doc="Start objects controller node"/>
     <arg name="n_objects" default="0.0"  doc="Number of objects in the scene"/>
@@ -60,11 +59,11 @@
 
 
     <!-- Start the 'driver' (ie: Gazebo in this case) -->
-    <include file="$(dirname)/inc/load_panda_sim.launch">
+    <!--<include file="$(dirname)/inc/load_panda_sim.launch">
         <arg name="gui" value="$(eval arg('gui') and arg('gazebo_gui'))"/>
         <arg name="paused" value="false"/>
         <arg name="gazebo_world" value="$(arg world_name)"/>
-    </include>
+    </include>-->
 
     <!-- Launch Command Handler -->
     <!-- <node name="joint_trajectory_command_handler" pkg="panda_robot_server" type="joint_trajectory_command_handler.py" respawn="False" output="screen">
@@ -74,7 +73,7 @@
 
     <!-- Launch RViz -->
     <node if="$(eval arg('gui') and arg('rviz_gui'))" name="$(anon rviz)" pkg="rviz" type="rviz" respawn="false" args="-d $(arg rviz_config)" output="screen">
-    </node> -->
+    </node>
 
     <!-- Global Parameters -->
     <param name="real_robot" value="$(arg real_robot)"></param>
@@ -92,7 +91,7 @@
     <!--Launch gRPC server -->
     <node name="robot_server" pkg="panda_robot_server" type="robot_server.py" respawn="false" output="screen" required="true">
         <param name="server_port" value="$(arg server_port)"></param>
-        <param name="real_robot" value="false"></param>
+        <param name="real_robot" value="true"></param>
         <param name="max_velocity_scale_factor" value="$(arg max_velocity_scale_factor)"></param>
         <param name="action_cycle_rate" value="$(arg action_cycle_rate)"></param>
         <param name="reference_frame" value="$(arg reference_frame)"></param>
@@ -104,7 +103,7 @@
         <param name="custom_joint_states_handler" value="$(arg custom_joint_states_handler)"></param>
         <param name="new_vel_weight" value="$(arg new_vel_weight)"></param>
         <param name="new_eff_weight" value="$(arg new_eff_weight)"></param>
-        <param name="history_limit" value="$(arg history_limit)"></param>
+        <param name="history_limit" value="$(arg history_limit)"></param>     
     </node>
 
     <!--Launch objects controller -->

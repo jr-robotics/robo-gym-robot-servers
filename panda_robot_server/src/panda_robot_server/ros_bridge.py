@@ -5,12 +5,14 @@ import tf2_ros
 from gazebo_msgs.msg import ContactsState
 from sensor_msgs.msg import JointState
 from trajectory_msgs.msg import JointTrajectoryPoint, JointTrajectory
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, Header
 from franka_interface import ArmInterface
 import copy
 # See https://docs.python.org/3/library/threading.html#event-objects
 from threading import Event
 from robo_gym_server_modules.robot_server.grpc_msgs.python import robot_server_pb2
+from collections import deque
+import numpy as np
 
 class PandaRosBridge:
 
@@ -24,26 +26,51 @@ class PandaRosBridge:
         self.real_robot = real_robot
         self.arm = ArmInterface()
 
-        # Joint States
-        self.finger_names = ['panda_finger_joint1', 'panda_finger_joint2']
-        self.joint_position = dict.fromkeys(self.arm._joint_names, 0.0)
-        self.joint_velocity = dict.fromkeys(self.arm._joint_names, 0.0)
-        self.joint_effort = dict.fromkeys(self.arm._joint_names, 0.0)
-        rospy.Subscriber('/joint_states', JointState, self._on_joint_states)
+        self.custom_joint_states_handler = bool(rospy.get_param('~custom_joint_states_handler', False))
+
+        self.history_limit = 0
+
+        if self.custom_joint_states_handler:
+            rospy.loginfo("Initializing custom joint states handler.")
+            self.joint_position = dict.fromkeys(self.arm._joint_names, 0.0)
+            self.joint_velocity = dict.fromkeys(self.arm._joint_names, 0.0)
+            self.joint_effort = dict.fromkeys(self.arm._joint_names, 0.0)
+
+            rospy.Subscriber('/joint_states', JointState, self._on_joint_states)
+
+            self.new_vel_weight = float(rospy.get_param("~new_vel_weight", 1))
+            self.new_eff_weight = float(rospy.get_param("~new_eff_weight", 1))
+            self.history_limit = int(rospy.get_param("~history_limit", 1))
+              
+            self.joint_vel_history = deque([])
+            self.joint_eff_history = deque([])
+            self.keep_history = False
 
         self.panda_joint_num = len(self.arm._joint_names)
         
         # Robot control
         self.arm_cmd_pub = rospy.Publisher('env_arm_command', JointTrajectory, queue_size=1) # joint_trajectory_command_handler publisher
-        self.sleep_time = (1.0 / rospy.get_param('~action_cycle_rate')) - 0.01
-        self.control_period = rospy.Duration.from_sec(self.sleep_time)
+    
+        self.action_cycle_rate = rospy.get_param("~action_cycle_rate", 1000.0) # default value corresponds to control rate of a Panda
+        # control_rate_float = rospy.get_param("~action_cycle_rate", 1000.0) # default value corresponds to control rate of a Panda
+        self.control_rate = rospy.Rate(self.action_cycle_rate)
+      
+        # int, not less than 1
+        self.subsampling_factor = max(int(rospy.get_param("~subsampling_factor", 1)), 1)
+
+        # int, not less than 0
+        self.static_subsamples = max(int(rospy.get_param("~static_subsamples", 1)), 0)
+        self.subsample_control_rate = rospy.Rate(self.action_cycle_rate * self.subsampling_factor)
+
         self.max_velocity_scale_factor = float(rospy.get_param("~max_velocity_scale_factor"))
-        self.min_traj_duration = 0.5 # minimum trajectory duration (s)
-        self.joint_velocity_limits = self._get_joint_velocity_limits()
-        
+        self.velocity_limits = [2.175, 2.175, 2.175, 2.175, 2.61, 2.61, 2.61] 
+        self.zero_vel= [0., 0., 0., 0., 0., 0., 0.]  
+        self.zero_vel_cmd = self._transform_panda_list_to_dict(self.zero_vel[0:7])  
+        self.velocity_limits = [x * self.max_velocity_scale_factor for x in self.velocity_limits] 
+        self.robot_moving = False 
         # Robot frames
         self.reference_frame = rospy.get_param('~reference_frame', 'base')
-        self.ee_frame = 'panda_hand'  
+        self.ee_frame = rospy.get_param("~ee_frame", "panda_hand")
 
         # TF2
         self.tf2_buffer = tf2_ros.Buffer()
@@ -68,9 +95,14 @@ class PandaRosBridge:
         # Robot Server mode
         self.rs_mode = rospy.get_param('~rs_mode')
 
+        # Action Mode
+        self.action_mode = rospy.get_param('~action_mode')
+        if self.action_mode.endswith("_pos"):
+            self.pos_action_impl = rospy.get_param('~pos_action_impl', 'set_pos')
+
         # Objects  Controller 
         self.objects_controller = rospy.get_param("objects_controller", False)
-        self.n_objects = int(rospy.get_param("n_objects"))
+        self.n_objects = int(rospy.get_param("n_objects", 0))
         if self.objects_controller:
             self.move_objects_pub = rospy.Publisher('move_objects', Bool, queue_size=10)
             # Get objects model name
@@ -81,7 +113,7 @@ class PandaRosBridge:
             self.objects_frame = []
             for i in range(self.n_objects):
                 self.objects_frame.append(rospy.get_param("object_" + repr(i) + "_frame"))
-                
+         
     def _on_joint_states(self, msg):
         """Callback function which sets the panda state
             - `msg.name`     -> joint names
@@ -98,55 +130,100 @@ class PandaRosBridge:
             for idx, name in enumerate(msg.name):
                 if name in self.arm._joint_names:
                     self.joint_position[name] = msg.position[idx]
-                    self.joint_velocity[name] = msg.velocity[idx]
-                    self.joint_effort[name] = msg.effort[idx]
-            
+                    self.joint_velocity[name] = msg.velocity[idx] * self.new_vel_weight + self.joint_velocity[name] * (1 - self.new_vel_weight)
+                    self.joint_effort[name] = msg.effort[idx] * self.new_eff_weight + self.joint_effort[name] * (1 - self.new_eff_weight)
+            if self.history_limit and self.keep_history:
+                self.joint_vel_history.append(self.joint_velocity)
+                while len(self.joint_vel_history) > self.history_limit:
+                    self.joint_vel_history.popleft()
+                self.joint_eff_history.append(self.joint_effort)
+                while len(self.joint_eff_history) > self.history_limit:
+                    self.joint_eff_history.popleft()
+
+
+    def get_arguments(self):
+        # All this arguments are populated by default in the ros launch files
+        action_cycle_rate = self.action_cycle_rate
+        rs_mode = self.rs_mode
+        action_mode = self.action_mode
+        
+        # Create and fill Arguments
+        args = robot_server_pb2.Arguments(action_cycle_rate=action_cycle_rate, 
+                                     rs_mode = rs_mode,
+                                     action_mode = action_mode,
+                                     success= True)
+        
+        return args
+
+    def get_joint_position(self):
+        if self.custom_joint_states_handler:
+            return self.joint_position
+        return self.arm.joint_angles()
+    
+    def get_joint_velocity(self):
+        if self.custom_joint_states_handler:
+            return self.joint_velocity
+        return self.arm.joint_velocities()
+
+    def get_joint_effort(self):
+        if self.custom_joint_states_handler:
+            return self.joint_effort
+        return self.arm.joint_efforts()
+    
+    def summarize_joint_vel_history(self):
+        result = copy.deepcopy(self.joint_velocity)
+
+        if self.history_limit:
+            num_entries = len(self.joint_vel_history)
+            rospy.logwarn("summarizing velocity from {} entries".format(num_entries))
+            if num_entries:
+                for joint_name in self.joint_velocity:
+                    result[joint_name] = sum([entry[joint_name] for entry in self.joint_vel_history]) / num_entries
+            self.joint_vel_history.clear()
+        return result
+
+    def summarize_joint_eff_history(self):
+        result = copy.deepcopy(self.joint_effort)
+
+        if self.history_limit:
+            num_entries = len(self.joint_eff_history)
+            if num_entries:
+                for joint_name in self.joint_effort:
+                    result[joint_name] = sum([entry[joint_name] for entry in self.joint_eff_history]) / num_entries
+            self.joint_eff_history.clear()
+        return result
+
     def get_state(self):
         self.get_state_event.clear()
+
         # Get environment state
         state =[]
         state_dict = {}
 
-        if self.rs_mode == 'only_robot':
-            # Joint Positions and Joint Velocities
-            joint_position = copy.deepcopy(self.joint_position)
-            joint_velocity = copy.deepcopy(self.joint_velocity)
-            joint_effort = copy.deepcopy(self.joint_effort)
-            state += self._get_joint_ordered_value_list(joint_position)
-            state += self._get_joint_ordered_value_list(joint_velocity)
-            state += self._get_joint_ordered_value_list(joint_effort)
-            state_dict.update(self._get_joint_states_dict(joint_position, joint_velocity, joint_effort))
+        joint_position = copy.deepcopy(self.get_joint_position())
+        joint_velocity = self.summarize_joint_vel_history()
+        joint_effort = self.summarize_joint_eff_history()
 
-            # ee to ref transform
-            ee_to_ref_trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.ee_frame, rospy.Time(0))
-            ee_to_ref_trans_list = self._transform_to_list(ee_to_ref_trans)
-            state += ee_to_ref_trans_list
-            state_dict.update(self._get_transform_dict(ee_to_ref_trans, 'ee_to_ref'))
+        ee_to_ref_trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.ee_frame, rospy.Time(0))
+        ee_to_ref_trans_list = self._transform_to_list(ee_to_ref_trans)
         
-            # Collision sensors
-            collision = any(self.collision_sensors.values())
-            state += [collision]
-            state_dict['in_collision'] = float(collision)
-        
-        elif self.rs_mode == '1object':
+        if self.rs_mode == '1object':
             # Object 0 Pose 
             object_0_trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.objects_frame[0], rospy.Time(0))
             object_0_trans_list = self._transform_to_list(object_0_trans)
             state += object_0_trans_list
             state_dict.update(self._get_transform_dict(object_0_trans, 'object_0_to_ref'))
-
+        
+        if True: # self.rs_mode == 'only_robot':
             # Joint Positions and Joint Velocities
-            joint_position = copy.deepcopy(self.joint_position)
-            joint_velocity = copy.deepcopy(self.joint_velocity)
-            joint_effort = copy.deepcopy(self.joint_effort)
+
             state += self._get_joint_ordered_value_list(joint_position)
             state += self._get_joint_ordered_value_list(joint_velocity)
             state += self._get_joint_ordered_value_list(joint_effort)
             state_dict.update(self._get_joint_states_dict(joint_position, joint_velocity, joint_effort))
 
             # ee to ref transform
-            ee_to_ref_trans = self.tf2_buffer.lookup_transform(self.reference_frame, self.ee_frame, rospy.Time(0))
-            ee_to_ref_trans_list = self._transform_to_list(ee_to_ref_trans)
+
             state += ee_to_ref_trans_list
             state_dict.update(self._get_transform_dict(ee_to_ref_trans, 'ee_to_ref'))
         
@@ -164,9 +241,23 @@ class PandaRosBridge:
         msg = robot_server_pb2.State(state=state, state_dict=state_dict, success= True)
 
         return msg
-
+    
+        
     def set_state(self, state_msg):
+        if self.custom_joint_states_handler:
+            self.keep_history = False
+            self.joint_vel_history = deque([])
+            self.joint_eff_history = deque([])
+
         # Set environment state
+        # TODO replace the hardcoded numbers here
+        if self.real_robot:  # When using real robot. the velocity message should not suddenly stop publishing.
+            for i in range(100):
+                self.arm.set_joint_velocities(self.zero_vel_cmd)
+                # print(self.zero_vel_cmd)      
+                self.control_rate.sleep()
+
+        rospy.sleep(3.0)  # Only use in velocity mode. when using high publish rate (400Hz)
         state = state_msg.state
 
         # Clear reset Event
@@ -187,10 +278,7 @@ class PandaRosBridge:
                 rospy.set_param(param, state_msg.float_params[param])
 
         positions = self._get_joint_position_dict_from_rs_dict(state_msg.state_dict)
-        reset_steps = int(15.0 / self.sleep_time)
 
-        # for _ in range(reset_steps):
-        #     self.arm.set_joint_positions(positions)
         self.arm.move_to_joint_positions(positions, use_moveit=False)
 
         if not self.real_robot:
@@ -204,55 +292,123 @@ class PandaRosBridge:
             self.move_objects_pub.publish(msg)
 
         self.reset.set()
-        rospy.sleep(self.control_period)
+        self.control_rate.sleep()
 
+        self.keep_history = True
         return True
 
-    def publish_env_arm_cmd(self, position_cmd):
-        """Publish environment JointTrajectory msg.
+    def send_action(self, action): # adding action modes
 
-        Publish JointTrajectory message to the env_command topic.
+        if self.action_mode == 'abs_pos':
+            executed_action = self.publish_env_arm_cmd_abs_pos(action)
+        
+        elif self.action_mode == 'delta_pos':
+            executed_action = self.publish_env_arm_cmd_delta_pos(action)
 
-        Args:
-            position_cmd (type): Description of parameter `positions`.
+        elif self.action_mode == 'abs_vel':
+            executed_action = self.publish_env_arm_cmd_abs_vel(action)
 
-        Returns:
-            type: Description of returned object.
+        elif self.action_mode == 'delta_vel':
+            executed_action = self.publish_env_arm_cmd_delta_vel(action)
 
-        """
+        return executed_action
 
-        #     msg = JointTrajectory()
-        #     msg.header = Header()
-        #     msg.joint_names = copy.deepcopy(self.arm._joint_names)
-        #     msg.points = [JointTrajectoryPoint()]
-        #     msg.points[0].positions = position_cmd
-        #     duration = []
-            # for i in range(len(msg.joint_names)):
-                # TODO check if the index is in bounds
-                # !!! Be careful with panda_state index here
-                # pos = self.panda_state[i]
-                # cmd = position_cmd[i]
-                # max_vel = self.panda_joint_vel_limits[i]
-                # temp_duration = max(abs(cmd - pos) / max_vel, self.min_traj_duration)
-                # duration.append(temp_duration)
 
-            # msg.points[0].time_from_start = rospy.Duration.from_sec(max(duration))
-            # print(msg)
-            
-            # self.arm_cmd_pub.publish(msg)
+    def publish_env_arm_cmd_abs_pos(self, abs_pos_cmd):
+        abs_pos_cmd_dict = self._transform_panda_list_to_dict(abs_pos_cmd[0:7])
+        self.execute_abs_pos_cmd(abs_pos_cmd_dict)
+        return abs_pos_cmd
+
+
+    def publish_env_arm_cmd_delta_pos(self, delta_pos_cmd): # Joint Position Controller difference mode
+        position_cmd = []
+        joint_position = copy.deepcopy(self.get_joint_position())
+        for idx, name in enumerate(self.arm._joint_names):
+            pos = joint_position[name]
+            cmd = delta_pos_cmd[idx]
+            position_cmd.append(pos + cmd)
+        abs_pos_cmd_dict = self._transform_panda_list_to_dict(position_cmd[0:7])
+        self.execute_abs_pos_cmd(abs_pos_cmd_dict)
+        return delta_pos_cmd
     
 
-        transformed_j_pos = self._transform_panda_list_to_dict(position_cmd[0:7])
-        self.arm.set_joint_positions(transformed_j_pos)
-        rospy.sleep(self.control_period)
-        return position_cmd
+    def execute_abs_pos_cmd(self, abs_pos_cmd_dict):
 
+        if self.pos_action_impl == 'set_pos_vel':                      
+            # this approach seems to be equivalent to the default set_position approach due to the lack of meaningful velocity values
+            abs_pos_cmd_list = [abs_pos_cmd_dict[name] for name in self.arm._joint_names]
+            self.arm.set_joint_positions_velocities(abs_pos_cmd_list, self.zero_vel)
+            self.control_rate.sleep()
+
+        elif self.pos_action_impl == 'set_pos_subsampling':
+            # set_position but in smaller steps; sleeping is included
+            self.set_position_subsampled(abs_pos_cmd_dict)
+
+        else:
+            # elif self.pos_action_impl == 'set_pos':  
+
+            # default impl - too high accelerations!
+            self.arm.set_joint_positions(abs_pos_cmd_dict)
+            self.control_rate.sleep()
+
+
+    def set_position_subsampled(self, abs_pos_cmd: dict):
+        cmd = copy.deepcopy(abs_pos_cmd)
+
+        start_pos = copy.deepcopy(self.get_joint_position())
+        dest_pos = abs_pos_cmd
+
+        # we interpolate between start pos and commanded pos during the nonstatic subsamples, then follow with repetitions of the commanded pos in the static subsamples
+        nonstatic_subsamples = max(self.subsampling_factor - self.static_subsamples, 1)
+
+        for i in range(self.subsampling_factor):
+            for joint_name in self.arm._joint_names:
+                # dest_weight goes up with i, is always > 0 and remains at 1 when reaching nonstatic_subsamples
+                dest_weight = min(float(i+1) / nonstatic_subsamples, 1)
+                # start_weight goes down
+                start_weight = 1.0 - dest_weight
+                cmd[joint_name] = start_pos[joint_name] * start_weight + dest_pos[joint_name] * dest_weight
+            self.arm.set_joint_positions(cmd)
+            self.subsample_control_rate.sleep()
+
+
+    def publish_env_arm_cmd_abs_vel(self, abs_vel_cmd):
+        velocity_cmd = []
+        for idx, name in enumerate(self.arm._joint_names):
+            vel_cmd_i = abs_vel_cmd[idx]
+            if abs(vel_cmd_i) > self.velocity_limits[idx]:
+                vel_cmd_sign = np.sign(vel_cmd_i)
+                vel_cmd_i = vel_cmd_sign * self.velocity_limits[idx]
+            velocity_cmd.append(vel_cmd_i)      
+        abs_vel_cmd_dict = self._transform_panda_list_to_dict(velocity_cmd[0:7])
+        self.arm.set_joint_velocities(abs_vel_cmd_dict)
+        self.control_rate.sleep()     
+        return abs_vel_cmd
+
+    def publish_env_arm_cmd_delta_vel(self, delta_vel_cmd):  # Velocity controller in difference mode.
+        velocity_cmd = []
+        joint_velocity = copy.deepcopy(self.get_joint_velocity())
+        for idx, name in enumerate(self.arm._joint_names):
+            vel = joint_velocity[name] # if idx == 0 else 0
+            cmd = delta_vel_cmd[idx]
+            vel_cmd_i = vel + cmd
+            if abs(vel_cmd_i) > self.velocity_limits[idx]:
+                vel_cmd_sign = np.sign(vel_cmd_i)
+                vel_cmd_i = vel_cmd_sign * self.velocity_limits[idx]
+            velocity_cmd.append(vel_cmd_i)      
+        abs_vel_cmd_dict = self._transform_panda_list_to_dict(velocity_cmd[0:7])
+        self.arm.set_joint_velocities(abs_vel_cmd_dict)
+        self.control_rate.sleep()
+        return delta_vel_cmd
+       
+        
     def _transform_panda_list_to_dict(self, panda_list):
         transformed_dict = {}
         for idx, value in enumerate(panda_list):
             current_joint_name = self.arm._joint_names[idx]
             transformed_dict[current_joint_name] = value
         return transformed_dict
+
 
     def _get_joint_states_dict(self, joint_position, joint_velocity, joint_effort):
 
@@ -306,14 +462,6 @@ class PandaRosBridge:
         
         return [joint_values[name] for name in self.arm._joint_names]
 
-    def _get_joint_velocity_limits(self):
-
-        absolute_joint_velocity_limits = {'panda_joint1': 2.1750, 'panda_joint2': 2.1750, 'panda_joint3': 2.1750, 'panda_joint4': 2.1750, \
-                                          'panda_joint5': 2.6100, 'panda_joint6': 2.6100, 'panda_joint7': 2.6100,}
-    
-
-        return {name: self.max_velocity_scale_factor * absolute_joint_velocity_limits[name] for name in self.arm._joint_names}
-
     def _get_joint_position_dict_from_rs_dict(self, rs_dict):
 
         d = {}
@@ -325,8 +473,8 @@ class PandaRosBridge:
         d['panda_joint6'] = rs_dict['joint6_position']
         d['panda_joint7'] = rs_dict['joint7_position']
     
-        return d
-    
+        return d 
+
     def _on_link1_collision(self, data):
         if data.states == []:
             pass

@@ -1,0 +1,53 @@
+<?xml version="1.0" ?>
+<sdf version="1.5">
+  <model name='isaac_demotable_cuboid'>
+    <static>true</static>
+    <link name="link">
+      <pose>0 0 0.0 0 0 0</pose>
+      <inertial>
+        <mass>1.0</mass>
+        <inertia>
+          <ixx>0.27</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>0.27</iyy>
+          <iyz>0</iyz>
+          <izz>0.27</izz>
+        </inertia>
+      </inertial>
+      <self_collide>0</self_collide>
+      <kinematic>1</kinematic>
+      <gravity>0</gravity>
+
+      <collision name="collision">
+        <pose>.4 0 -.5 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>1.27 .9 1</size>
+          </box>
+        </geometry>
+        <surface>
+          <contact>
+            <collide_without_contact>1</collide_without_contact>
+          </contact>
+        </surface>
+      </collision>
+
+      <visual name="visual">
+        <pose>.4 0 -.4999 0 0 0</pose> <!-- actually z -.5, but differ a bit to avoid z fighting with ground plane in default pose-->
+        <geometry>
+          <box>
+            <size>1.27 .9 1</size>
+          </box>
+        </geometry>
+        <material>
+          <script>
+            <uri>file://media/materials/scripts/gazebo.material</uri>
+            <name>Gazebo/Black</name>
+          </script>
+        </material>
+      </visual>
+
+    </link>
+  </model>
+</sdf>
