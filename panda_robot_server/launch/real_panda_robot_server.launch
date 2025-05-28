@@ -12,7 +12,7 @@
     <arg name="ee_frame" default="panda_hand" doc="frame to use as the end effector" />
     <arg name="rs_mode"  default="only_robot" doc="Defines the working mode of the Robot Server, this influences the RS state content"/>
     <arg name="action_mode"  default="delta_pos" doc="Defines the action mode of the Robot Server, this influences the command sent to the robot"/>
-    <arg name="pos_action_impl" default="set_pos" doc="Defines the implementation of position-based action modes, options: set_pos (default), set_pos_vel, set_pos_subsampling, move_to_joint_pos"/>
+    <arg name="pos_action_impl" default="set_pos" doc="Defines the implementation of position-based action modes, options: set_pos (default), set_pos_vel, set_pos_subsampling"/>
     <arg name="subsampling_factor" default="1" doc="split position commands into that many sub commands"/>
     <arg name="static_subsamples" default="1" doc="how many of the sub commands at the end should be equal to the command pose (effective maximum: subsampling factor - 1)"/>
     <arg name="custom_joint_states_handler" default="False" doc="whether to keep track of joint states ourselves rather than delegating to arm interface" />

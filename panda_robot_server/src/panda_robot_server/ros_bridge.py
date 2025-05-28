@@ -360,21 +360,6 @@ class PandaRosBridge:
             # set_position but in smaller steps; sleeping is included
             self.set_position_subsampled(abs_pos_cmd_dict)
 
-        elif self.pos_action_impl == 'move_to_joint_pos':
-            
-            # rospy.logwarn("pos action impl move_to_joint_pos")
-
-            # smooth movement, but has problems adhering to the timeout
-            # (even after removing the hardcoded sleep in the method implementation - can only work for a typical action rate if that is commented out!)
-            timeout = self.control_rate.remaining().to_sec()
-            rospy.logwarn("move command timeout: " + str(timeout))
-            if timeout > 0:
-            # this approach cannot handle the short timeouts resulting from a usual control rate:
-                self.arm.move_to_joint_positions(abs_pos_cmd_dict, timeout=timeout, use_moveit=False)            
-        
-            # maintain control rate (should sleep for 0 almost always)
-            self.control_rate.sleep()
-
         else:
             # elif self.pos_action_impl == 'set_pos':  
              
