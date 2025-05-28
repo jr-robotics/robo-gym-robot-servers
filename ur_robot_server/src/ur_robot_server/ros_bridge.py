@@ -33,15 +33,16 @@ class UrRosBridge:
 
         # Robot control
         self.arm_cmd_pub = rospy.Publisher('env_arm_command', JointTrajectory, queue_size=1) # joint_trajectory_command_handler publisher
-        self.sleep_time = (1.0 / rospy.get_param("~action_cycle_rate")) - 0.01
-        self.control_period = rospy.Duration.from_sec(self.sleep_time)
+        control_rate_float = rospy.get_param("~action_cycle_rate", 125.0) # default value corresponds to control rate of UR CB3 series
+        self.control_rate = rospy.Rate(control_rate_float)
         self.max_velocity_scale_factor = float(rospy.get_param("~max_velocity_scale_factor"))
         self.min_traj_duration = 0.5 # minimum trajectory duration (s)
         self.joint_velocity_limits = self._get_joint_velocity_limits()
 
         # Robot frames
         self.reference_frame = rospy.get_param("~reference_frame", "base")
-        self.ee_frame = 'tool0'
+        self.ee_frame = rospy.get_param("~ee_frame", "tool0")
+        rospy.loginfo("ee frame: " + self.ee_frame)
 
         # TF2
         self.tf2_buffer = tf2_ros.Buffer()
@@ -264,7 +265,7 @@ class UrRosBridge:
         self.reset.set()
 
         for _ in range(20):
-            rospy.sleep(self.control_period)
+            self.control_rate.sleep()
 
         return 1
 
@@ -307,7 +308,7 @@ class UrRosBridge:
             dur.append(max(abs(cmd-pos)/max_vel, self.min_traj_duration))
         msg.points[0].time_from_start = rospy.Duration.from_sec(max(dur))
         self.arm_cmd_pub.publish(msg)
-        rospy.sleep(self.control_period)
+        self.control_rate.sleep()
         return position_cmd
 
     def publish_env_arm_delta_cmd(self, delta_cmd):
@@ -330,7 +331,7 @@ class UrRosBridge:
         msg.points[0].positions = position_cmd
         msg.points[0].time_from_start = rospy.Duration.from_sec(max(dur))
         self.arm_cmd_pub.publish(msg)
-        rospy.sleep(self.control_period)
+        self.control_rate.sleep()
         return position_cmd
 
     def _on_joint_states(self, msg):

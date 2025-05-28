@@ -1,0 +1,29 @@
+<?xml version="1.0" ?>
+<sdf version="1.5">
+  <world name="default">
+    <!-- A global light source -->
+    <include>
+      <uri>model://sun</uri>
+    </include>
+    <!-- A ground plane -->
+    <include>
+      <uri>model://green_ground</uri>
+      <pose>0 0 -1 0 0 0</pose> <!-- lower so we can see the table -->
+    </include>
+    <!-- Sphere D 50mm -->
+    <include>
+      <uri>model://sphere50_no_collision</uri>
+      <pose>0 0.0 2.0 0 0 0</pose>
+    </include>
+    <!-- Isaac demo table cuboid-->
+    <include>
+      <uri>model://isaac_demotable_cuboid</uri>
+      <pose>0 0 0 0 0 0</pose> <!-- note that this table has its origin at the intended robot mounting point-->
+    </include>
+    <physics type = "ode">
+        <max_step_size>0.001</max_step_size> 
+        <real_time_factor>1</real_time_factor> 
+        <real_time_update_rate>1000</real_time_update_rate>
+    </physics>
+  </world>
+</sdf>

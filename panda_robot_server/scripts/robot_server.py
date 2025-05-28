@@ -28,7 +28,7 @@ class RobotServerServicer(robot_server_pb2_grpc.RobotServerServicer):
 
     def SendAction(self, request, context):
         try:
-            executed_action = self.rosbridge.publish_env_arm_cmd(request.action)
+            executed_action = self.rosbridge.send_action(request.action)
             return robot_server_pb2.Success(success=1)
         except:
             rospy.logerr('Failed to send action', exc_info=True)
@@ -36,12 +36,19 @@ class RobotServerServicer(robot_server_pb2_grpc.RobotServerServicer):
         
     def SendActionGetState(self, request, context):
         try:
-            executed_action = self.rosbridge.publish_env_arm_cmd(request.action)
+            executed_action = self.rosbridge.send_action(request.action)
             return self.rosbridge.get_state()
         except:
             rospy.logerr('Failed to send action and get state', exc_info=True)
             return robot_server_pb2.State(success=0)
-
+        
+    def GetArguments(self, request, context):
+        try:
+            return self.rosbridge.get_arguments()
+        except:
+            rospy.logerr('Failed to get arguments', exc_info=True)
+            return robot_server_pb2.Success(success=0)
+        
 
 def serve():
     rospy.loginfo('Starting Panda Robot Server...')

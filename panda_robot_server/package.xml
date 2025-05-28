@@ -11,9 +11,12 @@
 
   <author email="bernhard.reiterer@joanneum.at">Bernhard Reiterer</author>
   <author email="benjamin.breiling@joanneum.at">Benjamin Breiling</author>
+  <author email="mara.vukadinovic@joanneum.at">Mara Vukadinovic</author>
+  <author email="lorenzo.miarelli@joanneum.at">Lorenzo Miarelli</author>
   <author email="nobody@example.com">Matteo Lucchi</author>
   <author email="nobody@example.com">Friedemann Zindler</author>
   <author email="chrbauer@edu.aau.at">Christian Bauer</author>
+
 
   <buildtool_depend>catkin</buildtool_depend>
 
