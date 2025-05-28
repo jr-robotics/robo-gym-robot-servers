@@ -21,7 +21,8 @@ class RobotServerServicer(robot_server_pb2_grpc.RobotServerServicer):
         try:
             s = self.rosbridge.set_state(state_msg=request)
             return robot_server_pb2.Success(success=1)
-        except:
+        except Exception as ex:
+            rospy.logerr(str(ex))
             return robot_server_pb2.Success(success=0)
 
     def SendAction(self, request, context):

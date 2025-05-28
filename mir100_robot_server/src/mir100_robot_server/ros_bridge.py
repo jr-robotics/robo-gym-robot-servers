@@ -143,7 +143,7 @@ class RosBridge:
         if not self.real_robot:
             # allow gazebo to reposition model
             for _ in range(2):
-                self.control_rate.sleep()
+                self.rate.sleep()
 
         return 1
 
