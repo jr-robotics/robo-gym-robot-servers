@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>panda_robot_server</name>
-  <version>2.1.0</version>
+  <version>2.1.1</version>
   <description>Robot Server for Franka Emika Panda robots</description>
 
   <maintainer email="bernhard.reiterer@joanneum.at">Bernhard Reiterer</maintainer>
