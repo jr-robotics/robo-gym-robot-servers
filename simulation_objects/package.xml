@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>simulation_objects</name>
-  <version>2.1.1</version>
+  <version>2.1.2</version>
   <description>Simulation Objects utilities package</description>
 
   <maintainer email="bernhard.reiterer@joanneum.at">Bernhard Reiterer</maintainer>

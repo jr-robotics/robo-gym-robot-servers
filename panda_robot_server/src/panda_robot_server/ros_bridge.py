@@ -171,7 +171,7 @@ class PandaRosBridge:
         return self.arm.joint_efforts()
     
     def summarize_joint_vel_history(self):
-        result = copy.deepcopy(self.joint_velocity)
+        result = copy.deepcopy(self.get_joint_velocity())
 
         if self.history_limit:
             num_entries = len(self.joint_vel_history)
@@ -183,7 +183,7 @@ class PandaRosBridge:
         return result
 
     def summarize_joint_eff_history(self):
-        result = copy.deepcopy(self.joint_effort)
+        result = copy.deepcopy(self.get_joint_effort())
 
         if self.history_limit:
             num_entries = len(self.joint_eff_history)
