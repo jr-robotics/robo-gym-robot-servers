@@ -177,4 +177,18 @@ The Robot Server uses the standard ROS logging system, you can find the latest l
 
 # Examples
 
-See [example_robot_server](example_robot_server) for a basic implementation of a Robot Server reduced to its minimum form. The example implements a Robot Server for the robot MiR100 with basic functionality and it is meant as a good place to start from to implement a Robot Server for your own robot. 
+See [example_robot_server](example_robot_server) for a basic implementation of a Robot Server reduced to its minimum form. The example implements a Robot Server for the robot MiR100 with basic functionality and it is meant as a good place to start from to implement a Robot Server for your own robot.
+
+# Acknowledgements 
+
+![euROBIN logo](docs/media/eurobin.png)
+
+Partially developed in the course of the 1st Open Call of [euROBIN](https://www.eurobin-project.eu/).
+
+![Funded by the European Union](docs/media/funded_by_the_eu.png)
+
+Funded by the European Union. Views and opinions expressed are however those of the author(s) only and do not necessarily reflect those of the European Union or European Commission. Neither the European Union nor the granting authority can be held responsible for them.
+
+## External contributors
+
+- [Farhang Fadaei](https://github.com/f4rh4ng): Contributed to the development of the initial Panda robot integration.
